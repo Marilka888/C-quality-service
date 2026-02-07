@@ -1,0 +1,5304 @@
+{
+  "total_folders": 138,
+  "ok": 113,
+  "ambiguous": 3,
+  "skipped_small": 22,
+  "errors": 0,
+  "items": [
+    {
+      "folder": "pkg_0001",
+      "status": "SKIP_SMALL",
+      "tz_file": "TZ_Annenkov.pdf",
+      "pmi_file": "PMI_Annenkov.pdf",
+      "tz_chunks": 17,
+      "pmi_chunks": 18,
+      "scoring": [
+        {
+          "file": "PMI_Annenkov.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ_Annenkov.pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0002",
+      "status": "OK",
+      "tz_file": "ТЗ общее.pdf",
+      "pmi_file": "ПМИ общее.pdf",
+      "tz_chunks": 111,
+      "pmi_chunks": 118,
+      "out": "pkg_0002.json",
+      "scoring": [
+        {
+          "file": "ПМИ общее.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ общее.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0003",
+      "status": "OK",
+      "tz_file": "TZ.pdf",
+      "pmi_file": "PMI.pdf",
+      "tz_chunks": 111,
+      "pmi_chunks": 139,
+      "out": "pkg_0003.json",
+      "scoring": [
+        {
+          "file": "PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0004",
+      "status": "OK",
+      "tz_file": "ТЗ Общее Корицкий Асташкина.pdf",
+      "pmi_file": "ПИМИ Общее Корицкий Асташкина.pdf",
+      "tz_chunks": 127,
+      "pmi_chunks": 460,
+      "out": "pkg_0004.json",
+      "scoring": [
+        {
+          "file": "ПИМИ Общее Корицкий Асташкина.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Общее Корицкий Асташкина.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0005",
+      "status": "OK",
+      "tz_file": "ТЗ_Общее.pdf",
+      "pmi_file": "ПМИ_Общее (1).pdf",
+      "tz_chunks": 156,
+      "pmi_chunks": 328,
+      "out": "pkg_0005.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Общее (1).pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Общее.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0006",
+      "status": "OK",
+      "tz_file": "ТЗ ВКР Баранова А общее.pdf",
+      "pmi_file": "ПМИ ВКР Баранова А общее.pdf",
+      "tz_chunks": 165,
+      "pmi_chunks": 141,
+      "out": "pkg_0006.json",
+      "scoring": [
+        {
+          "file": "ПМИ ВКР Баранова А общее.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ ВКР Баранова А общее.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0007",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ_общее (2).pdf",
+      "pmi_file": "ПМИ Баранова.pdf",
+      "tz_chunks": 24,
+      "pmi_chunks": 16,
+      "scoring": [
+        {
+          "file": "ПМИ Баранова.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_общее (2).pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0008",
+      "status": "OK",
+      "tz_file": "БеловицкийВИ-ВКР-ТЗ.pdf",
+      "pmi_file": "БеловицкийВИ-ВКР-ПиМИ.pdf",
+      "tz_chunks": 98,
+      "pmi_chunks": 146,
+      "out": "pkg_0008.json",
+      "scoring": [
+        {
+          "file": "БеловицкийВИ-ВКР-ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "БеловицкийВИ-ВКР-ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0009",
+      "status": "OK",
+      "tz_file": "ТЗ_Анас.pdf",
+      "pmi_file": "ПиМИ_Анас.pdf",
+      "tz_chunks": 154,
+      "pmi_chunks": 219,
+      "out": "pkg_0009.json",
+      "scoring": [
+        {
+          "file": "ПиМИ_Анас.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Анас.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0010",
+      "status": "OK",
+      "tz_file": "╨в╨Ч_╨Ю╨▒╤Й╨╡╨╡_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
+      "pmi_file": "╨Я╨Ь╨Ш_╨Ю╨▒╤Й╨░╤П_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
+      "tz_chunks": 136,
+      "pmi_chunks": 114,
+      "out": "pkg_0010.json",
+      "scoring": [
+        {
+          "file": "╨в╨Ч_╨Ю╨▒╤Й╨╡╨╡_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "╨Я╨Ь╨Ш_╨Ю╨▒╤Й╨░╤П_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0011",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 79,
+      "pmi_chunks": 85,
+      "out": "pkg_0011.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0012",
+      "status": "OK",
+      "tz_file": "ТЗ_БРЯНЦЕВ.pdf",
+      "pmi_file": "ПМИ_БРЯНЦЕВ.pdf",
+      "tz_chunks": 127,
+      "pmi_chunks": 144,
+      "out": "pkg_0012.json",
+      "scoring": [
+        {
+          "file": "ПМИ_БРЯНЦЕВ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_БРЯНЦЕВ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0013",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 86,
+      "pmi_chunks": 91,
+      "out": "pkg_0013.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0014",
+      "status": "OK",
+      "tz_file": "ВКР_ТЗ_Бурштейн.pdf",
+      "pmi_file": "ВКР_ПМИ_Бурштейн.pdf",
+      "tz_chunks": 103,
+      "pmi_chunks": 172,
+      "out": "pkg_0014.json",
+      "scoring": [
+        {
+          "file": "ВКР_ПМИ_Бурштейн.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР_ТЗ_Бурштейн.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0015",
+      "status": "OK",
+      "tz_file": "ТЗ_ВКР_Верников_БПИ197.pdf",
+      "pmi_file": "Программа_и_методика_испытаний_Верников_Марк.pdf",
+      "tz_chunks": 83,
+      "pmi_chunks": 60,
+      "out": "pkg_0015.json",
+      "scoring": [
+        {
+          "file": "Программа_и_методика_испытаний_Верников_Марк.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ВКР_Верников_БПИ197.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0016",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 70,
+      "pmi_chunks": 123,
+      "out": "pkg_0016.json",
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0017",
+      "status": "OK",
+      "tz_file": "ТЗ_Власюк.pdf",
+      "pmi_file": "ПМИ_Власюк.pdf",
+      "tz_chunks": 104,
+      "pmi_chunks": 139,
+      "out": "pkg_0017.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Власюк.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Власюк.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0018",
+      "status": "AMBIGUOUS_TOO_FEW_FILES",
+      "files": [
+        "╨Я╨Ь╨Ш ╨Ю╨▒╤Й╨╡╨╡.pdf"
+      ]
+    },
+    {
+      "folder": "pkg_0019",
+      "status": "OK",
+      "tz_file": "Галанов_ТЗ.pdf",
+      "pmi_file": "Галанов_ПМИ.pdf",
+      "tz_chunks": 193,
+      "pmi_chunks": 143,
+      "out": "pkg_0019.json",
+      "scoring": [
+        {
+          "file": "Галанов_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Галанов_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0020",
+      "status": "SKIP_SMALL",
+      "tz_file": "ВКР ТЗ Галкин.pdf",
+      "pmi_file": "ВКР ПМИ Галкин.pdf",
+      "tz_chunks": 19,
+      "pmi_chunks": 21,
+      "scoring": [
+        {
+          "file": "ВКР ПМИ Галкин.pdf",
+          "dtype": "PMI",
+          "tz_score": 2,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 2,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР ТЗ Галкин.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0021",
+      "status": "OK",
+      "tz_file": "ПУоСК Техническое задание_signed.pdf",
+      "pmi_file": "ПУоСК Программа и методика испытаний_signed.pdf",
+      "tz_chunks": 26,
+      "pmi_chunks": 56,
+      "out": "pkg_0021.json",
+      "scoring": [
+        {
+          "file": "ПУоСК Программа и методика испытаний_signed.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ПУоСК Техническое задание_signed.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0022",
+      "status": "OK",
+      "tz_file": "Техническое Задание ВКР.pdf",
+      "pmi_file": "ПиМИ 2023.pdf",
+      "tz_chunks": 118,
+      "pmi_chunks": 109,
+      "out": "pkg_0022.json",
+      "scoring": [
+        {
+          "file": "ПиМИ 2023.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое Задание ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0023",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 125,
+      "pmi_chunks": 263,
+      "out": "pkg_0023.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0024",
+      "status": "OK",
+      "tz_file": "ТехЗаданиеГорбач.pdf",
+      "pmi_file": "ПМИГорбачДиплом.pdf",
+      "tz_chunks": 115,
+      "pmi_chunks": 258,
+      "out": "pkg_0024.json",
+      "scoring": [
+        {
+          "file": "ПМИГорбачДиплом.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТехЗаданиеГорбач.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0025",
+      "status": "OK",
+      "tz_file": "ТЗ Губайдуллин ВКР.pdf",
+      "pmi_file": "ПМИ Губайдуллин ВКР.pdf",
+      "tz_chunks": 92,
+      "pmi_chunks": 243,
+      "out": "pkg_0025.json",
+      "scoring": [
+        {
+          "file": "ПМИ Губайдуллин ВКР.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Губайдуллин ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 14,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 14,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0026",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "Программа_и_методика_испытаний_общее.pdf",
+      "tz_chunks": 137,
+      "pmi_chunks": 355,
+      "out": "pkg_0026.json",
+      "scoring": [
+        {
+          "file": "Программа_и_методика_испытаний_общее.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0027",
+      "status": "OK",
+      "tz_file": "Приложение А. Техническое задание.pdf",
+      "pmi_file": "Приложение В. Программа и методика испытаний.pdf",
+      "tz_chunks": 22,
+      "pmi_chunks": 51,
+      "out": "pkg_0027.json",
+      "scoring": [
+        {
+          "file": "Приложение А. Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение В. Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0028",
+      "status": "OK",
+      "tz_file": "ТЗ_Дадугин_Егор_Артемович_БПИ197.pdf",
+      "pmi_file": "ПМИ_Дадугин_Егор_Артемович_БПИ197.docx",
+      "tz_chunks": 114,
+      "pmi_chunks": 414,
+      "out": "pkg_0028.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Дадугин_Егор_Артемович_БПИ197.docx",
+          "dtype": "PMI",
+          "tz_score": 1,
+          "pmi_score": 2,
+          "dbg": {
+            "tz_hits": 1,
+            "pmi_hits": 2,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Дадугин_Егор_Артемович_БПИ197.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0029",
+      "status": "OK",
+      "tz_file": "ТЗ_Динеев_ВКР.pdf",
+      "pmi_file": "ПМИ_Динеев_ВКР.pdf",
+      "tz_chunks": 97,
+      "pmi_chunks": 278,
+      "out": "pkg_0029.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Динеев_ВКР.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Динеев_ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0030",
+      "status": "OK",
+      "tz_file": "Сервис для помощи туристам (Серверное приложение). Техническое задание.pdf",
+      "pmi_file": "Сервис для помощи туристам (Серверное приложение). Программа и методика испытаний.pdf",
+      "tz_chunks": 104,
+      "pmi_chunks": 323,
+      "out": "pkg_0030.json",
+      "scoring": [
+        {
+          "file": "Сервис для помощи туристам (Серверное приложение). Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Сервис для помощи туристам (Серверное приложение). Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0031",
+      "status": "OK",
+      "tz_file": "TZ-TogoldorDorzhsuren.pdf",
+      "pmi_file": "PMI.pdf",
+      "tz_chunks": 112,
+      "pmi_chunks": 85,
+      "out": "pkg_0031.json",
+      "scoring": [
+        {
+          "file": "PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ-TogoldorDorzhsuren.pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0032",
+      "status": "OK",
+      "tz_file": "ТЗ - Доскач_signed.pdf",
+      "pmi_file": "ПМИ - Доскач _signed.pdf",
+      "tz_chunks": 111,
+      "pmi_chunks": 303,
+      "out": "pkg_0032.json",
+      "scoring": [
+        {
+          "file": "ПМИ - Доскач _signed.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ - Доскач_signed.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0033",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 68,
+      "pmi_chunks": 99,
+      "out": "pkg_0033.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0034",
+      "status": "OK",
+      "tz_file": "Техническое задание Ефимов Даниил Александрович.pdf",
+      "pmi_file": "Программа и методика испытаний Ефимов Даниил Александрович.pdf",
+      "tz_chunks": 20,
+      "pmi_chunks": 141,
+      "out": "pkg_0034.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний Ефимов Даниил Александрович.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание Ефимов Даниил Александрович.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0035",
+      "status": "OK",
+      "tz_file": "ТЗ Жданкин.pdf",
+      "pmi_file": "ПМИ Жданкин.pdf",
+      "tz_chunks": 72,
+      "pmi_chunks": 102,
+      "out": "pkg_0035.json",
+      "scoring": [
+        {
+          "file": "ПМИ Жданкин.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Жданкин.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0036",
+      "status": "OK",
+      "tz_file": "ТЗ.docx",
+      "pmi_file": "ПМИ.docx",
+      "tz_chunks": 102,
+      "pmi_chunks": 160,
+      "out": "pkg_0036.json",
+      "scoring": [
+        {
+          "file": "ПМИ.docx",
+          "dtype": "PMI",
+          "tz_score": 10,
+          "pmi_score": 11,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 11,
+            "has_tz_title": 1,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.docx",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0037",
+      "status": "OK",
+      "tz_file": "ВКР ТЗ.pdf",
+      "pmi_file": "ВКР ПМИ.pdf",
+      "tz_chunks": 89,
+      "pmi_chunks": 215,
+      "out": "pkg_0037.json",
+      "scoring": [
+        {
+          "file": "ВКР ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0038",
+      "status": "OK",
+      "tz_file": "ВКР ТЗ Ибрагимов К.Л.pdf",
+      "pmi_file": "ВКР ПМИ общее.pdf",
+      "tz_chunks": 171,
+      "pmi_chunks": 534,
+      "out": "pkg_0038.json",
+      "scoring": [
+        {
+          "file": "ВКР ПМИ общее.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР ТЗ Ибрагимов К.Л.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0039",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 83,
+      "pmi_chunks": 229,
+      "out": "pkg_0039.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0040",
+      "status": "SKIP_SMALL",
+      "tz_file": "Калугин-ВКР-ТЗ.pdf",
+      "pmi_file": "Калугин-ВКР-ПиМИ.pdf",
+      "tz_chunks": 83,
+      "pmi_chunks": 11,
+      "scoring": [
+        {
+          "file": "Калугин-ВКР-ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Калугин-ВКР-ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 7,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 7,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0041",
+      "status": "OK",
+      "tz_file": "Техническое задание Карабаш Радимир.pdf",
+      "pmi_file": "Программа и методика испытаний сервер Карабаш Радимир -.pdf",
+      "tz_chunks": 121,
+      "pmi_chunks": 215,
+      "out": "pkg_0041.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний сервер Карабаш Радимир -.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание Карабаш Радимир.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0042",
+      "status": "OK",
+      "tz_file": "Приложение 1. Техническое задание.pdf",
+      "pmi_file": "Приложение 2. ВКР ПиМИ.pdf",
+      "tz_chunks": 25,
+      "pmi_chunks": 31,
+      "out": "pkg_0042.json",
+      "scoring": [
+        {
+          "file": "Приложение 1. Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение 2. ВКР ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0043",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ_Карякин_ВКР.pdf",
+      "pmi_file": "ПМИ_Карякин_ВКР.pdf",
+      "tz_chunks": 14,
+      "pmi_chunks": 35,
+      "scoring": [
+        {
+          "file": "ПМИ_Карякин_ВКР.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Карякин_ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0044",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ_Кириченко_БПИ192.pdf",
+      "pmi_file": "ПМИ_Кириченко_Виктория_БПИ192.pdf",
+      "tz_chunks": 18,
+      "pmi_chunks": 25,
+      "scoring": [
+        {
+          "file": "ПМИ_Кириченко_Виктория_БПИ192.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Кириченко_БПИ192.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0045",
+      "status": "OK",
+      "tz_file": "ТЗКозловАА.pdf",
+      "pmi_file": "ПИМИКозловАА.pdf",
+      "tz_chunks": 149,
+      "pmi_chunks": 121,
+      "out": "pkg_0045.json",
+      "scoring": [
+        {
+          "file": "ПИМИКозловАА.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗКозловАА.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0046",
+      "status": "OK",
+      "tz_file": "ТЗ ВКР.pdf",
+      "pmi_file": "ПиМИ ВКР.pdf",
+      "tz_chunks": 45,
+      "pmi_chunks": 44,
+      "out": "pkg_0046.json",
+      "scoring": [
+        {
+          "file": "ПиМИ ВКР.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0047",
+      "status": "SKIP_SMALL",
+      "tz_file": "Коновалов_ТЗ.pdf",
+      "pmi_file": "Коновалов_ПМИ.pdf",
+      "tz_chunks": 16,
+      "pmi_chunks": 24,
+      "scoring": [
+        {
+          "file": "Коновалов_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Коновалов_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0048",
+      "status": "OK",
+      "tz_file": "КононовТЗ.pdf",
+      "pmi_file": "КононовПМИ.pdf",
+      "tz_chunks": 20,
+      "pmi_chunks": 21,
+      "out": "pkg_0048.json",
+      "scoring": [
+        {
+          "file": "КононовПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "КононовТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0049",
+      "status": "OK",
+      "tz_file": "Техническое_Задание_Коптев.pdf",
+      "pmi_file": "Программа_и_Методика_Испытаний_Коптев.pdf",
+      "tz_chunks": 135,
+      "pmi_chunks": 96,
+      "out": "pkg_0049.json",
+      "scoring": [
+        {
+          "file": "Программа_и_Методика_Испытаний_Коптев.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое_Задание_Коптев.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0050",
+      "status": "OK",
+      "tz_file": "ТЗ_Корицкий_2023_16_05 (1).pdf",
+      "pmi_file": "[ПиМИ] Корицкий 193 вкр .pdf",
+      "tz_chunks": 118,
+      "pmi_chunks": 256,
+      "out": "pkg_0050.json",
+      "scoring": [
+        {
+          "file": "[ПиМИ] Корицкий 193 вкр .pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Корицкий_2023_16_05 (1).pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0051",
+      "status": "OK",
+      "tz_file": "Зверон_ТЗ.docx",
+      "pmi_file": "Зверон_ПМИ.docx",
+      "tz_chunks": 613,
+      "pmi_chunks": 634,
+      "out": "pkg_0051.json",
+      "scoring": [
+        {
+          "file": "Зверон_ПМИ.docx",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Зверон_ТЗ.docx",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0052",
+      "status": "OK",
+      "tz_file": "ТЗ_Кочик.pdf",
+      "pmi_file": "ПМИ_Кочик.pdf",
+      "tz_chunks": 91,
+      "pmi_chunks": 118,
+      "out": "pkg_0052.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Кочик.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Кочик.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0053",
+      "status": "OK",
+      "tz_file": "ТЗ Крылов.pdf",
+      "pmi_file": "ПМИ Крылов.pdf",
+      "tz_chunks": 37,
+      "pmi_chunks": 28,
+      "out": "pkg_0053.json",
+      "scoring": [
+        {
+          "file": "ПМИ Крылов.pdf",
+          "dtype": "OTHER",
+          "tz_score": 0,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 0,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Крылов.pdf",
+          "dtype": "OTHER",
+          "tz_score": 1,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 1,
+            "pmi_hits": 0,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0054",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 19,
+      "pmi_chunks": 15,
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0055",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 308,
+      "pmi_chunks": 380,
+      "out": "pkg_0055.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0056",
+      "status": "OK",
+      "tz_file": "KyznetsovMF193_TZ_ANDROID.pdf",
+      "pmi_file": "KyznetsovMF193_PiMI_ANDROID.pdf",
+      "tz_chunks": 155,
+      "pmi_chunks": 214,
+      "out": "pkg_0056.json",
+      "scoring": [
+        {
+          "file": "KyznetsovMF193_PiMI_ANDROID.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "KyznetsovMF193_TZ_ANDROID.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0057",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 16,
+      "pmi_chunks": 16,
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 7,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 7,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0058",
+      "status": "OK",
+      "tz_file": "ТЗ - Курбанова Сабият.pdf",
+      "pmi_file": "ПМИ - Курбанова Сабият.pdf",
+      "tz_chunks": 96,
+      "pmi_chunks": 278,
+      "out": "pkg_0058.json",
+      "scoring": [
+        {
+          "file": "ПМИ - Курбанова Сабият.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ - Курбанова Сабият.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0059",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 119,
+      "pmi_chunks": 165,
+      "out": "pkg_0059.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0060",
+      "status": "OK",
+      "tz_file": "Приложение_1_Техническое_задание_1.pdf",
+      "pmi_file": "Приложение 2. ВКР ПиМИ.pdf",
+      "tz_chunks": 22,
+      "pmi_chunks": 22,
+      "out": "pkg_0060.json",
+      "scoring": [
+        {
+          "file": "Приложение 2. ВКР ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение_1_Техническое_задание_1.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0061",
+      "status": "SKIP_SMALL",
+      "tz_file": "Яхя  техническое задание.pdf",
+      "pmi_file": "Яхя программа и методика испытаний.pdf",
+      "tz_chunks": 17,
+      "pmi_chunks": 37,
+      "scoring": [
+        {
+          "file": "Яхя  техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Яхя программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0062",
+      "status": "OK",
+      "tz_file": "ТЗ Янкин Neekle.pdf",
+      "pmi_file": "ПМИ Янкин Neekle.pdf",
+      "tz_chunks": 147,
+      "pmi_chunks": 133,
+      "out": "pkg_0062.json",
+      "scoring": [
+        {
+          "file": "ПМИ Янкин Neekle.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Янкин Neekle.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0063",
+      "status": "OK",
+      "tz_file": "Yudina.TZ_4k.pdf",
+      "pmi_file": "Yudina.PMI_4k.pdf",
+      "tz_chunks": 27,
+      "pmi_chunks": 43,
+      "out": "pkg_0063.json",
+      "scoring": [
+        {
+          "file": "Yudina.PMI_4k.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Yudina.TZ_4k.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0064",
+      "status": "OK",
+      "tz_file": "ВКР_ТЗ_Щукин.pdf",
+      "pmi_file": "ВКР_ПМИ_Щукин.pdf",
+      "tz_chunks": 95,
+      "pmi_chunks": 95,
+      "out": "pkg_0064.json",
+      "scoring": [
+        {
+          "file": "ВКР_ПМИ_Щукин.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР_ТЗ_Щукин.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0065",
+      "status": "OK",
+      "tz_file": "Шуликов ТЗ.pdf",
+      "pmi_file": "Шуликов ПМИ.pdf",
+      "tz_chunks": 133,
+      "pmi_chunks": 164,
+      "out": "pkg_0065.json",
+      "scoring": [
+        {
+          "file": "Шуликов ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Шуликов ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0066",
+      "status": "OK",
+      "tz_file": "ТЗ личное Шкляр МИ.pdf",
+      "pmi_file": "ПМИ личное Шкляр МИ.pdf",
+      "tz_chunks": 148,
+      "pmi_chunks": 167,
+      "out": "pkg_0066.json",
+      "scoring": [
+        {
+          "file": "ПМИ личное Шкляр МИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ личное Шкляр МИ.pdf",
+          "dtype": "TZ",
+          "tz_score": 7,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 7,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0067",
+      "status": "OK",
+      "tz_file": "ТЗ_Шевко.pdf",
+      "pmi_file": "ПМИ_Шевко.pdf",
+      "tz_chunks": 27,
+      "pmi_chunks": 63,
+      "out": "pkg_0067.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Шевко.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Шевко.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0068",
+      "status": "OK",
+      "tz_file": "ТЗ_Шакуров_ВКР.pdf",
+      "pmi_file": "ПМИ_Шакуров_ВКР.pdf",
+      "tz_chunks": 139,
+      "pmi_chunks": 76,
+      "out": "pkg_0068.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Шакуров_ВКР.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Шакуров_ВКР.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0069",
+      "status": "OK",
+      "tz_file": "tz.pdf",
+      "pmi_file": "pmi.pdf",
+      "tz_chunks": 112,
+      "pmi_chunks": 90,
+      "out": "pkg_0069.json",
+      "scoring": [
+        {
+          "file": "pmi.pdf",
+          "dtype": "PMI",
+          "tz_score": 4,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 4,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "tz.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0070",
+      "status": "OK",
+      "tz_file": "ТЗ_Чекрий_Павел_ВКР.docx",
+      "pmi_file": "Чекрий_Павел_ПМИ_2023.docx",
+      "tz_chunks": 150,
+      "pmi_chunks": 88,
+      "out": "pkg_0070.json",
+      "scoring": [
+        {
+          "file": "ТЗ_Чекрий_Павел_ВКР.docx",
+          "dtype": "TZ",
+          "tz_score": 24,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 24,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 1,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Чекрий_Павел_ПМИ_2023.docx",
+          "dtype": "PMI",
+          "tz_score": 2,
+          "pmi_score": 8,
+          "dbg": {
+            "tz_hits": 2,
+            "pmi_hits": 8,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0071",
+      "status": "OK",
+      "tz_file": "ТЗ_ВКР_Цыдыпов.pdf",
+      "pmi_file": "ПМИ_ВКР_Цыдыпов.pdf",
+      "tz_chunks": 104,
+      "pmi_chunks": 197,
+      "out": "pkg_0071.json",
+      "scoring": [
+        {
+          "file": "ПМИ_ВКР_Цыдыпов.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ВКР_Цыдыпов.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0072",
+      "status": "OK",
+      "tz_file": "ТЗ_Цуркан_2023.pdf",
+      "pmi_file": "ПМИ_Цуркан_2023.pdf",
+      "tz_chunks": 151,
+      "pmi_chunks": 173,
+      "out": "pkg_0072.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Цуркан_2023.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Цуркан_2023.pdf",
+          "dtype": "TZ",
+          "tz_score": 9,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 9,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0073",
+      "status": "OK",
+      "tz_file": "Техническое задание - Серверная часть Царёв БПИ191.pdf",
+      "pmi_file": "Программа и методика испытаний - Серверная часть Царёв БПИ191.pdf",
+      "tz_chunks": 136,
+      "pmi_chunks": 181,
+      "out": "pkg_0073.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний - Серверная часть Царёв БПИ191.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание - Серверная часть Царёв БПИ191.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0074",
+      "status": "OK",
+      "tz_file": "Техническое_Задание_Хомяков_АА.pdf",
+      "pmi_file": "Программа_и_методика_испытаний_Хомяков_АА.pdf",
+      "tz_chunks": 92,
+      "pmi_chunks": 111,
+      "out": "pkg_0074.json",
+      "scoring": [
+        {
+          "file": "Программа_и_методика_испытаний_Хомяков_АА.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое_Задание_Хомяков_АА.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0075",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 72,
+      "pmi_chunks": 142,
+      "out": "pkg_0075.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0076",
+      "status": "OK",
+      "tz_file": "Дилавар ТЗ.pdf",
+      "pmi_file": "Дилавар ПиМИ.pdf",
+      "tz_chunks": 85,
+      "pmi_chunks": 92,
+      "out": "pkg_0076.json",
+      "scoring": [
+        {
+          "file": "Дилавар ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Дилавар ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0077",
+      "status": "OK",
+      "tz_file": "ТЗ Федченко.pdf",
+      "pmi_file": "ПМИ Федченко.pdf",
+      "tz_chunks": 163,
+      "pmi_chunks": 278,
+      "out": "pkg_0077.json",
+      "scoring": [
+        {
+          "file": "ПМИ Федченко.pdf",
+          "dtype": "TZ",
+          "tz_score": 7,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 7,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ Федченко.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0078",
+      "status": "OK",
+      "tz_file": "Приложение 1. Техническое задание ВКР. Федотова Д.А..pdf",
+      "pmi_file": "Приложение 3. Программа и методика испытаний. Федотова Д.А..pdf",
+      "tz_chunks": 134,
+      "pmi_chunks": 258,
+      "out": "pkg_0078.json",
+      "scoring": [
+        {
+          "file": "Приложение 1. Техническое задание ВКР. Федотова Д.А..pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение 3. Программа и методика испытаний. Федотова Д.А..pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0079",
+      "status": "OK",
+      "tz_file": "ТЗ_ВКР_Удачин_подписано.pdf",
+      "pmi_file": "ПМИ_ВКР_Удачин_подписано.pdf",
+      "tz_chunks": 83,
+      "pmi_chunks": 78,
+      "out": "pkg_0079.json",
+      "scoring": [
+        {
+          "file": "ПМИ_ВКР_Удачин_подписано.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ВКР_Удачин_подписано.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0080",
+      "status": "OK",
+      "tz_file": "Сервис для помощи туристам (Android приложение) - Техническое задание.pdf",
+      "pmi_file": "Сервис для помощи туристам (Android приложение) - Программа и методика испытаний.pdf",
+      "tz_chunks": 104,
+      "pmi_chunks": 222,
+      "out": "pkg_0080.json",
+      "scoring": [
+        {
+          "file": "Сервис для помощи туристам (Android приложение) - Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Сервис для помощи туристам (Android приложение) - Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0081",
+      "status": "OK",
+      "tz_file": "ТЗ_Ткаченко_final.pdf",
+      "pmi_file": "ПМИ_Ткаченко_final.pdf",
+      "tz_chunks": 115,
+      "pmi_chunks": 148,
+      "out": "pkg_0081.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Ткаченко_final.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Ткаченко_final.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0082",
+      "status": "OK",
+      "tz_file": "Техническое задание Терехова.pdf",
+      "pmi_file": "Программа_и_методика_испытаний_Терехова.pdf",
+      "tz_chunks": 86,
+      "pmi_chunks": 125,
+      "out": "pkg_0082.json",
+      "scoring": [
+        {
+          "file": "Программа_и_методика_испытаний_Терехова.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание Терехова.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0083",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ_Татаринов_БПИ193.pdf",
+      "pmi_file": "ПМИ_Татаринов_БПИ193.pdf",
+      "tz_chunks": 21,
+      "pmi_chunks": 19,
+      "scoring": [
+        {
+          "file": "ПМИ_Татаринов_БПИ193.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Татаринов_БПИ193.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0084",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ ВКР Тарасова ДД.pdf",
+      "pmi_file": "ПиМИ ВКР Тарасова ДД.pdf",
+      "tz_chunks": 19,
+      "pmi_chunks": 66,
+      "scoring": [
+        {
+          "file": "ПиМИ ВКР Тарасова ДД.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ ВКР Тарасова ДД.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0085",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТехническоеЗадание.pdf",
+      "pmi_file": "ПрограммаМетодикаИспытаний.pdf",
+      "tz_chunks": 15,
+      "pmi_chunks": 15,
+      "scoring": [
+        {
+          "file": "ПрограммаМетодикаИспытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТехническоеЗадание.pdf",
+          "dtype": "TZ",
+          "tz_score": 9,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 9,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0086",
+      "status": "OK",
+      "tz_file": "ВКР2023_Соколовский_ТЗ.pdf",
+      "pmi_file": "ВКР2023_Соколовский_ПМИ.pdf",
+      "tz_chunks": 25,
+      "pmi_chunks": 22,
+      "out": "pkg_0086.json",
+      "scoring": [
+        {
+          "file": "ВКР2023_Соколовский_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ВКР2023_Соколовский_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0087",
+      "status": "OK",
+      "tz_file": "Снатенков _ТЗ.pdf",
+      "pmi_file": "Снатенков_ПМИ.pdf",
+      "tz_chunks": 128,
+      "pmi_chunks": 101,
+      "out": "pkg_0087.json",
+      "scoring": [
+        {
+          "file": "Снатенков _ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Снатенков_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0088",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 95,
+      "pmi_chunks": 90,
+      "out": "pkg_0088.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0089",
+      "status": "SKIP_SMALL",
+      "tz_file": "tz_skrypnikov.pdf",
+      "pmi_file": "pmi_skrypnikov.pdf",
+      "tz_chunks": 15,
+      "pmi_chunks": 13,
+      "scoring": [
+        {
+          "file": "pmi_skrypnikov.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "tz_skrypnikov.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0090",
+      "status": "OK",
+      "tz_file": "ТЗ ВКР Скрыпина.pdf",
+      "pmi_file": "ПМИ ВКР Скрыпина.pdf",
+      "tz_chunks": 107,
+      "pmi_chunks": 97,
+      "out": "pkg_0090.json",
+      "scoring": [
+        {
+          "file": "ПМИ ВКР Скрыпина.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ ВКР Скрыпина.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0091",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 83,
+      "pmi_chunks": 95,
+      "out": "pkg_0091.json",
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0092",
+      "status": "SKIP_SMALL",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 20,
+      "pmi_chunks": 17,
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0093",
+      "status": "OK",
+      "tz_file": "Техническое_задание_ВКР_Симонович_Иван.pdf",
+      "pmi_file": "Программа и методика испытаний_Симонович_Иван.pdf",
+      "tz_chunks": 31,
+      "pmi_chunks": 59,
+      "out": "pkg_0093.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний_Симонович_Иван.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое_задание_ВКР_Симонович_Иван.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0094",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 132,
+      "pmi_chunks": 176,
+      "out": "pkg_0094.json",
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0095",
+      "status": "SKIP_SMALL",
+      "tz_file": "TZ_signСахаров (1).pdf",
+      "pmi_file": "PMI_signСахаров (1).pdf",
+      "tz_chunks": 16,
+      "pmi_chunks": 26,
+      "scoring": [
+        {
+          "file": "PMI_signСахаров (1).pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ_signСахаров (1).pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0096",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 55,
+      "pmi_chunks": 52,
+      "out": "pkg_0096.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0097",
+      "status": "OK",
+      "tz_file": "Signed_TZ_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
+      "pmi_file": "Signed_PMI_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
+      "tz_chunks": 202,
+      "pmi_chunks": 156,
+      "out": "pkg_0097.json",
+      "scoring": [
+        {
+          "file": "Signed_PMI_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Signed_TZ_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0098",
+      "status": "OK",
+      "tz_file": "Рычков Кирилл, БПИ197, техническое задание.pdf",
+      "pmi_file": "Рычков Кирилл, БПИ197, ПиМИ.pdf",
+      "tz_chunks": 105,
+      "pmi_chunks": 170,
+      "out": "pkg_0098.json",
+      "scoring": [
+        {
+          "file": "Рычков Кирилл, БПИ197, ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Рычков Кирилл, БПИ197, техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0099",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 135,
+      "pmi_chunks": 196,
+      "out": "pkg_0099.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0100",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа методик и испытаний.pdf",
+      "tz_chunks": 36,
+      "pmi_chunks": 40,
+      "out": "pkg_0100.json",
+      "scoring": [
+        {
+          "file": "Программа методик и испытаний.pdf",
+          "dtype": "TZ",
+          "tz_score": 5,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 5,
+            "pmi_hits": 0,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0101",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 98,
+      "pmi_chunks": 49,
+      "out": "pkg_0101.json",
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0102",
+      "status": "OK",
+      "tz_file": "ТЗ-Резуник-2023.pdf",
+      "pmi_file": "ПМИ-Резуник.pdf",
+      "tz_chunks": 191,
+      "pmi_chunks": 147,
+      "out": "pkg_0102.json",
+      "scoring": [
+        {
+          "file": "ПМИ-Резуник.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ-Резуник-2023.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0103",
+      "status": "OK",
+      "tz_file": "тз_вкр_радайкин_2023 (3).pdf",
+      "pmi_file": "ПиМИ Радайкин (2).pdf",
+      "tz_chunks": 101,
+      "pmi_chunks": 104,
+      "out": "pkg_0103.json",
+      "scoring": [
+        {
+          "file": "ПиМИ Радайкин (2).pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "тз_вкр_радайкин_2023 (3).pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0104",
+      "status": "OK",
+      "tz_file": "Текст_ТЗ_Пучин_Максим_Андреевич_подписанный_с_датами.pdf",
+      "pmi_file": "Программа_и_методика_испытаний_Пучин_Максим_Андреевич_подписанная_с_датами.pdf",
+      "tz_chunks": 104,
+      "pmi_chunks": 124,
+      "out": "pkg_0104.json",
+      "scoring": [
+        {
+          "file": "Программа_и_методика_испытаний_Пучин_Максим_Андреевич_подписанная_с_датами.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Текст_ТЗ_Пучин_Максим_Андреевич_подписанный_с_датами.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0105",
+      "status": "OK",
+      "tz_file": "ТЗ_ВКР_ПоповОО196.pdf",
+      "pmi_file": "ПМИ_ВКР_ПоповОО196.pdf",
+      "tz_chunks": 130,
+      "pmi_chunks": 167,
+      "out": "pkg_0105.json",
+      "scoring": [
+        {
+          "file": "ПМИ_ВКР_ПоповОО196.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ВКР_ПоповОО196.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0106",
+      "status": "SKIP_SMALL",
+      "tz_file": "Попов Виталий БПИ194 ТЗ.pdf",
+      "pmi_file": "Попов Виталий БПИ194 ПиМИ.pdf",
+      "tz_chunks": 28,
+      "pmi_chunks": 19,
+      "scoring": [
+        {
+          "file": "Попов Виталий БПИ194 ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Попов Виталий БПИ194 ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0107",
+      "status": "OK",
+      "tz_file": "Popov_TZ.pdf",
+      "pmi_file": "Popov_PMI.pdf",
+      "tz_chunks": 154,
+      "pmi_chunks": 89,
+      "out": "pkg_0107.json",
+      "scoring": [
+        {
+          "file": "Popov_PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Popov_TZ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0108",
+      "status": "SKIP_SMALL",
+      "tz_file": "TZ_PomytkinaAnna_BSE194.pdf",
+      "pmi_file": "PMI_PomytkinaAnna_BSE194.pdf",
+      "tz_chunks": 19,
+      "pmi_chunks": 18,
+      "scoring": [
+        {
+          "file": "PMI_PomytkinaAnna_BSE194.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ_PomytkinaAnna_BSE194.pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0109",
+      "status": "OK",
+      "tz_file": "ТЗ_Полянская.pdf",
+      "pmi_file": "ПМИ_Полянская.pdf",
+      "tz_chunks": 25,
+      "pmi_chunks": 39,
+      "out": "pkg_0109.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Полянская.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Полянская.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0110",
+      "status": "OK",
+      "tz_file": "Поволоцкий_ТЗ.pdf",
+      "pmi_file": "Поволоцкий_Виктор_ПМИ.pdf",
+      "tz_chunks": 37,
+      "pmi_chunks": 32,
+      "out": "pkg_0110.json",
+      "scoring": [
+        {
+          "file": "Поволоцкий_Виктор_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Поволоцкий_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0111",
+      "status": "OK",
+      "tz_file": "ТЗ_ПИКЕ_КИРИЛЛ (3).pdf",
+      "pmi_file": "ПМИ_ПИКЕ_КИРИЛЛ (1).pdf",
+      "tz_chunks": 77,
+      "pmi_chunks": 92,
+      "out": "pkg_0111.json",
+      "scoring": [
+        {
+          "file": "ПМИ_ПИКЕ_КИРИЛЛ (1).pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ПИКЕ_КИРИЛЛ (3).pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0112",
+      "status": "OK",
+      "tz_file": "ТЗ_Петропавловский.pdf",
+      "pmi_file": "ПМИ_Петропавловский.pdf",
+      "tz_chunks": 93,
+      "pmi_chunks": 108,
+      "out": "pkg_0112.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Петропавловский.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Петропавловский.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0113",
+      "status": "OK",
+      "tz_file": "Perevoznikova_TZ.pdf",
+      "pmi_file": "Perevoznikova_PMI.pdf",
+      "tz_chunks": 157,
+      "pmi_chunks": 116,
+      "out": "pkg_0113.json",
+      "scoring": [
+        {
+          "file": "Perevoznikova_PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Perevoznikova_TZ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0114",
+      "status": "AMBIGUOUS_CLASSIFY",
+      "files": [
+        "ПИМИ_ПАЩЕНКО.docx",
+        "ТЗ_ПАЩЕНКО.docx"
+      ],
+      "scoring": [
+        {
+          "file": "ПИМИ_ПАЩЕНКО.docx",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 10,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 10,
+            "has_tz_title": 1,
+            "has_pmi_title": 1,
+            "has_gost_19201": 1,
+            "has_gost_19301": 1
+          }
+        },
+        {
+          "file": "ТЗ_ПАЩЕНКО.docx",
+          "dtype": "TZ",
+          "tz_score": 9,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 9,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0115",
+      "status": "OK",
+      "tz_file": "Техническое задание.docx",
+      "pmi_file": "Программа и методика испытаний.docx",
+      "tz_chunks": 115,
+      "pmi_chunks": 93,
+      "out": "pkg_0115.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.docx",
+          "dtype": "TZ",
+          "tz_score": 2,
+          "pmi_score": 1,
+          "dbg": {
+            "tz_hits": 2,
+            "pmi_hits": 1,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.docx",
+          "dtype": "TZ",
+          "tz_score": 9,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 9,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0116",
+      "status": "OK",
+      "tz_file": "Новоселов_ТЗ.pdf",
+      "pmi_file": "Новоселов_ПИМИ.pdf",
+      "tz_chunks": 100,
+      "pmi_chunks": 135,
+      "out": "pkg_0116.json",
+      "scoring": [
+        {
+          "file": "Новоселов_ПИМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Новоселов_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0117",
+      "status": "OK",
+      "tz_file": "Ни_ТЗ_2023.pdf",
+      "pmi_file": "Ни_ПМИ_2023.pdf",
+      "tz_chunks": 85,
+      "pmi_chunks": 137,
+      "out": "pkg_0117.json",
+      "scoring": [
+        {
+          "file": "Ни_ПМИ_2023.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Ни_ТЗ_2023.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0118",
+      "status": "OK",
+      "tz_file": "TZ_SERVER.pdf",
+      "pmi_file": "ПМИ PhotoWorld.pdf",
+      "tz_chunks": 131,
+      "pmi_chunks": 240,
+      "out": "pkg_0118.json",
+      "scoring": [
+        {
+          "file": "TZ_SERVER.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ПМИ PhotoWorld.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0119",
+      "status": "OK",
+      "tz_file": "Neugodnikov_TZ.pdf",
+      "pmi_file": "Neugodnikov_PMI.pdf",
+      "tz_chunks": 151,
+      "pmi_chunks": 100,
+      "out": "pkg_0119.json",
+      "scoring": [
+        {
+          "file": "Neugodnikov_PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Neugodnikov_TZ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0120",
+      "status": "OK",
+      "tz_file": "ТЗ-.pdf",
+      "pmi_file": "ПМИ-И.pdf",
+      "tz_chunks": 158,
+      "pmi_chunks": 94,
+      "out": "pkg_0120.json",
+      "scoring": [
+        {
+          "file": "ПМИ-И.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ-.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0121",
+      "status": "OK",
+      "tz_file": "ТЗ_Мунтян.pdf",
+      "pmi_file": "ПМИ_Мунтян.pdf",
+      "tz_chunks": 87,
+      "pmi_chunks": 91,
+      "out": "pkg_0121.json",
+      "scoring": [
+        {
+          "file": "ПМИ_Мунтян.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_Мунтян.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0122",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 107,
+      "pmi_chunks": 172,
+      "out": "pkg_0122.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0123",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 80,
+      "pmi_chunks": 100,
+      "out": "pkg_0123.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "OTHER",
+          "tz_score": 0,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 0,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 5,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 5,
+            "pmi_hits": 0,
+            "has_tz_title": 0,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0124",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 18,
+      "pmi_chunks": 20,
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 6,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 6,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 8,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 8,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0125",
+      "status": "OK",
+      "tz_file": "ТЗ_007.pdf",
+      "pmi_file": "ПМИ_003.pdf",
+      "tz_chunks": 139,
+      "pmi_chunks": 103,
+      "out": "pkg_0125.json",
+      "scoring": [
+        {
+          "file": "ПМИ_003.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_007.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0126",
+      "status": "OK",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 49,
+      "pmi_chunks": 80,
+      "out": "pkg_0126.json",
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0127",
+      "status": "OK",
+      "tz_file": "Приложение Б. Техническое задание - общее.pdf",
+      "pmi_file": "Приложение Д. Программа и методика испытаний - общий.pdf",
+      "tz_chunks": 150,
+      "pmi_chunks": 534,
+      "out": "pkg_0127.json",
+      "scoring": [
+        {
+          "file": "Приложение Б. Техническое задание - общее.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение Д. Программа и методика испытаний - общий.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0128",
+      "status": "OK",
+      "tz_file": "Меньщиков_ТЗ.pdf",
+      "pmi_file": "Меньщиков_ПМИ.pdf",
+      "tz_chunks": 108,
+      "pmi_chunks": 124,
+      "out": "pkg_0128.json",
+      "scoring": [
+        {
+          "file": "Меньщиков_ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Меньщиков_ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0129",
+      "status": "SKIP_SMALL",
+      "tz_file": "МелехинТЗ.pdf",
+      "pmi_file": "МелехинПМИ.pdf",
+      "tz_chunks": 20,
+      "pmi_chunks": 12,
+      "scoring": [
+        {
+          "file": "МелехинПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "МелехинТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 12,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 12,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0130",
+      "status": "AMBIGUOUS_TOO_FEW_FILES",
+      "files": [
+        "ВКР.pdf"
+      ]
+    },
+    {
+      "folder": "pkg_0131",
+      "status": "SKIP_SMALL",
+      "tz_file": "Техническое задание.pdf",
+      "pmi_file": "Программа и методика испытаний.pdf",
+      "tz_chunks": 27,
+      "pmi_chunks": 17,
+      "scoring": [
+        {
+          "file": "Программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0132",
+      "status": "OK",
+      "tz_file": "ТЗ.pdf",
+      "pmi_file": "ПМИ.pdf",
+      "tz_chunks": 20,
+      "pmi_chunks": 31,
+      "out": "pkg_0132.json",
+      "scoring": [
+        {
+          "file": "ПМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0133",
+      "status": "OK",
+      "tz_file": "Malyshenko_TZ.pdf",
+      "pmi_file": "Malyshenko_PMI.pdf",
+      "tz_chunks": 21,
+      "pmi_chunks": 48,
+      "out": "pkg_0133.json",
+      "scoring": [
+        {
+          "file": "Malyshenko_PMI.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Malyshenko_TZ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0134",
+      "status": "SKIP_SMALL",
+      "tz_file": "ТЗ_ВКР_Лямзин_Дмитрий192.pdf",
+      "pmi_file": "ПМИ_Лямзин_Дмитрий_ВКР_192.pdf",
+      "tz_chunks": 19,
+      "pmi_chunks": 25,
+      "scoring": [
+        {
+          "file": "ПМИ_Лямзин_Дмитрий_ВКР_192.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "ТЗ_ВКР_Лямзин_Дмитрий192.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0135",
+      "status": "OK",
+      "tz_file": "TZ-Lozhkin.docx",
+      "pmi_file": "PMI_Lozhkin.pdf",
+      "tz_chunks": 156,
+      "pmi_chunks": 63,
+      "out": "pkg_0135.json",
+      "scoring": [
+        {
+          "file": "PMI_Lozhkin.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "TZ-Lozhkin.docx",
+          "dtype": "TZ",
+          "tz_score": 20,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 20,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0136",
+      "status": "OK",
+      "tz_file": "Логунова ТЗ подписанное.pdf",
+      "pmi_file": "Логунова ПИМИ подписанное.pdf",
+      "tz_chunks": 117,
+      "pmi_chunks": 176,
+      "out": "pkg_0136.json",
+      "scoring": [
+        {
+          "file": "Логунова ПИМИ подписанное.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Логунова ТЗ подписанное.pdf",
+          "dtype": "TZ",
+          "tz_score": 14,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 14,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0137",
+      "status": "OK",
+      "tz_file": "Абдельсалам Шади, БПИ197, техническое задание.pdf",
+      "pmi_file": "Абдельсалам Шади, БПИ197, программа и методика испытаний.pdf",
+      "tz_chunks": 138,
+      "pmi_chunks": 93,
+      "out": "pkg_0137.json",
+      "scoring": [
+        {
+          "file": "Абдельсалам Шади, БПИ197, программа и методика испытаний.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Абдельсалам Шади, БПИ197, техническое задание.pdf",
+          "dtype": "TZ",
+          "tz_score": 11,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 11,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    },
+    {
+      "folder": "pkg_0138",
+      "status": "OK",
+      "tz_file": "Приложение 1. ТЗ.pdf",
+      "pmi_file": "ПиМИ.pdf",
+      "tz_chunks": 25,
+      "pmi_chunks": 41,
+      "out": "pkg_0138.json",
+      "scoring": [
+        {
+          "file": "ПиМИ.pdf",
+          "dtype": "PMI",
+          "tz_score": 0,
+          "pmi_score": 7,
+          "dbg": {
+            "tz_hits": 0,
+            "pmi_hits": 7,
+            "has_tz_title": 0,
+            "has_pmi_title": 1,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        },
+        {
+          "file": "Приложение 1. ТЗ.pdf",
+          "dtype": "TZ",
+          "tz_score": 10,
+          "pmi_score": 0,
+          "dbg": {
+            "tz_hits": 10,
+            "pmi_hits": 0,
+            "has_tz_title": 1,
+            "has_pmi_title": 0,
+            "has_gost_19201": 0,
+            "has_gost_19301": 0
+          }
+        }
+      ]
+    }
+  ]
+}
