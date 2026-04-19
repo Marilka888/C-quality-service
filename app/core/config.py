@@ -104,7 +104,7 @@ class CoverageLLMConfig(BaseModel):
 
     enabled: bool = False
     backend: str = "ollama"  # "ollama" | "disabled"
-    model_name: str = "llama3:8b"
+    model_name: str = "qwen2.5:3b"
     prompt_version: str = "v1"
     timeout: int = 120
 
@@ -121,6 +121,12 @@ class CoverageConfig(BaseModel):
     llm: CoverageLLMConfig = Field(default_factory=CoverageLLMConfig)
     embedding: CoverageEmbeddingConfig = Field(default_factory=CoverageEmbeddingConfig)
     enable_rule_verification: bool = True
+    # "auto"     — candidates → fragments → sections, first non-empty wins
+    # "sections" — only trust sections hierarchy; re-segment text inside each
+    #              requirement-section ourselves (prepare-service fragment
+    #              splits are ignored)
+    # "candidates" / "fragments" — legacy paths for explicit control
+    requirement_extraction: str = "auto"
 
     @classmethod
     def from_options(cls, options: Dict) -> "CoverageConfig":
@@ -135,4 +141,8 @@ class CoverageConfig(BaseModel):
             config.enable_rule_verification = bool(options["enable_rule_verification"])
         if "min_retrieval_score" in options:
             config.retrieval.min_retrieval_score = float(options["min_retrieval_score"])
+        if "requirement_extraction" in options:
+            mode = str(options["requirement_extraction"]).lower()
+            if mode in {"auto", "sections", "candidates", "fragments"}:
+                config.requirement_extraction = mode
         return config

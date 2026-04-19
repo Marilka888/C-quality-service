@@ -12,6 +12,7 @@ import uuid
 from typing import Dict, List, Optional, Tuple
 
 from app.core.logging import get_logger
+from app.core.config import CoverageConfig
 from app.domain.c_quality_enums import Modality, RequirementType
 from app.domain.c_quality_models import Constraint, RequirementUnit
 
@@ -111,6 +112,32 @@ _SECTION_NUM_RE = re.compile(r"^\s*(\d+)(?:[.\s]|$)")
 _REQUIREMENT_SECTION_NUMBERS = {4}          # Section 4: Требования к программе
 _NON_REQUIREMENT_SECTION_NUMBERS = {1, 2, 3}  # Обозначения, Введение, Назначение
 
+# Keywords in section titles that mark a section as carrying requirements.
+# Matched case-insensitively against whole-word substrings of the title.
+_REQUIREMENT_TITLE_KEYWORDS = (
+    "требовани",           # требования, требованиям, требований
+    "характеристик",        # характеристики надёжности / производительности
+    "функциональн",         # функциональные возможности / требования
+    "назначен",             # назначение и функции (часто содержит MUST)
+    "условия применени",
+    "состав и параметр",
+    "режимы работы",
+)
+
+# Keywords that mark a section as clearly non-requirement.
+_NON_REQUIREMENT_TITLE_KEYWORDS = (
+    "введени",
+    "термин",
+    "обозначени",
+    "сокращени",
+    "перечень",
+    "библиограф",
+    "литератур",
+    "содержани",
+    "оглавлени",
+    "приложени",          # ГОСТ: приложения как правило — справочные
+)
+
 
 def _leading_section_number(section_id: str) -> Optional[int]:
     m = _SECTION_NUM_RE.match(section_id)
@@ -133,6 +160,99 @@ def _is_requirement_section(section_id: Optional[str]) -> Optional[bool]:
     if num in _NON_REQUIREMENT_SECTION_NUMBERS:
         return False
     return None
+
+
+def _is_requirement_section_by_title(title: Optional[str]) -> Optional[bool]:
+    """
+    Title-based requirement-section classifier. Returns True/False/None with
+    the same semantics as `_is_requirement_section`. Used when section
+    numbering does not follow GOST TZ conventions (e.g. GOST 19 specs,
+    internal templates).
+    """
+    if not title:
+        return None
+    lower = title.lower()
+    for kw in _NON_REQUIREMENT_TITLE_KEYWORDS:
+        if kw in lower:
+            return False
+    for kw in _REQUIREMENT_TITLE_KEYWORDS:
+        if kw in lower:
+            return True
+    return None
+
+
+def _classify_section(section_id: Optional[str], title: Optional[str]) -> Optional[bool]:
+    """
+    Combined classifier: numbering takes precedence (GOST TZ is explicit),
+    title is the tiebreaker for ambiguous numbering.
+    """
+    by_num = _is_requirement_section(section_id)
+    if by_num is not None:
+        return by_num
+    return _is_requirement_section_by_title(title)
+
+
+# ---------------------------------------------------------------------------
+# Russian sentence splitter
+# ---------------------------------------------------------------------------
+
+# Abbreviations whose trailing period must NOT terminate a sentence.
+_RU_ABBREV = (
+    "т.е.", "т. е.", "т.д.", "т. д.", "т.п.", "т. п.", "т.к.", "т. к.",
+    "и.о.", "и. о.", "др.", "пр.", "см.", "стр.", "рис.", "табл.",
+    "гл.", "п.", "пп.", "ст.", "абз.",
+    "г.", "гг.", "в.", "вв.", "н.э.",
+    "млн.", "млрд.", "тыс.",
+    "руб.", "коп.",
+)
+
+_SENT_END_RE = re.compile(r"([.!?…]+)(\s+|$)")
+
+
+def _split_sentences_ru(text: str) -> List[str]:
+    """
+    Rule-based Russian sentence splitter.
+
+    Strategy: protect known abbreviations by substituting their period with a
+    sentinel, split on [.!?…] + whitespace, restore sentinels. Good enough for
+    ТЗ text (formal register, relatively few exotic abbreviations).
+    """
+    if not text:
+        return []
+    sentinel = "\x00"
+    protected = text
+    for abbr in _RU_ABBREV:
+        protected = re.sub(
+            re.escape(abbr),
+            abbr.replace(".", sentinel),
+            protected,
+            flags=re.IGNORECASE,
+        )
+
+    parts: List[str] = []
+    buf: List[str] = []
+    last = 0
+    for m in _SENT_END_RE.finditer(protected):
+        chunk = protected[last : m.end()]
+        buf.append(chunk)
+        # Close the sentence only if the next character starts a new one
+        # (capital letter, digit, or end of string).
+        tail = protected[m.end():].lstrip()
+        if not tail or tail[0].isupper() or tail[0].isdigit() or tail[0] == "-":
+            parts.append("".join(buf))
+            buf = []
+        last = m.end()
+    if last < len(protected):
+        buf.append(protected[last:])
+    if buf:
+        parts.append("".join(buf))
+
+    result: List[str] = []
+    for p in parts:
+        s = p.replace(sentinel, ".").strip()
+        if s:
+            result.append(s)
+    return result
 
 
 _TYPE_KEYWORDS: Dict[RequirementType, List[str]] = {
@@ -294,23 +414,57 @@ def _section_allows_candidate(section_id: Optional[str], modality: Modality) -> 
 
 
 class RequirementBuilder:
-    """Builds RequirementUnit list from a single TZ PreparedArtifact."""
+    """Builds RequirementUnit list from a single TZ PreparedArtifact.
+
+    Extraction modes (see `CoverageConfig.requirement_extraction`):
+      - "sections"   — trust only sections hierarchy; re-segment text
+      - "candidates" — trust prepare-service's requirement_candidates[]
+      - "fragments"  — heuristic over fragments[] with trigger-word filter
+      - "auto"       — candidates → fragments → sections (first non-empty)
+    """
+
+    def __init__(self, config: Optional[CoverageConfig] = None) -> None:
+        mode = (config.requirement_extraction if config else "auto").lower()
+        if mode not in {"auto", "sections", "candidates", "fragments"}:
+            mode = "auto"
+        self._mode = mode
 
     def build(self, artifact: dict) -> List[RequirementUnit]:
         doc_id = artifact.get("document_id", "unknown")
-        candidates = artifact.get("requirement_candidates") or []
 
-        if candidates:
-            logger.info("Building requirements from %d candidates in %s", len(candidates), doc_id)
+        if self._mode == "sections":
+            logger.info("Building requirements from sections in %s", doc_id)
+            return self._from_sections(artifact)
+
+        if self._mode == "candidates":
+            candidates = artifact.get("requirement_candidates") or []
             return self._from_candidates(artifact, candidates)
 
+        if self._mode == "fragments":
+            fragments = artifact.get("fragments") or []
+            return self._from_fragments(artifact, fragments)
+
+        # auto
+        candidates = artifact.get("requirement_candidates") or []
+        if candidates:
+            logger.info("Building requirements from %d candidates in %s", len(candidates), doc_id)
+            units = self._from_candidates(artifact, candidates)
+            if units:
+                return units
+
         fragments = artifact.get("fragments") or []
-        logger.info(
-            "No requirement_candidates in %s; falling back to %d fragments",
-            doc_id,
-            len(fragments),
-        )
-        return self._from_fragments(artifact, fragments)
+        if fragments:
+            logger.info(
+                "No usable candidates in %s; falling back to %d fragments",
+                doc_id,
+                len(fragments),
+            )
+            units = self._from_fragments(artifact, fragments)
+            if units:
+                return units
+
+        logger.info("Fragments yielded nothing in %s; falling back to section-driven extraction", doc_id)
+        return self._from_sections(artifact)
 
     # ------------------------------------------------------------------
 
@@ -318,12 +472,16 @@ class RequirementBuilder:
         doc_id = artifact.get("document_id", "unknown")
         units: List[RequirementUnit] = []
 
-        # Detect document-level req_id bug: all candidates share the same req_id
+        # Detect document-level req_id bug: all candidates share the same req_id.
+        # When this happens, raw_req_id is not usable as a stable per-candidate
+        # identifier, so we fall back to position-based IDs for every candidate
+        # (fragment_id-based IDs are still preferred when available).
         raw_ids = [c.get("req_id") for c in candidates if c.get("req_id")]
-        if raw_ids and len(set(raw_ids)) == 1:
+        _all_same_req_id = bool(len(raw_ids) > 1 and len(set(raw_ids)) == 1)
+        if _all_same_req_id:
             logger.warning(
                 "All %d requirement_candidates share the same req_id=%r in document %s; "
-                "using fragment_id-based unique IDs instead.",
+                "falling back to position-based IDs (fragment_id used where available).",
                 len(candidates), raw_ids[0], doc_id,
             )
 
@@ -335,13 +493,14 @@ class RequirementBuilder:
 
             # Build deterministic unique req_id:
             #   1. fragment_id  →  "{doc_id}::{fragment_id}"   (stable, per-fragment)
-            #   2. raw req_id from candidate                    (use as-is if unique)
-            #   3. position-based fallback                      (last resort)
+            #   2. raw req_id from candidate, only when it is unique across all
+            #      candidates — if all share the same req_id that value is useless
+            #   3. position-based fallback
             frag_id = cand.get("fragment_id")
             raw_req_id = cand.get("req_id")
             if frag_id:
                 base_id = f"{doc_id}::{frag_id}"
-            elif raw_req_id:
+            elif raw_req_id and not _all_same_req_id:
                 base_id = raw_req_id
             else:
                 base_id = f"{doc_id}::cand::{i}"
@@ -412,4 +571,117 @@ class RequirementBuilder:
             )
         if not units:
             logger.warning("No requirement fragments found in %s", doc_id)
+        return units
+
+    # ------------------------------------------------------------------
+
+    def _from_sections(self, artifact: dict) -> List[RequirementUnit]:
+        """
+        Section-driven extraction.
+
+        Trust zone: `sections[]` hierarchy and each fragment's `section_id`
+        binding. Everything else about prepare-service fragment splits is
+        ignored — inside each requirement section we concatenate fragment
+        text and re-split into sentences locally.
+        """
+        doc_id = artifact.get("document_id", "unknown")
+        sections = artifact.get("sections") or []
+        fragments = artifact.get("fragments") or []
+
+        if not sections:
+            logger.warning(
+                "Section-driven extraction requested but no sections[] in %s; "
+                "falling back to fragments path", doc_id,
+            )
+            return self._from_fragments(artifact, fragments)
+
+        titles_by_id: Dict[str, str] = {
+            s.get("section_id"): (s.get("title") or "")
+            for s in sections
+            if s.get("section_id")
+        }
+
+        # Group fragment text by section_id (preserve order of appearance).
+        frags_by_section: Dict[str, List[str]] = {}
+        for frag in fragments:
+            sid = frag.get("section_id")
+            text = (frag.get("text") or "").strip()
+            if not sid or not text:
+                continue
+            frags_by_section.setdefault(sid, []).append(text)
+
+        units: List[RequirementUnit] = []
+        seen_req_ids: set = set()
+
+        for section in sections:
+            sid = section.get("section_id")
+            title = section.get("title") or ""
+            if not sid:
+                continue
+            relevance = _classify_section(sid, title)
+            if relevance is False:
+                logger.debug("Section %r (%s): non-requirement, skipping", sid, title[:40])
+                continue
+            # None (ambiguous) → be permissive: admit the section but rely on
+            # sentence-level modality / trigger filter below.
+
+            section_text = "\n".join(frags_by_section.get(sid, []))
+            if not section_text:
+                continue
+
+            sentences = _split_sentences_ru(section_text)
+            if not sentences:
+                continue
+
+            section_has_req_marker = relevance is True
+            for idx, sent in enumerate(sentences):
+                sent = sent.strip()
+                if len(sent.split()) < 5:
+                    continue
+                modality = _extract_modality(sent)
+                has_trigger = bool(_TRIGGER_RE.search(sent))
+
+                # Acceptance policy inside a section:
+                #  - requirement section (relevance=True): admit any sentence
+                #    with a trigger word OR explicit modality
+                #  - ambiguous section (relevance=None): stricter — require
+                #    explicit modality (trigger alone is not enough to promote
+                #    a random sentence from e.g. a rationale paragraph)
+                if section_has_req_marker:
+                    if not (has_trigger or modality != Modality.UNKNOWN):
+                        continue
+                else:
+                    if modality not in (Modality.MUST, Modality.MUST_NOT, Modality.SHOULD):
+                        continue
+
+                base_id = f"{doc_id}::{sid}::s{idx}"
+                req_id = base_id
+                dedup = 0
+                while req_id in seen_req_ids:
+                    dedup += 1
+                    req_id = f"{base_id}::{dedup}"
+                seen_req_ids.add(req_id)
+
+                units.append(
+                    RequirementUnit(
+                        req_id=req_id,
+                        source_document_id=doc_id,
+                        source_section_id=sid,
+                        source_fragment_id=None,
+                        text=sent,
+                        normalized_text=_normalize_text(sent),
+                        requirement_type=_extract_requirement_type(sent),
+                        modality=modality,
+                        entities=_extract_entities(sent),
+                        constraints=_extract_constraints(sent),
+                        metadata={"section_title": title} if title else {},
+                    )
+                )
+
+        if not units:
+            logger.warning(
+                "Section-driven extraction produced 0 requirements in %s "
+                "(sections=%d, fragments=%d)",
+                doc_id, len(sections), len(fragments),
+            )
         return units

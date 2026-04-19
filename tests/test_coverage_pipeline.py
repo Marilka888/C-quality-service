@@ -2324,3 +2324,250 @@ class TestNegationVerifierGuard:
             f"High-confidence negation+numeric contradiction must be CONFLICT; "
             f"got {j_verified.rule_adjusted_label}"
         )
+
+
+# ===========================================================================
+# TestAllSameReqIdHandling
+# ===========================================================================
+
+
+class TestAllSameReqIdHandling:
+    """
+    RequirementBuilder must use position-based IDs when all requirement_candidates
+    share the same raw req_id (prepare-service bug).
+
+    Tests:
+      1. All-same-req_id + no fragment_id → positional IDs (cand::0, cand::1, ...)
+      2. All-same-req_id + fragment_id available → fragment_id wins for that candidate
+      3. Unique raw req_ids → raw req_id used as-is (no position override)
+      4. Regression: section-4 candidates with unique req_ids remain included
+    """
+
+    DOC_ID = "doc-tz-001"
+
+    def _artifact(self, candidates):
+        return {"document_id": self.DOC_ID, "requirement_candidates": candidates}
+
+    def _cand(self, text, req_id=None, fragment_id=None, section_id="4.1"):
+        c = {"text": text, "section_id": section_id}
+        if req_id is not None:
+            c["req_id"] = req_id
+        if fragment_id is not None:
+            c["fragment_id"] = fragment_id
+        return c
+
+    def test_all_same_req_id_generates_positional_ids(self):
+        """When all candidates share a req_id the builder must assign cand::0, cand::1, ..."""
+        shared_id = f"{self.DOC_ID}:::cand"
+        artifact = self._artifact([
+            self._cand("Система должна предоставлять возможность A.", req_id=shared_id),
+            self._cand("Система должна предоставлять возможность B.", req_id=shared_id),
+            self._cand("Система должна предоставлять возможность C.", req_id=shared_id),
+        ])
+        reqs = RequirementBuilder().build(artifact)
+        assert len(reqs) == 3
+        ids = [r.req_id for r in reqs]
+        assert ids[0] == f"{self.DOC_ID}::cand::0"
+        assert ids[1] == f"{self.DOC_ID}::cand::1"
+        assert ids[2] == f"{self.DOC_ID}::cand::2"
+
+    def test_all_same_req_id_fragment_id_takes_priority(self):
+        """When fragment_id is present it takes priority even in the all-same-req_id case."""
+        shared_id = f"{self.DOC_ID}:::cand"
+        artifact = self._artifact([
+            self._cand("Система должна предоставлять возможность A.",
+                       req_id=shared_id, fragment_id="frag-001"),
+            self._cand("Система должна предоставлять возможность B.",
+                       req_id=shared_id),
+        ])
+        reqs = RequirementBuilder().build(artifact)
+        assert len(reqs) == 2
+        assert reqs[0].req_id == f"{self.DOC_ID}::frag-001"
+        assert reqs[1].req_id == f"{self.DOC_ID}::cand::1"
+
+    def test_unique_req_ids_used_as_is(self):
+        """When every candidate has a distinct raw req_id that value is kept unchanged."""
+        artifact = self._artifact([
+            self._cand("Система должна предоставлять возможность A.",
+                       req_id="req-A"),
+            self._cand("Система должна предоставлять возможность B.",
+                       req_id="req-B"),
+        ])
+        reqs = RequirementBuilder().build(artifact)
+        assert len(reqs) == 2
+        assert reqs[0].req_id == "req-A"
+        assert reqs[1].req_id == "req-B"
+
+    def test_section4_candidates_remain_included_after_fix(self):
+        """
+        Regression: valid section-4 requirement candidates must all be included
+        regardless of the req_id deduplication strategy.
+        """
+        shared_id = f"{self.DOC_ID}:::cand"
+        texts = [
+            "Система должна предоставлять поддержку базовых конструкций языка программирования.",
+            "Система должна предоставлять возможность проверки синтаксической корректности.",
+            "Система должна предоставлять возможность компиляции целого модуля.",
+            "Система должна обеспечивать защищённый доступ к данным пользователя.",
+            "Система должна хранить журнал операций не менее 90 дней.",
+        ]
+        artifact = self._artifact([
+            self._cand(t, req_id=shared_id, section_id="4.1") for t in texts
+        ])
+        reqs = RequirementBuilder().build(artifact)
+        assert len(reqs) == len(texts), (
+            f"All {len(texts)} section-4 requirements must be included; got {len(reqs)}"
+        )
+        req_ids = [r.req_id for r in reqs]
+        assert req_ids == [f"{self.DOC_ID}::cand::{i}" for i in range(len(texts))]
+
+
+# ===========================================================================
+# Section-driven extraction tests
+# ===========================================================================
+
+
+class TestSectionDrivenExtraction:
+    """
+    Requirement extraction that trusts ONLY the sections hierarchy from
+    prepare-service. Fragment splits, requirement_candidates, and all other
+    heuristic outputs of prepare-service are ignored.
+    """
+
+    DOC_ID = "doc-tz-sec"
+
+    def _cfg(self) -> CoverageConfig:
+        cfg = CoverageConfig()
+        cfg.requirement_extraction = "sections"
+        return cfg
+
+    def _artifact(self, sections, fragments) -> dict:
+        return {
+            "document_id": self.DOC_ID,
+            "doc_role": "tz",
+            "sections": sections,
+            "fragments": fragments,
+            "requirement_candidates": [
+                {"req_id": "CAND-SHOULD-NOT-BE-USED", "text": "Игнорируй меня."}
+            ],
+        }
+
+    def test_ignores_requirement_candidates(self):
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования к программе"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней."}
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+        assert "Игнорируй" not in reqs[0].text
+
+    def test_resegments_concatenated_fragments(self):
+        # prepare-service may have split the same requirement into two
+        # fragments mid-sentence OR lumped two requirements into one — we
+        # should get sentence-level units regardless.
+        artifact = self._artifact(
+            sections=[{"section_id": "4.1", "title": "Функциональные требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4.1",
+                 "text": "Система должна хранить журнал событий не менее 90 дней. "
+                         "Также система должна обеспечивать авторизацию пользователей."},
+                {"fragment_id": "f2", "section_id": "4.1",
+                 "text": "Система должна обеспечивать время отклика не более 2 секунд."},
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        texts = [r.text for r in reqs]
+        assert len(reqs) == 3, f"expected 3 sentence-level requirements, got {texts}"
+        assert any("90 дней" in t for t in texts)
+        assert any("авторизацию" in t for t in texts)
+        assert any("2 секунд" in t for t in texts)
+
+    def test_skips_non_requirement_sections_by_title(self):
+        artifact = self._artifact(
+            sections=[
+                {"section_id": "A", "title": "Введение"},
+                {"section_id": "B", "title": "Требования к надёжности"},
+            ],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "A",
+                 "text": "Система должна работать быстро (описание целей проекта)."},
+                {"fragment_id": "f2", "section_id": "B",
+                 "text": "Система должна обеспечивать доступность не менее 99.9%."},
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+        assert "99.9" in reqs[0].text
+
+    def test_stable_req_ids(self):
+        artifact = self._artifact(
+            sections=[{"section_id": "4.2", "title": "Требования к безопасности"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4.2",
+                 "text": "Система должна шифровать данные при передаче. "
+                         "Пароли должны храниться в виде хэшей."},
+            ],
+        )
+        reqs1 = RequirementBuilder(self._cfg()).build(artifact)
+        reqs2 = RequirementBuilder(self._cfg()).build(artifact)
+        assert [r.req_id for r in reqs1] == [r.req_id for r in reqs2]
+        assert all(r.req_id.startswith(f"{self.DOC_ID}::4.2::s") for r in reqs1)
+
+    def test_abbreviation_not_split(self):
+        # "т.е." must not end a sentence.
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна поддерживать HTTP, т.е. принимать запросы по порту 80."}
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+        assert "т.е." in reqs[0].text
+
+    def test_short_sentences_filtered(self):
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Должен работать. Система должна принимать входящие запросы "
+                         "и обрабатывать их в течение 2 секунд."}
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+        assert "2 секунд" in reqs[0].text
+
+    def test_falls_back_to_fragments_without_sections(self):
+        # If no sections[] at all, the section path falls back to fragments
+        # rather than returning empty.
+        artifact = {
+            "document_id": self.DOC_ID,
+            "doc_role": "tz",
+            "sections": [],
+            "fragments": [
+                {"fragment_id": "f1",
+                 "text": "Система должна хранить журнал не менее 90 дней."}
+            ],
+        }
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+
+    def test_ambiguous_section_requires_explicit_modality(self):
+        # Section with no number and a neutral title: only MUST/MUST_NOT/SHOULD
+        # sentences admitted — prevents descriptive prose leaking in.
+        artifact = self._artifact(
+            sections=[{"section_id": "X", "title": "Общая информация о системе"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "X",
+                 "text": "Система обеспечивает высокую производительность работы. "
+                         "Система должна поддерживать одновременно 1000 пользователей."},
+            ],
+        )
+        reqs = RequirementBuilder(self._cfg()).build(artifact)
+        assert len(reqs) == 1
+        assert "1000" in reqs[0].text

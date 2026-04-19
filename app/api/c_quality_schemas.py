@@ -66,6 +66,8 @@ class CoverageOptions(BaseModel):
     enable_llm_judge: bool = False
     enable_rule_verification: bool = True
     min_retrieval_score: float = Field(default=0.05, ge=0.0, le=1.0)
+    # "auto" | "sections" | "candidates" | "fragments"
+    requirement_extraction: str = "auto"
 
 
 class CoverageAnalysisRequest(BaseModel):

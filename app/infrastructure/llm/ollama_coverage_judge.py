@@ -8,8 +8,9 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 from typing import List
+
+import requests
 
 from app.core.logging import get_logger
 from app.domain.c_quality_enums import LLMLabel
@@ -51,6 +52,18 @@ def _parse_response(raw: dict, req_id: str, unit_id: str, doc_id: str) -> PairJu
             return [str(v) for v in val]
         return []
 
+    matched = _str_list("matched_aspects")
+    missing = _str_list("missing_aspects")
+    conflict = _str_list("conflict_aspects")
+
+    # Post-validation: small local LLMs frequently output label=CONFLICT while
+    # leaving conflict_aspects empty and describing a partial-coverage case in
+    # the free-text explanation ("содержит X, но не полностью…"). A true
+    # CONFLICT requires an explicit contradicting aspect. Without it we
+    # downgrade: PARTIAL if there is any overlap signal, IRRELEVANT otherwise.
+    if label == LLMLabel.CONFLICT and not conflict:
+        label = LLMLabel.PARTIAL if matched else LLMLabel.IRRELEVANT
+
     return PairJudgment(
         req_id=req_id,
         unit_id=unit_id,
@@ -58,38 +71,55 @@ def _parse_response(raw: dict, req_id: str, unit_id: str, doc_id: str) -> PairJu
         llm_label=label,
         llm_confidence=float(raw.get("confidence", 0.5)),
         rule_adjusted_label=label,
-        matched_aspects=_str_list("matched_aspects"),
-        missing_aspects=_str_list("missing_aspects"),
-        conflict_aspects=_str_list("conflict_aspects"),
+        matched_aspects=matched,
+        missing_aspects=missing,
+        conflict_aspects=conflict,
         explanation=str(raw.get("explanation", "")),
     )
 
 
 class OllamaCoverageJudge(CoverageJudge):
-    """Calls local Ollama via subprocess. Falls back to DisabledCoverageJudge on error."""
+    """Calls the local Ollama HTTP API. Falls back to DisabledCoverageJudge on error.
+
+    The previous implementation shelled out to `ollama run` per pair, which
+    re-loaded the model for every call and made realistic pair counts
+    (dozens to hundreds) unworkable within any sane request timeout. The
+    daemon API (`POST /api/generate`) keeps the model hot across calls.
+    """
 
     def __init__(self, model_name: str = "llama3:8b", timeout: int = 120) -> None:
         self._model = model_name
         self._timeout = timeout
-        self._ollama_path = os.environ.get(
-            "OLLAMA_PATH",
-            r"C:\Users\Marilka\AppData\Local\Programs\Ollama\ollama.exe",
-        )
+        self._url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 
     def judge(self, req: RequirementUnit, unit: CoverageUnit) -> PairJudgment:
         system_prompt, user_prompt = build_judge_prompt(req, unit)
         full_prompt = f"[SYSTEM]\n{system_prompt}\n\n[USER]\n{user_prompt}"
 
         try:
-            result = subprocess.run(
-                [self._ollama_path, "run", self._model],
-                input=full_prompt,
-                capture_output=True,
+            resp = requests.post(
+                self._url,
+                json={
+                    "model": self._model,
+                    "prompt": full_prompt,
+                    "stream": False,
+                    # keep_alive prevents Ollama from unloading the model
+                    # between pair calls (model reload = +3-5s per call).
+                    "keep_alive": "30m",
+                    "options": {
+                        "temperature": 0.1,
+                        # Cap context to 2k tokens — judge prompts are short,
+                        # default 4k wastes prompt_eval time.
+                        "num_ctx": 2048,
+                        # Cap response length. The JSON verdict fits in <200
+                        # tokens; longer outputs are model padding.
+                        "num_predict": 256,
+                    },
+                },
                 timeout=self._timeout,
-                encoding="utf-8",
-                errors="replace",
             )
-            raw_text = result.stdout.strip()
+            resp.raise_for_status()
+            raw_text = (resp.json().get("response") or "").strip()
             if not raw_text:
                 raise ValueError("Empty Ollama response")
 
@@ -101,7 +131,7 @@ class OllamaCoverageJudge(CoverageJudge):
             logger.debug("Ollama judge: req=%s unit=%s → %s", req.req_id[:8], unit.unit_id[:8], judgment.llm_label)
             return judgment
 
-        except subprocess.TimeoutExpired:
+        except requests.Timeout:
             logger.warning("Ollama timed out for req=%s unit=%s", req.req_id[:8], unit.unit_id[:8])
         except Exception as exc:
             logger.warning("Ollama judge error: %s", exc)

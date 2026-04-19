@@ -67,7 +67,7 @@ class CoverageAnalysisPipeline:
 
     def __init__(self, config: Optional[CoverageConfig] = None) -> None:
         self._config = config or CoverageConfig()
-        self._req_builder = RequirementBuilder()
+        self._req_builder = RequirementBuilder(self._config)
         self._unit_builder = CoverageUnitBuilder()
         self._embedding_backend = _build_embedding_backend(self._config)
         self._retriever = CandidateRetriever(self._config.retrieval, self._embedding_backend)
@@ -88,6 +88,20 @@ class CoverageAnalysisPipeline:
 
         # Allow per-request config overrides
         config = CoverageConfig.from_options(options) if options else self._config
+
+        # Judge must honor per-request enable_llm_judge. The default
+        # _judge_service was built from self._config at construction time and
+        # would always be DisabledCoverageJudge; rebuild here if the effective
+        # config differs.
+        if config.llm.enabled != self._config.llm.enabled or config.llm.backend != self._config.llm.backend:
+            judge_service = PairJudgeService(_build_judge(config))
+        else:
+            judge_service = self._judge_service
+
+        if config.requirement_extraction != self._config.requirement_extraction:
+            req_builder = RequirementBuilder(config)
+        else:
+            req_builder = self._req_builder
 
         warnings: List[str] = []
 
@@ -121,7 +135,7 @@ class CoverageAnalysisPipeline:
             warnings.append(f"No target documents found for roles {target_roles}")
 
         # ── Step 2: build RequirementUnits from TZ ────────────────────────
-        requirements = self._req_builder.build(source_artifact)
+        requirements = req_builder.build(source_artifact)
         logger.info("[%s] Built %d requirements from TZ", job_id, len(requirements))
         if not requirements:
             warnings.append("No requirements extracted from source document")
@@ -198,7 +212,7 @@ class CoverageAnalysisPipeline:
                     continue
 
                 # Judge
-                judgments = self._judge_service.judge_shortlist(req, shortlist, units_by_id)
+                judgments = judge_service.judge_shortlist(req, shortlist, units_by_id)
 
                 # Verify
                 if config.enable_rule_verification:

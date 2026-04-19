@@ -97,6 +97,14 @@ class CoverageUnitBuilder:
             return []
 
         units: List[CoverageUnit] = []
+        # Prepare-service emits fragments that share a long common prefix with
+        # different trailing sentences (one paragraph materialized as items
+        # item5/item7/item8/... appending a growing tail). Full-text dedup
+        # misses these; keying by the first 400 chars of normalized text
+        # collapses them while still separating genuinely distinct fragments.
+        _PREFIX_DEDUP_CHARS = 400
+        seen_norm: dict[str, int] = {}
+        dropped_dupes = 0
         for frag in raw_frags:
             text = (frag.get("text") or "").strip()
             if not text:
@@ -107,6 +115,12 @@ class CoverageUnitBuilder:
                     frag.get("fragment_id", "?"), _MIN_WORDS, text[:60],
                 )
                 continue
+            norm = _normalize_text(text)
+            key = norm[:_PREFIX_DEDUP_CHARS]
+            if key in seen_norm:
+                dropped_dupes += 1
+                continue
+            seen_norm[key] = 1
             units.append(
                 CoverageUnit(
                     target_document_id=doc_id,
@@ -115,12 +129,14 @@ class CoverageUnitBuilder:
                     fragment_id=frag.get("fragment_id"),
                     unit_type=_map_unit_type(frag.get("kind", "")),
                     text=text,
-                    normalized_text=_normalize_text(text),
+                    normalized_text=norm,
                     entities=_extract_entities(text),
                     constraints=_extract_constraints(text),
                     metadata=frag.get("metadata") or {},
                 )
             )
+        if dropped_dupes:
+            logger.info("doc=%s (%s): dropped %d duplicate-text fragments", doc_id, doc_role, dropped_dupes)
 
         if not units and nonempty_text > 0:
             logger.warning(
