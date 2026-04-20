@@ -425,12 +425,17 @@ class RequirementBuilder:
 
     def __init__(self, config: Optional[CoverageConfig] = None) -> None:
         mode = (config.requirement_extraction if config else "auto").lower()
-        if mode not in {"auto", "sections", "candidates", "fragments"}:
+        if mode not in {"auto", "sections", "candidates", "fragments", "model"}:
             mode = "auto"
         self._mode = mode
+        self._config = config or CoverageConfig()
 
     def build(self, artifact: dict) -> List[RequirementUnit]:
         doc_id = artifact.get("document_id", "unknown")
+
+        if self._mode == "model":
+            logger.info("Building requirements with fine-tuned classifier in %s", doc_id)
+            return self._from_model(artifact)
 
         if self._mode == "sections":
             logger.info("Building requirements from sections in %s", doc_id)
@@ -684,4 +689,152 @@ class RequirementBuilder:
                 "(sections=%d, fragments=%d)",
                 doc_id, len(sections), len(fragments),
             )
+        return units
+
+    # ------------------------------------------------------------------
+
+    # Lazily constructed classifier so callers who never touch the "model"
+    # path do not pay the torch import cost. Reassignable from tests via
+    # `RequirementBuilder._classifier_factory = lambda _: MockClassifier()`.
+    _classifier = None
+
+    def _get_classifier(self):
+        if self._classifier is not None:
+            return self._classifier
+        from app.infrastructure.ml.requirement_classifier import RequirementClassifier
+        cfg = self._config.requirement_model
+        self._classifier = RequirementClassifier(
+            model_path=cfg.model_path,
+            max_len=cfg.max_len,
+            batch_size=cfg.batch_size,
+        )
+        return self._classifier
+
+    def set_classifier(self, classifier) -> None:
+        """Inject a classifier (primarily for tests and A/B experiments)."""
+        self._classifier = classifier
+
+    def _from_model(self, artifact: dict) -> List[RequirementUnit]:
+        """
+        Model-driven extraction.
+
+        Trust zone: sections[] hierarchy (same as `_from_sections`) — we
+        use it to skip the descriptive preamble / glossary sections, which
+        are 20–40% of a TZ and would waste inference time. Inside every
+        remaining section we re-split fragments into sentences, then run
+        the fine-tuned classifier in a single batch per document. Sentences
+        with P(is_requirement) >= threshold become RequirementUnits.
+
+        Modality, requirement_type, entities and constraints continue to
+        use the regex helpers — the classifier's job is just the binary
+        gate, the other fields are feature extraction which the regexes
+        do well enough on confirmed requirements.
+        """
+        doc_id = artifact.get("document_id", "unknown")
+        sections = artifact.get("sections") or []
+        fragments = artifact.get("fragments") or []
+
+        threshold = self._config.requirement_model.threshold
+
+        # Build index from section_id → title and collect per-section texts
+        titles_by_id: Dict[str, str] = {
+            s.get("section_id"): (s.get("title") or "")
+            for s in sections
+            if s.get("section_id")
+        }
+        frags_by_section: Dict[str, List[str]] = {}
+        for frag in fragments:
+            sid = frag.get("section_id")
+            text = (frag.get("text") or "").strip()
+            if sid and text:
+                frags_by_section.setdefault(sid, []).append(text)
+
+        # Candidate sentences — (section_id, sentence_idx, text, title)
+        candidates: List[Tuple[str, int, str, str]] = []
+
+        if sections:
+            for section in sections:
+                sid = section.get("section_id")
+                title = (section.get("title") or "").strip()
+                if not sid:
+                    continue
+                # Hard skip only for sections we are certain are non-req.
+                # Unknown / req sections are both kept: the classifier is
+                # the final arbiter, so we'd rather over-admit here than
+                # miss requirements in an uncategorised section.
+                if _classify_section(sid, title) is False:
+                    continue
+                section_text = "\n".join(frags_by_section.get(sid, []))
+                for idx, sent in enumerate(_split_sentences_ru(section_text)):
+                    sent = sent.strip()
+                    if len(sent.split()) >= 5:
+                        candidates.append((sid, idx, sent, title))
+        else:
+            # No sections → treat every fragment as a sentence source.
+            for i, frag in enumerate(fragments):
+                text = (frag.get("text") or "").strip()
+                for idx, sent in enumerate(_split_sentences_ru(text)):
+                    sent = sent.strip()
+                    if len(sent.split()) >= 5:
+                        candidates.append((f"frag::{i}", idx, sent, ""))
+
+        if not candidates:
+            logger.warning("Model extractor: no candidate sentences in %s", doc_id)
+            return []
+
+        try:
+            classifier = self._get_classifier()
+        except Exception as exc:
+            logger.warning(
+                "Model extractor: classifier unavailable (%s); falling back to sections path",
+                exc,
+            )
+            return self._from_sections(artifact)
+
+        texts = [c[2] for c in candidates]
+        try:
+            probs = classifier.predict_proba(texts)
+        except Exception as exc:
+            logger.warning(
+                "Model extractor: inference failed (%s); falling back to sections path",
+                exc,
+            )
+            return self._from_sections(artifact)
+
+        units: List[RequirementUnit] = []
+        seen_req_ids: set = set()
+        for (sid, idx, sent, title), p in zip(candidates, probs):
+            if p < threshold:
+                continue
+            base_id = f"{doc_id}::{sid}::s{idx}"
+            req_id = base_id
+            dedup = 0
+            while req_id in seen_req_ids:
+                dedup += 1
+                req_id = f"{base_id}::{dedup}"
+            seen_req_ids.add(req_id)
+
+            units.append(
+                RequirementUnit(
+                    req_id=req_id,
+                    source_document_id=doc_id,
+                    source_section_id=sid,
+                    source_fragment_id=None,
+                    text=sent,
+                    normalized_text=_normalize_text(sent),
+                    requirement_type=_extract_requirement_type(sent),
+                    modality=_extract_modality(sent),
+                    entities=_extract_entities(sent),
+                    constraints=_extract_constraints(sent),
+                    metadata={
+                        "section_title": title,
+                        "classifier_score": round(float(p), 4),
+                    },
+                )
+            )
+
+        logger.info(
+            "Model extractor: %d/%d candidate sentences classified as requirements (threshold=%.2f) in %s",
+            len(units), len(candidates), threshold, doc_id,
+        )
         return units

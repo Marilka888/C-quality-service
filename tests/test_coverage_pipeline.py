@@ -2571,3 +2571,175 @@ class TestSectionDrivenExtraction:
         reqs = RequirementBuilder(self._cfg()).build(artifact)
         assert len(reqs) == 1
         assert "1000" in reqs[0].text
+
+
+# ===========================================================================
+# Model-driven extraction tests
+# ===========================================================================
+
+
+class _FakeClassifier:
+    """Deterministic stand-in for RequirementClassifier.
+
+    Returns 0.99 when the sentence contains any of the provided keywords,
+    0.05 otherwise — enough to exercise threshold logic and grounding.
+    """
+
+    def __init__(self, positive_keywords):
+        self._kws = [k.lower() for k in positive_keywords]
+        self.calls = []
+
+    def predict_proba(self, texts):
+        self.calls.append(list(texts))
+        return [
+            0.99 if any(kw in t.lower() for kw in self._kws) else 0.05
+            for t in texts
+        ]
+
+
+class TestModelDrivenExtraction:
+    DOC_ID = "doc-model"
+
+    def _cfg(self, threshold: float = 0.5) -> CoverageConfig:
+        cfg = CoverageConfig()
+        cfg.requirement_extraction = "model"
+        cfg.requirement_model.threshold = threshold
+        return cfg
+
+    def _artifact(self, sections, fragments) -> dict:
+        return {
+            "document_id": self.DOC_ID,
+            "doc_role": "tz",
+            "sections": sections,
+            "fragments": fragments,
+        }
+
+    def test_model_gates_requirements_by_threshold(self):
+        """Classifier decides which sentences become RequirementUnits."""
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней. "
+                         "Описание архитектуры представлено ниже."},
+            ],
+        )
+        builder = RequirementBuilder(self._cfg())
+        builder.set_classifier(_FakeClassifier(["журнал"]))
+        reqs = builder.build(artifact)
+        assert len(reqs) == 1
+        assert "90" in reqs[0].text
+        assert reqs[0].metadata["classifier_score"] >= 0.5
+
+    def test_threshold_respected(self):
+        """Raising threshold drops low-confidence predictions."""
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней."},
+            ],
+        )
+        # Fake classifier scores this sentence 0.99 on "журнал" — above
+        # even a strict threshold
+        cfg = self._cfg(threshold=0.95)
+        builder = RequirementBuilder(cfg)
+        builder.set_classifier(_FakeClassifier(["журнал"]))
+        assert len(builder.build(artifact)) == 1
+
+        # Different keyword set → score becomes 0.05 → excluded even at 0.3
+        cfg = self._cfg(threshold=0.3)
+        builder = RequirementBuilder(cfg)
+        builder.set_classifier(_FakeClassifier(["кофемашина"]))
+        assert builder.build(artifact) == []
+
+    def test_skips_non_requirement_sections_entirely(self):
+        """Non-req sections are filtered out BEFORE classifier inference.
+
+        Saves inference time on obvious junk and prevents the classifier
+        from seeing e.g. introduction prose it was never trained on.
+        """
+        fake = _FakeClassifier(["должна"])
+        artifact = self._artifact(
+            sections=[
+                {"section_id": "1", "title": "Введение"},
+                {"section_id": "4", "title": "Требования"},
+            ],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "1",
+                 "text": "Система должна выполнять важные функции (из Введения)."},
+                {"fragment_id": "f2", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней."},
+            ],
+        )
+        builder = RequirementBuilder(self._cfg())
+        builder.set_classifier(fake)
+        reqs = builder.build(artifact)
+        # Fake scores "должна" sentences at 0.99 → both would become reqs
+        # if the section gate did not fire. The section gate MUST drop the
+        # Введение one.
+        assert len(reqs) == 1
+        assert "90" in reqs[0].text
+        # Verify classifier was only asked about req-section sentences
+        assert all("Введение" not in t for t in fake.calls[0])
+
+    def test_stable_req_ids_and_scores_in_metadata(self):
+        artifact = self._artifact(
+            sections=[{"section_id": "4.2", "title": "Требования к безопасности"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4.2",
+                 "text": "Система должна шифровать данные при передаче. "
+                         "Пароли должны храниться в виде хэшей."},
+            ],
+        )
+        builder1 = RequirementBuilder(self._cfg())
+        builder1.set_classifier(_FakeClassifier(["должна", "должны"]))
+        reqs1 = builder1.build(artifact)
+        builder2 = RequirementBuilder(self._cfg())
+        builder2.set_classifier(_FakeClassifier(["должна", "должны"]))
+        reqs2 = builder2.build(artifact)
+        assert [r.req_id for r in reqs1] == [r.req_id for r in reqs2]
+        assert all(r.req_id.startswith(f"{self.DOC_ID}::4.2::s") for r in reqs1)
+        assert all("classifier_score" in r.metadata for r in reqs1)
+
+    def test_classifier_failure_falls_back_to_sections_path(self):
+        """If the model call raises, we must not lose the whole analysis."""
+
+        class _BrokenClassifier:
+            def predict_proba(self, texts):
+                raise RuntimeError("simulated inference failure")
+
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней."},
+            ],
+        )
+        builder = RequirementBuilder(self._cfg())
+        builder.set_classifier(_BrokenClassifier())
+        reqs = builder.build(artifact)
+        # The sections fallback path kicks in and still yields the req
+        assert len(reqs) == 1
+        assert "90" in reqs[0].text
+
+    def test_modality_and_constraints_still_populated(self):
+        """Even when the classifier drives acceptance, we still regex the
+        extracted sentence for modality / constraints / entities — those
+        features are needed downstream by the retriever and verifier.
+        """
+        artifact = self._artifact(
+            sections=[{"section_id": "4", "title": "Требования"}],
+            fragments=[
+                {"fragment_id": "f1", "section_id": "4",
+                 "text": "Система должна хранить журнал не менее 90 дней."},
+            ],
+        )
+        builder = RequirementBuilder(self._cfg())
+        builder.set_classifier(_FakeClassifier(["журнал"]))
+        reqs = builder.build(artifact)
+        assert len(reqs) == 1
+        req = reqs[0]
+        assert req.modality == Modality.MUST
+        assert req.constraints, "constraint extraction must still run"
+        assert any(c.value == 90 for c in req.constraints)

@@ -1,0 +1,1851 @@
+{
+  "package_id": "pkg_0036",
+  "documents": [
+    {
+      "doc_id": "ТЗ",
+      "doc_type": "TZ",
+      "chunks": [
+        {
+          "chunk_id": "ТЗ_00001",
+          "section_path": null,
+          "text": "УТВЕРЖДЕН",
+          "order": 1,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00002",
+          "section_path": null,
+          "text": "RU.17701729.04.03-01 ТЗ 01-1-ЛУ",
+          "order": 2,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00003",
+          "section_path": null,
+          "text": "ZERO COPY ИНТЕРФЕЙС ДЛЯ БИБЛИОТЕКИ PROTOCOL BUFFERS",
+          "order": 3,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00004",
+          "section_path": null,
+          "text": "Техническое задание",
+          "order": 4,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00005",
+          "section_path": null,
+          "text": "RU.17701729.04.03-01 ТЗ 01-1",
+          "order": 5,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00006",
+          "section_path": null,
+          "text": "Листов 14",
+          "order": 6,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00007",
+          "section_path": null,
+          "text": "Москва 2023",
+          "order": 7,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00008",
+          "section_path": null,
+          "text": "ВВЕДЕНИЕ",
+          "order": 8,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00009",
+          "section_path": null,
+          "text": "Наименование программы",
+          "order": 9,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00010",
+          "section_path": null,
+          "text": "Полное наименование работы на русском языке – «Zero Copy интерфейс для библиотеки Protocol Buffers»",
+          "order": 10,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00011",
+          "section_path": null,
+          "text": "Полное наименование работы на английском языке – «Zero Copy Interface for Library Protocol Buffers».",
+          "order": 11,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00012",
+          "section_path": null,
+          "text": "Краткое наименование программы – “Protocol Buffers”.",
+          "order": 12,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00013",
+          "section_path": null,
+          "text": "Краткая характеристика и область назначения",
+          "order": 13,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00014",
+          "section_path": null,
+          "text": "“ Protocol Buffers ” – кроссплатформенная библиотека для бинарной сериализации данных. Программа предназначина для сериализации структур языка в бинарные данные и последующей возможностью десериализации их обратно в структуры языка.",
+          "order": 14,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00015",
+          "section_path": null,
+          "text": "ОСНОВАНИЯ ДЛЯ РАЗРАБОТКИ",
+          "order": 15,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00016",
+          "section_path": null,
+          "text": "Документы, на основании которых ведется разработка",
+          "order": 16,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00017",
+          "section_path": null,
+          "text": "Правила подготовки, защиты и оценивания ВКР. Утверждены протоколом заседания Академического совета образовательных программ по направлению «Программная инженерия» № 2.3-09/1410-01 от 14.10.2022",
+          "order": 17,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00018",
+          "section_path": null,
+          "text": "Приказ декана факультета компьютерных наук И.В. Аржанцева о закреплении тем ВКР за студентами и назначении руководителей и консультантов ВКР № 2.3-02/151222-7 от декабря 2022 года",
+          "order": 18,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00019",
+          "section_path": null,
+          "text": "Наименование темы разработки",
+          "order": 19,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00020",
+          "section_path": null,
+          "text": "Наименование темы разработки – «Zero Copy интерфейс для библиотеки Protocol Buffers».",
+          "order": 20,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00021",
+          "section_path": null,
+          "text": "Наименование темы разработки на английском языке – «Zero Copy Interface for Library Protocol Buffers».",
+          "order": 21,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00022",
+          "section_path": null,
+          "text": "Программа выполняется в рамках темы выпускной квалификационной работы «Zero Copy интерфейс для библиотеки Protocol Buffers» в соответствии с учебным планом (НИУ ВШЭ, факультет компьютерных наук) по направлению 09.03.04«Программная инженерия».",
+          "order": 22,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00023",
+          "section_path": null,
+          "text": "НАЗНАЧЕНИЕ РАЗРАБОТКИ",
+          "order": 23,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00024",
+          "section_path": null,
+          "text": "Функциональное назначение",
+          "order": 24,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00025",
+          "section_path": null,
+          "text": "Данная работа является доработкой библиотеки Protocol Buffers для языка программирования C++. В рамках доработки необходимо добавить возможность ленивой сриализации и десериализации данных в Protocol Buffers. В случае если поля прото-сообщения помечена как ленивые, необходимо не производить их обработку, а хранить в виде сырых бинарных данных. Распаковка данных должна производиться, только при запросе пользователя. Помимо этого доработка должна быть эффективной с точки зрения производительности и максимально избегать излишнего копирования данных.",
+          "order": 25,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00026",
+          "section_path": null,
+          "text": "Рисунок 1. Схема сериализации данных для обычных и ленивых полей.",
+          "order": 26,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00027",
+          "section_path": null,
+          "text": "Эксплуатационное назначение",
+          "order": 27,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00028",
+          "section_path": null,
+          "text": "Программа предназначается для сериализации и десериализации данных (зачастую для их отправки по сети). Доработка реализованная в рамка этой работы полезна в тех случаях, когда необходимо прочитать или изменить только часть полей входного прото-сообщения. Если разработчик заранее знает, что данный сервис не предполагает использование конкретного поля из принимаемых данных, он может пометить его как ленивое. В таком случае данные этого поля не будут обрабатываться, что позволит сэкономить ресурс процессора и уменьшит время сериализации/десериализации данных. Примером такого сервиса может выступать прокси сервис, который склеивает данные подисточников и отправляет их дальше по сети, без доступа к самим данным.",
+          "order": 28,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00029",
+          "section_path": null,
+          "text": "ТРЕБОВАНИЯ К ПРОГРАММЕ",
+          "order": 29,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00030",
+          "section_path": null,
+          "text": "Требования к функциональным характеристикам",
+          "order": 30,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00031",
+          "section_path": null,
+          "text": "Программа должна содержать следующий набор функция:",
+          "order": 31,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00032",
+          "section_path": null,
+          "text": "Возможность добавить полю в .proto файле атрибут “[lazy_pack = true]”",
+          "order": 32,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00033",
+          "section_path": null,
+          "text": "Корректная обработка кодогенератором protoc нового атрибута",
+          "order": 33,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00034",
+          "section_path": null,
+          "text": "Выдача ошибки кодогенератором protoc, в случае если атрибутом помечено поле не типа message",
+          "order": 34,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00035",
+          "section_path": null,
+          "text": "Поля помеченные атрибутом “[lazy_pack=true]” должны не раскладываться при сериализации в структуры языка C++, а сохраняться в бинарном виде в клсасс TLazyField<T>",
+          "order": 35,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00036",
+          "section_path": null,
+          "text": "Доступ к полям помеченным атрибутом “[lazy_pack = true]” должен осуществляться через вызов метода TLazyField<T>::Unpack(), который должен возвращать обычный прото-класс для данного поля",
+          "order": 36,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00037",
+          "section_path": null,
+          "text": "Требования к входным данным",
+          "order": 37,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00038",
+          "section_path": null,
+          "text": "Входные данные должны соответствовать документации библиотеки Protocol Buffers [7]",
+          "order": 38,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00039",
+          "section_path": null,
+          "text": "В .proto файле допускается использование атрибута “[lazy_pack = true]” для полей типа message",
+          "order": 39,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00040",
+          "section_path": null,
+          "text": "Требования к интерфейсу",
+          "order": 40,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00041",
+          "section_path": null,
+          "text": "Отсутствуют.",
+          "order": 41,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00042",
+          "section_path": null,
+          "text": "Требования к надежности",
+          "order": 42,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00043",
+          "section_path": null,
+          "text": "Программа должна соответствовать следующим требованиям к надежности:",
+          "order": 43,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00044",
+          "section_path": null,
+          "text": "Кодогенератор protoc должен корректно обрабатывать валидные данные и сообщать об ошибке в случае из некорректности",
+          "order": 44,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00045",
+          "section_path": null,
+          "text": "Библиотека должна корректно обрабатывать валидные входные данные и сообщать об ошибке в случае их некорректности",
+          "order": 45,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00046",
+          "section_path": null,
+          "text": "Условия эксплуатации",
+          "order": 46,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00047",
+          "section_path": null,
+          "text": "Особых условий эксплуатации нет.",
+          "order": 47,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00048",
+          "section_path": null,
+          "text": "Требования к составу и параметрам технических средств",
+          "order": 48,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00049",
+          "section_path": null,
+          "text": "Пользователю требуется ПК удовлетворяющий следующим требованиям:",
+          "order": 49,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00050",
+          "section_path": null,
+          "text": "Оперативная память: 8ГБ",
+          "order": 50,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00051",
+          "section_path": null,
+          "text": "Процессор: Intel(R) Core(TM) i5-8300H CPU 2.30GHz.",
+          "order": 51,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00052",
+          "section_path": null,
+          "text": "Требования к информационной и программной совместимости",
+          "order": 52,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00053",
+          "section_path": null,
+          "text": "Программа должна соответствовать следующим требованиям:",
+          "order": 53,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00054",
+          "section_path": null,
+          "text": "Требования к языкам программирования",
+          "order": 54,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00055",
+          "section_path": null,
+          "text": "Программа должна быть написана на C++",
+          "order": 55,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00056",
+          "section_path": null,
+          "text": "Требования к программным средствам, используемым программой",
+          "order": 56,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00057",
+          "section_path": null,
+          "text": "Операционная система: любая, для которой существует компилятор C++",
+          "order": 57,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00058",
+          "section_path": null,
+          "text": "Требования к маркировке и упаковке",
+          "order": 58,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00059",
+          "section_path": null,
+          "text": "Программа поставляется на USB-флэш-накопителе, содержащим zip архив",
+          "order": 59,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00060",
+          "section_path": null,
+          "text": "с самой программой и программной документацией.",
+          "order": 60,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00061",
+          "section_path": null,
+          "text": "Требования к транспортированию и хранению",
+          "order": 61,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00062",
+          "section_path": null,
+          "text": "Особых требований к транспортировке и хранению нет.",
+          "order": 62,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00063",
+          "section_path": null,
+          "text": "Специальные требования",
+          "order": 63,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00064",
+          "section_path": null,
+          "text": "Специальные требования не предъявляются.",
+          "order": 64,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00065",
+          "section_path": null,
+          "text": "ТРЕБОВАНИЯ К ПРОГРАММНОЙ ДОКУМЕНТАЦИИ",
+          "order": 65,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00066",
+          "section_path": null,
+          "text": "Предварительный состав программной документации:",
+          "order": 66,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00067",
+          "section_path": null,
+          "text": "«Zero Copy интерфейс для библиотеки Protocol Buffers». Техническое задание (ГОСТ 19.201–78 [3])",
+          "order": 67,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00068",
+          "section_path": null,
+          "text": "«Zero Copy интерфейс для библиотеки Protocol Buffers». Программа и методика испытаний (ГОСТ 19.301–79 [4])",
+          "order": 68,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00069",
+          "section_path": null,
+          "text": "«Zero Copy интерфейс для библиотеки Protocol Buffers». Текст ВКР;",
+          "order": 69,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00070",
+          "section_path": null,
+          "text": "«Zero Copy интерфейс для библиотеки Protocol Buffers». Руководство программиста (ГОСТ 19-504-79 [6]);",
+          "order": 70,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00071",
+          "section_path": null,
+          "text": "«Zero Copy интерфейс для библиотеки Protocol Buffers». Текст программы (ГОСТ 19.401-78 [5]);",
+          "order": 71,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00072",
+          "section_path": null,
+          "text": "ТЕХНИКО-ЭКОНОМИЧЕСКИЕ ПОКАЗАТЕЛИ",
+          "order": 72,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00073",
+          "section_path": null,
+          "text": "Предполагаемая потребность",
+          "order": 73,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00074",
+          "section_path": null,
+          "text": "Данная версия библиотеки Protocol Buffers может быть очень востребована в распределенных системах, где сервисы общаются друг с другом по сети через протокол gRPC, который для передачи данных использует Protocol Buffers. Полезность доработок будет видна в случаях, когда не все данные из входного сообщения сервис должен обработать.",
+          "order": 74,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00075",
+          "section_path": null,
+          "text": "Экономическое преимущество разработки по сравнению с отечественными и зарубежными аналогами",
+          "order": 75,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00076",
+          "section_path": null,
+          "text": "Преимущества разработки:",
+          "order": 76,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00077",
+          "section_path": null,
+          "text": "Маленький размер сообщения за счет реализации Protocol Buffers",
+          "order": 77,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00078",
+          "section_path": null,
+          "text": "Возможность обрабатывать данные в ленивом режиме",
+          "order": 78,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00079",
+          "section_path": null,
+          "text": "Аналоги",
+          "order": 79,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00080",
+          "section_path": null,
+          "text": "Аналоги  библиотеки Protocol Buffers:",
+          "order": 80,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00081",
+          "section_path": null,
+          "text": "Json",
+          "order": 81,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00082",
+          "section_path": null,
+          "text": "Xml",
+          "order": 82,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00083",
+          "section_path": null,
+          "text": "FlatBuffers",
+          "order": 83,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00084",
+          "section_path": null,
+          "text": "Json и Xml не могут конкурировать с Protocol Buffers из-за того, что они являются человек читаемыми форматами, вследствие чего размер сериализованных данных больше в разы, чем при использовании Protocol Buffers.",
+          "order": 84,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00085",
+          "section_path": null,
+          "text": "FlatBuffers является бинарным форматом, который позволяет читать сырые бинварные данные напрямую, не обрабатывая их. Но он проигрывает Protocol Buffers в скорости полной сериализации и десериализации данных, а также генерирует бинарные данные, которые в 3 раза больше, чем при использовании Protocol Buffers. Подробнее о сравнении FlatBuffers и Protocol Buffers можно найти в данной статье [8].",
+          "order": 85,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00086",
+          "section_path": null,
+          "text": "СТАДИИ И ЭТАПЫ РАЗРАБОТКИ",
+          "order": 86,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00087",
+          "section_path": null,
+          "text": "Стадии и этапы разработки были выявлены с учетом ГОСТ 19.102-77 [2]:",
+          "order": 87,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00088",
+          "section_path": null,
+          "text": "Сроки разработки – до 20.05.2023",
+          "order": 88,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00089",
+          "section_path": null,
+          "text": "Исполнители: Здор Андрей Максимович БПИ191",
+          "order": 89,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00090",
+          "section_path": null,
+          "text": "ПОРЯДОК КОНТРОЛЯ И ПРИЕМКИ",
+          "order": 90,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00091",
+          "section_path": null,
+          "text": "Контроль и приемка разработки осуществляются в соответствии с документом «Программа и методика испытаний» (ГОСТ 19.301-79 [4]).",
+          "order": 91,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00092",
+          "section_path": null,
+          "text": "Защита работы на ПДП и на финальной коммиссии защиты ВКР.",
+          "order": 92,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00093",
+          "section_path": null,
+          "text": "СПИСОК ИСПОЛЬЗУЕМОЙ ЛИТЕРАТУРЫ",
+          "order": 93,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00094",
+          "section_path": null,
+          "text": "ГОСТ 19.101-77 Виды программ и программных документов. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 94,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00095",
+          "section_path": null,
+          "text": "ГОСТ 19.102-77 Стадии разработки. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001",
+          "order": 95,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00096",
+          "section_path": null,
+          "text": "ГОСТ 19.201-78 Техническое задание. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 96,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00097",
+          "section_path": null,
+          "text": "ГОСТ 19.301-79 Программа и методика испытаний. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 97,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00098",
+          "section_path": null,
+          "text": "ГОСТ 19.401-78 Текст программы. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 98,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00099",
+          "section_path": null,
+          "text": "ГОСТ 19.504-79 Руководство программиста. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001",
+          "order": 99,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00100",
+          "section_path": null,
+          "text": "Protocol Buffers Documentation [Электронный ресурс] /  Google Inc. Режим доступа: https://protobuf.dev/, свободный (дата обращения 20.04.2023)",
+          "order": 100,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00101",
+          "section_path": null,
+          "text": "Performance Comparison of Messaging Protocols and Serialization Formats for Digital Twins in IoV [Электронный ресурс] / Daniel Persson Proos, Niklas Carlsson. Режим доступа: https://www.ida.liu.se/~nikca89/papers/networking20c.pdf, свободный. (дата обращения 20.04.2023)",
+          "order": 101,
+          "page": null
+        },
+        {
+          "chunk_id": "ТЗ_00102",
+          "section_path": null,
+          "text": "ЛИСТ РЕГИСТРАЦИИ ИЗМЕНЕНИЙ",
+          "order": 102,
+          "page": null
+        }
+      ]
+    },
+    {
+      "doc_id": "ПМИ",
+      "doc_type": "PMI",
+      "chunks": [
+        {
+          "chunk_id": "ПМИ_00001",
+          "section_path": null,
+          "text": "УТВЕРЖДЕН",
+          "order": 1,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00002",
+          "section_path": null,
+          "text": "RU.17701729.04.03-01 51 01-1-ЛУ",
+          "order": 2,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00003",
+          "section_path": null,
+          "text": "ZERO COPY ИНТЕРФЕЙС ДЛЯ БИБЛИОТЕКИ PROTOCOL BUFFERS",
+          "order": 3,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00004",
+          "section_path": null,
+          "text": "Программа и методика испытаний",
+          "order": 4,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00005",
+          "section_path": null,
+          "text": "RU.17701729.04.03-01 51 01-1",
+          "order": 5,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00006",
+          "section_path": null,
+          "text": "Листов 14",
+          "order": 6,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00007",
+          "section_path": null,
+          "text": "Москва 2023",
+          "order": 7,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00008",
+          "section_path": null,
+          "text": "Содержание",
+          "order": 8,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00009",
+          "section_path": null,
+          "text": "1. ОБЪЕКТ ИСПЫТАНИЙ\t3",
+          "order": 9,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00010",
+          "section_path": null,
+          "text": "1.1 Наименование\t3",
+          "order": 10,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00011",
+          "section_path": null,
+          "text": "1.2 Область применения\t3",
+          "order": 11,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00012",
+          "section_path": null,
+          "text": "1.3 Обозначение испытуемой программы\t3",
+          "order": 12,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00013",
+          "section_path": null,
+          "text": "2. ЦЕЛЬ ИСПЫТАНИЙ\t4",
+          "order": 13,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00014",
+          "section_path": null,
+          "text": "2.1 Цель проведения испытаний\t4",
+          "order": 14,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00015",
+          "section_path": null,
+          "text": "3. ТРЕБОВАНИЯ К ПРОГРАММЕ\t5",
+          "order": 15,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00016",
+          "section_path": null,
+          "text": "3.1 Требования к функциональным характеристикам\t5",
+          "order": 16,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00017",
+          "section_path": null,
+          "text": "3.2 Требования к надежности\t5",
+          "order": 17,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00018",
+          "section_path": null,
+          "text": "3.3 Требования к интерфейсу\t5",
+          "order": 18,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00019",
+          "section_path": null,
+          "text": "4. ТРЕБОВАНИЯ К ПРОГРАММНОЙ ДОКУМЕНТАЦИИ\t6",
+          "order": 19,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00020",
+          "section_path": null,
+          "text": "4.1 Состав программной документации, предъявляемой на испытания\t6",
+          "order": 20,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00021",
+          "section_path": null,
+          "text": "4.2 Специальные требования к программной документации\t6",
+          "order": 21,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00022",
+          "section_path": null,
+          "text": "5. СРЕДСТВА И ПОРЯДОК ИСПЫТАНИЙ\t7",
+          "order": 22,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00023",
+          "section_path": null,
+          "text": "5.1 Технические средства, используемые во время испытаний\t7",
+          "order": 23,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00024",
+          "section_path": null,
+          "text": "5.2 Программные средства, используемые во время испытаний\t7",
+          "order": 24,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00025",
+          "section_path": null,
+          "text": "5.3 Порядок проведения испытаний\t7",
+          "order": 25,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00026",
+          "section_path": null,
+          "text": "5.4 Условия проведения испытаний\t7",
+          "order": 26,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00027",
+          "section_path": null,
+          "text": "6. МЕТОДЫ ИСПЫТАНИЙ\t8",
+          "order": 27,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00028",
+          "section_path": null,
+          "text": "6.1 Испытание выполнения требований к программной документации\t8",
+          "order": 28,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00029",
+          "section_path": null,
+          "text": "6.2 Испытания выполнения требований к функциональным характеристикам\t8",
+          "order": 29,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00030",
+          "section_path": null,
+          "text": "6.3 Испытание требований к надежности\t11",
+          "order": 30,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00031",
+          "section_path": null,
+          "text": "ПРИЛОЖЕНИЕ 1 ТЕРМИНОЛОГИЯ\t12",
+          "order": 31,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00032",
+          "section_path": null,
+          "text": "ПРИЛОЖЕНИЕ 2 СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ\t13",
+          "order": 32,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00033",
+          "section_path": null,
+          "text": "ЛИСТ РЕГИСТРАЦИИ ИЗМЕНЕНИЙ\t14",
+          "order": 33,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00034",
+          "section_path": null,
+          "text": "ОБЪЕКТ ИСПЫТАНИЙ",
+          "order": 34,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00035",
+          "section_path": null,
+          "text": "Наименование",
+          "order": 35,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00036",
+          "section_path": null,
+          "text": "Наименование программы – «Protocol Buffers».",
+          "order": 36,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00037",
+          "section_path": null,
+          "text": "Область применения",
+          "order": 37,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00038",
+          "section_path": null,
+          "text": "Библиотека используется для бинарной сериализации и десериализации данных, в первую очередь для передачи информации по сети. Является частью одного из самых распространенных протоколов общения распределенных систем gRPC.",
+          "order": 38,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00039",
+          "section_path": null,
+          "text": "Обозначение испытуемой программы",
+          "order": 39,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00040",
+          "section_path": null,
+          "text": "Краткое наименование программы – «Protobuf».",
+          "order": 40,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00041",
+          "section_path": null,
+          "text": "ЦЕЛЬ ИСПЫТАНИЙ",
+          "order": 41,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00042",
+          "section_path": null,
+          "text": "Цель проведения испытаний",
+          "order": 42,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00043",
+          "section_path": null,
+          "text": "Цель проведения испытаний – проверка соответствия характеристик разработанной программы функциональным требованиям и отдельным требованиям к надежности, изложенных в документе «Техническое задание» к данной программе.",
+          "order": 43,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00044",
+          "section_path": null,
+          "text": "ТРЕБОВАНИЯ К ПРОГРАММЕ",
+          "order": 44,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00045",
+          "section_path": null,
+          "text": "Требования к функциональным характеристикам",
+          "order": 45,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00046",
+          "section_path": null,
+          "text": "Требования к составу выполняемых функций",
+          "order": 46,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00047",
+          "section_path": null,
+          "text": "Программа должна содержать следующий набор функций:",
+          "order": 47,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00048",
+          "section_path": null,
+          "text": "Возможность задать полю типа message атрибут [lazy_pack=true] в прото-файле и корректная обработка этого прото-файла кодогенератором protoc.",
+          "order": 48,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00049",
+          "section_path": null,
+          "text": "Выдача ошибки кодогенератором в случае, если атрибут “[lazy_pack=true]” был присвоен полю с типом отличным от message.",
+          "order": 49,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00050",
+          "section_path": null,
+          "text": "Поля помеченные атрибутом “[lazy_pack=true]” должны не раскладываться при сериализации в структуры языка C++, а сохраняться в бинарном виде в клсасс TLazyField<T>",
+          "order": 50,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00051",
+          "section_path": null,
+          "text": "Доступ к полям помеченным атрибутом “[lazy_pack = true]” должен осуществляться через вызов метода TLazyField<T>::Unpack(), который должен возвращать обычный прото-класс для данного поля",
+          "order": 51,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00052",
+          "section_path": null,
+          "text": "Требования к организации входных данных",
+          "order": 52,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00053",
+          "section_path": null,
+          "text": "Входные данные должны соответствовать документации библиотеки Protocol Buffers [5]. Дополнительно к этим требованиям разрешается использование в прото-файле атрибута “[lazy_pack=true]” для полей типа message.",
+          "order": 53,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00054",
+          "section_path": null,
+          "text": "Требования к организации выходных данных",
+          "order": 54,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00055",
+          "section_path": null,
+          "text": "Выходные данные полностью соответствуют документации библиотеки Protocol Buffers [5].",
+          "order": 55,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00056",
+          "section_path": null,
+          "text": "Требования к надежности",
+          "order": 56,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00057",
+          "section_path": null,
+          "text": "Библиотека должна стабильно работать при применении по назначению, при соблюдении условий эксплуатации, требований к составу и параметрам технических и программных средств и отсутствии редактирования или повреждения файлов программы сторонними приложениями.",
+          "order": 57,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00058",
+          "section_path": null,
+          "text": "Требования к интерфейсу",
+          "order": 58,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00059",
+          "section_path": null,
+          "text": "Интерфейс отсутствует.",
+          "order": 59,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00060",
+          "section_path": null,
+          "text": "ТРЕБОВАНИЯ К ПРОГРАММНОЙ ДОКУМЕНТАЦИИ",
+          "order": 60,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00061",
+          "section_path": null,
+          "text": "Состав программной документации, предъявляемой на испытания",
+          "order": 61,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00062",
+          "section_path": null,
+          "text": "Состав программной документации должен включать в себя следующие компоненты:",
+          "order": 62,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00063",
+          "section_path": null,
+          "text": "Техническое задание (ГОСТ 19.201-78[1]);",
+          "order": 63,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00064",
+          "section_path": null,
+          "text": "Программа и методика испытаний (ГОСТ 19.301-79[2]);",
+          "order": 64,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00065",
+          "section_path": null,
+          "text": "Руководство программиста (ГОСТ 19.504-79 [4]);",
+          "order": 65,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00066",
+          "section_path": null,
+          "text": "Текст программы (ГОСТ 19.401-78[3]);",
+          "order": 66,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00067",
+          "section_path": null,
+          "text": "Текст ВКР",
+          "order": 67,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00068",
+          "section_path": null,
+          "text": "Специальные требования к программной документации",
+          "order": 68,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00069",
+          "section_path": null,
+          "text": "Все документы к программе должны быть выполнены в соответствии с ГОСТ к этому виду документа (см. п. 4.1.);",
+          "order": 69,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00070",
+          "section_path": null,
+          "text": "Вся документация сдается в электронном виде в формате .pdf или .docx в архиве формата .zip. Все документы перед защитой ВКР должны быть загружены в информационно-образовательную среду НИУ ВШЭ LMS (Learning management system) в личном кабинете во вкладку «Проекты» - «ВКР». Кроме того, документ “Текст ВКР” должен быть загружен в систему анти-плагиат.",
+          "order": 70,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00071",
+          "section_path": null,
+          "text": "СРЕДСТВА И ПОРЯДОК ИСПЫТАНИЙ",
+          "order": 71,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00072",
+          "section_path": null,
+          "text": "Технические средства, используемые во время испытаний",
+          "order": 72,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00073",
+          "section_path": null,
+          "text": "Список технических средств:",
+          "order": 73,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00074",
+          "section_path": null,
+          "text": "ПК со следующими характеристиками:",
+          "order": 74,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00075",
+          "section_path": null,
+          "text": "Процессор: Intel(R) Core(TM) i7-7600U",
+          "order": 75,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00076",
+          "section_path": null,
+          "text": "ОЗУ: 16 ГБ",
+          "order": 76,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00077",
+          "section_path": null,
+          "text": "Программные средства, используемые во время испытаний",
+          "order": 77,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00078",
+          "section_path": null,
+          "text": "Список программных средств:",
+          "order": 78,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00079",
+          "section_path": null,
+          "text": "Операционная система: Linux Ubuntu 22",
+          "order": 79,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00080",
+          "section_path": null,
+          "text": "cmake 3.22.1",
+          "order": 80,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00081",
+          "section_path": null,
+          "text": "perf 5.14.74",
+          "order": 81,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00082",
+          "section_path": null,
+          "text": "GNU make 4.3",
+          "order": 82,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00083",
+          "section_path": null,
+          "text": "Порядок проведения испытаний",
+          "order": 83,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00084",
+          "section_path": null,
+          "text": "Испытания должны проводиться в следующем порядке:",
+          "order": 84,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00085",
+          "section_path": null,
+          "text": "Проверка требований к программной документации;",
+          "order": 85,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00086",
+          "section_path": null,
+          "text": "Проверка требований к функциональным характеристикам;",
+          "order": 86,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00087",
+          "section_path": null,
+          "text": "Проверка требований к надежности.",
+          "order": 87,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00088",
+          "section_path": null,
+          "text": "Условия проведения испытаний",
+          "order": 88,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00089",
+          "section_path": null,
+          "text": "Климатические условия",
+          "order": 89,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00090",
+          "section_path": null,
+          "text": "Климатические условия эксплуатации, при которых должны обеспечиваться заданные характеристики, должны удовлетворять требованиям, предъявляемым к персональным компьютерам в части условий их эксплуатации.",
+          "order": 90,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00091",
+          "section_path": null,
+          "text": "Персональный компьютер предназначен для работы в закрытом отапливаемом помещении со стабильными климатическими условиями категории 4.1 согласно ГОСТ 15150-69.",
+          "order": 91,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00092",
+          "section_path": null,
+          "text": "Требования к численности и квалификации персонала",
+          "order": 92,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00093",
+          "section_path": null,
+          "text": "Для испытания программы требуется по крайней мере один пользователь.",
+          "order": 93,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00094",
+          "section_path": null,
+          "text": "Квалификация – программист.",
+          "order": 94,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00095",
+          "section_path": null,
+          "text": "МЕТОДЫ ИСПЫТАНИЙ",
+          "order": 95,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00096",
+          "section_path": null,
+          "text": "Испытание проводятся в порядке, указанном в п. 5.3 настоящего документа.",
+          "order": 96,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00097",
+          "section_path": null,
+          "text": "Испытание выполнения требований к программной документации",
+          "order": 97,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00098",
+          "section_path": null,
+          "text": "Соответствие программной документации требованиям проверяется путем просмотра программной документации вручную.",
+          "order": 98,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00099",
+          "section_path": null,
+          "text": "Путем просмотра выявлено, что программная документация удовлетворяет требованиям.",
+          "order": 99,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00100",
+          "section_path": null,
+          "text": "Испытания выполнения требований к функциональным характеристикам",
+          "order": 100,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00101",
+          "section_path": null,
+          "text": "Подготовка к проведению испытаний",
+          "order": 101,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00102",
+          "section_path": null,
+          "text": "Для начала необходимо скачать репозиторий с бенчмарками выполнив команды:",
+          "order": 102,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00103",
+          "section_path": null,
+          "text": "git clone git@github.com:Ydot12344/Protobuf-zero-copy.git",
+          "order": 103,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00104",
+          "section_path": null,
+          "text": "cd Protobuf-zero-copy",
+          "order": 104,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00105",
+          "section_path": null,
+          "text": "git submodule update --init –recursive",
+          "order": 105,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00106",
+          "section_path": null,
+          "text": "mkdir build",
+          "order": 106,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00107",
+          "section_path": null,
+          "text": "cd build",
+          "order": 107,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00108",
+          "section_path": null,
+          "text": "cmake -DCMAKE_CXX_FLAGS=-pg  -DCMAKE_BUILD_TYPE=Release ..",
+          "order": 108,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00109",
+          "section_path": null,
+          "text": "make",
+          "order": 109,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00110",
+          "section_path": null,
+          "text": "После чего дождаться сборки.",
+          "order": 110,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00111",
+          "section_path": null,
+          "text": "Испытание выполнения требования к возможности задать полю типа message атрибут [lazy_pack=true] в прото-файле и корректной обработке этого прото-файла кодогенератором protoc.",
+          "order": 111,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00112",
+          "section_path": null,
+          "text": "Убедимся, что в прото-файле messages/wraper.proto у сообщения TReportWraperLazy у поля report задан атрибут [lazy_pack = true]. После этого запустим кодогенератор protoc на этом файле, для этого, находясь в корне репозитория, выполним следующую команду:",
+          "order": 112,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00113",
+          "section_path": null,
+          "text": "./build/third_party/protobuf/protoc -I=./messages --cpp_out=./messages ./messages/wraper.proto",
+          "order": 113,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00114",
+          "section_path": null,
+          "text": "В результате будет созданы файлы wraper.pb.h и wraper.pb.cpp в папке messages. Protoc завершит работу без ошибок.",
+          "order": 114,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00115",
+          "section_path": null,
+          "text": "Испытание выдачи ошибки кодогенератором в случае, если атрибут “[lazy_pack=true]” был присвоен полю с типом отличным от message",
+          "order": 115,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00116",
+          "section_path": null,
+          "text": "В прот-файле messages/wraper.proto выставим атрибут “[lazy_pack=true]” полю some_field сообщения TReportWraperLazy:",
+          "order": 116,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00117",
+          "section_path": null,
+          "text": "optional string some_field = 1 [lazy_pack=true];",
+          "order": 117,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00118",
+          "section_path": null,
+          "text": "Теперь запустим кодогенератор из корня репозитория командой:",
+          "order": 118,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00119",
+          "section_path": null,
+          "text": "./build/third_party/protobuf/protoc -I=./messages --cpp_out=./messages ./messages/wraper.proto",
+          "order": 119,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00120",
+          "section_path": null,
+          "text": "В результате кодогенератор завершит работу и выведет в консоль ошибку:",
+          "order": 120,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00121",
+          "section_path": null,
+          "text": "[libprotobuf FATAL /home/andreizdor/hse/Protobuf-zero-copy/third_party/protobuf/src/google/protobuf/compiler/cpp/helpers.cc:213] CHECK failed: only_messages_has_lazy_pack_attr:",
+          "order": 121,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00122",
+          "section_path": null,
+          "text": "Only message type fields can be marked as [lazy_pack=true]!",
+          "order": 122,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00123",
+          "section_path": null,
+          "text": "Испытание проверки того, что поля помеченные атрибутом “[lazy_pack=true]” должны не раскладываться при сериализации в структуры языка C++, а сохраняться в бинарном виде в клсасс TLazyField<T>",
+          "order": 123,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00124",
+          "section_path": null,
+          "text": "Проверим сначала, что поля, помеченные атрибутом “[lazy_pack=true]” действительно имеют тип TLazuField<T>. Для этого сгенерируем файлы как в п. 6.2.2. Посмотрим на определение  структуры TReportWraperLazy::Impl_. Поле report вместо NBench::TReport* имеет тип TLazyField<::NBench::TReport>*.",
+          "order": 124,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00125",
+          "section_path": null,
+          "text": "Теперь убедимся, что поля действительно не обрабатываются в отличии от непомеченных атрибутом. Для этого запустим бенчмарки, выполнив команды из корня репозитория:",
+          "order": 125,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00126",
+          "section_path": null,
+          "text": "cd build/bench/",
+          "order": 126,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00127",
+          "section_path": null,
+          "text": "./bench",
+          "order": 127,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00128",
+          "section_path": null,
+          "text": "Видим, что тесты BM_TestFromString... работают заметно медленнее, чем BM_TestLazyFromString... . К тому же можно сгенерировать флейм-граф, для этого из корня репозитория запустим команду:",
+          "order": 128,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00129",
+          "section_path": null,
+          "text": "sudo ./run.sh",
+          "order": 129,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00130",
+          "section_path": null,
+          "text": "В результате будет сгенерированн файл flamegraph.svg.",
+          "order": 130,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00131",
+          "section_path": null,
+          "text": "Если открыть его в браузере можно заметить, что ленивые тесты не выполняют обработку полей, помеченных, как ленивые.",
+          "order": 131,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00132",
+          "section_path": null,
+          "text": "Рисунок 1. Флейм-граф теста BM_TestFromStringBig",
+          "order": 132,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00133",
+          "section_path": null,
+          "text": "Рисунок 2. Флейм-граф теста BM_TestLazyFromStringBig",
+          "order": 133,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00134",
+          "section_path": null,
+          "text": "Испытание возможности доступа к полям помеченным атрибутом “[lazy_pack = true]” должен осуществляться через вызов метода TLazyField<T>::Unpack(), который должен возвращать обычный прото-класс для данного поля",
+          "order": 134,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00135",
+          "section_path": null,
+          "text": "Бенчмарк NBench2::BM_TestLazyDefaultWork... проверяют это свойство, так что если в п. 6.2.4 бенчмарки не упали на проверке, то данное свойство выполнено. Помимо бенчмарков данное свойство проверяется в тестах библиотеки Protocl Buffers. Для их проверки, нужно скачать библиотеку, собрать ее и запустить тесты:",
+          "order": 135,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00136",
+          "section_path": null,
+          "text": "git clone git@github.com:Ydot12344/protobuf.git",
+          "order": 136,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00137",
+          "section_path": null,
+          "text": "cd protobuf",
+          "order": 137,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00138",
+          "section_path": null,
+          "text": "git submodule update --init –recursive",
+          "order": 138,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00139",
+          "section_path": null,
+          "text": "mkdir build",
+          "order": 139,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00140",
+          "section_path": null,
+          "text": "cd build/",
+          "order": 140,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00141",
+          "section_path": null,
+          "text": "cmake ..",
+          "order": 141,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00142",
+          "section_path": null,
+          "text": "make",
+          "order": 142,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00143",
+          "section_path": null,
+          "text": "./tests –gtest_filter=*Lazy*",
+          "order": 143,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00144",
+          "section_path": null,
+          "text": "Испытание требований к надежности",
+          "order": 144,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00145",
+          "section_path": null,
+          "text": "В пп. 6.2 – 6.3 настоящего документа было обеспечено стабильное и корректное функционирование компьютера и операционной системы. На протяжении всех испытаний в пп. 6.2 – 6.3 настоящего документа программа сохраняла работоспособность.",
+          "order": 145,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00146",
+          "section_path": null,
+          "text": "Таким образом, программа была протестирована на соответствие требованиям к надежности.",
+          "order": 146,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00147",
+          "section_path": null,
+          "text": "ПРИЛОЖЕНИЕ 1 ТЕРМИНОЛОГИЯ",
+          "order": 147,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00148",
+          "section_path": null,
+          "text": "Сериализация данных – процесс преобразования объекта в поток байт для сохранения или передачи.",
+          "order": 148,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00149",
+          "section_path": null,
+          "text": "Десериализация данных – процесс создания структур данных из битовой последовательности путем перевода этой последовательности в объекты и их упорядочивание.",
+          "order": 149,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00150",
+          "section_path": null,
+          "text": "Protocol Buffers – протокол бинарной сериализации/десериализации данных.",
+          "order": 150,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00151",
+          "section_path": null,
+          "text": "Ленивая обработка – подход, при котором данные подвергаются обработки только при непосредственном доступе к ним.",
+          "order": 151,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00152",
+          "section_path": null,
+          "text": "Бенчмарк – тест производительности компьютерной системы",
+          "order": 152,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00153",
+          "section_path": null,
+          "text": "Protoc – один из артефактов библиотеки Protocol Buffers. Это кодогенератор, который по описанию структур данных в proto-файле, генерирует исходный код на языке программирования для работы, сериализации и десириализации этой структуры данных.",
+          "order": 153,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00154",
+          "section_path": null,
+          "text": "ПРИЛОЖЕНИЕ 2 СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+          "order": 154,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00155",
+          "section_path": null,
+          "text": "ГОСТ 19.201-78 Техническое задание. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 155,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00156",
+          "section_path": null,
+          "text": "ГОСТ 19.301-79 Программа и методика испытаний. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 156,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00157",
+          "section_path": null,
+          "text": "ГОСТ 19.401-78 Текст программы. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 157,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00158",
+          "section_path": null,
+          "text": "ГОСТ 19.504-79 Руководство программиста. Требования к содержанию и оформлению. // Единая система программной документации. – М.: ИПК Издательство стандартов, 2001.",
+          "order": 158,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00159",
+          "section_path": null,
+          "text": "Protocol Buffers Documentation [Электронный ресурс] / Google Inc. Режим доступа: https://protobuf.dev/, свободный (дата обращения 20.05.2023)",
+          "order": 159,
+          "page": null
+        },
+        {
+          "chunk_id": "ПМИ_00160",
+          "section_path": null,
+          "text": "ЛИСТ РЕГИСТРАЦИИ ИЗМЕНЕНИЙ",
+          "order": 160,
+          "page": null
+        }
+      ]
+    }
+  ]
+}

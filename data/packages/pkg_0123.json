@@ -1,0 +1,1277 @@
+{
+  "package_id": "pkg_0123",
+  "documents": [
+    {
+      "doc_id": "ТЗ",
+      "doc_type": "TZ",
+      "chunks": [
+        {
+          "chunk_id": "ТЗ_00001",
+          "section_path": null,
+          "text": "National Research University Higher School of Economics \nFaculty of Computer Science \nSoftware Engineering",
+          "order": 1,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00002",
+          "section_path": null,
+          "text": "AGREED \nSenior lecturer of the department of data \nanalysis and artificial intelligence \n_______________ A. A. Parinov  \nApril 25 2023 \n                     APPROVED \nAcademic supervisor of “Software \nEngineering” programme, candidate of \nsciences",
+          "order": 2,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00003",
+          "section_path": null,
+          "text": "________________ V. V. Shilov \n________________ 2023 \nПодп. и дата",
+          "order": 3,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00004",
+          "section_path": null,
+          "text": "Инв. №",
+          "order": 4,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00005",
+          "section_path": null,
+          "text": "Взам. Инв.",
+          "order": 5,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00006",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 6,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00007",
+          "section_path": null,
+          "text": "Инв. № подл. \nRU.17701729 \n.03.05-01 ТЗ 01-\n1",
+          "order": 7,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00008",
+          "section_path": null,
+          "text": "Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank \nMobile App \nTechnical requirements",
+          "order": 8,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00009",
+          "section_path": null,
+          "text": "APPROVAL SHEET \nRU.17701729.03.05-01 ТЗ 01-1-ЛУ",
+          "order": 9,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00010",
+          "section_path": null,
+          "text": "Contractor \nStudent of Software Engineering, \nBSE196 \n___________/A. O. Mostachev/ \nApril 23 2023",
+          "order": 10,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00011",
+          "section_path": null,
+          "text": "Moscow 2023",
+          "order": 11,
+          "page": 1
+        },
+        {
+          "chunk_id": "ТЗ_00012",
+          "section_path": null,
+          "text": "APPROVED \nRU.17701729.03.05-01 ТЗ 01-1-ЛУ",
+          "order": 12,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00013",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 13,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00014",
+          "section_path": null,
+          "text": "Инв. №",
+          "order": 14,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00015",
+          "section_path": null,
+          "text": "Взам. Инв.",
+          "order": 15,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00016",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 16,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00017",
+          "section_path": null,
+          "text": "Инв. № подл. \nRU.17701729.03.05\n-01 ТЗ 01-1",
+          "order": 17,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00018",
+          "section_path": null,
+          "text": "Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank \nMobile App \nTechnical requirements",
+          "order": 18,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00019",
+          "section_path": null,
+          "text": "RU.17701729.03.05-01 ТЗ 01-1 \nNumber of pages: 13",
+          "order": 19,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00020",
+          "section_path": null,
+          "text": "Moscow 2023",
+          "order": 20,
+          "page": 2
+        },
+        {
+          "chunk_id": "ТЗ_00021",
+          "section_path": null,
+          "text": "1 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 21,
+          "page": 3
+        },
+        {
+          "chunk_id": "ТЗ_00022",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 22,
+          "page": 3
+        },
+        {
+          "chunk_id": "ТЗ_00023",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 23,
+          "page": 3
+        },
+        {
+          "chunk_id": "ТЗ_00024",
+          "section_path": null,
+          "text": "CONTENTS \n1. \nINTRODUCTION........................................................................................................................2 \n1.1. \nProgram name in Russian: ....................................................................................................2 \n1.2. \nProgram name in English:.....................................................................................................2 \n1.3. \nProgram application domain: ................................................................................................2 \n2. \nGROUNDS FOR DEVELOPMENT ...........................................................................................3 \n2.1. \nDocument basis for development .........................................................................................3 \n2.2. \nThesis topic name .................................................................................................................3 \n3. \nPURPOSE FOR DEVELOPMENT .............................................................................................4 \n3.1. \nFunctional purpose ................................................................................................................4 \n3.2. \nOperational purpose ..............................................................................................................4 \n4. \nREQUIREMENTS .......................................................................................................................5 \n4.1. \nFunctional requirements .......................................................................................................5 \n4.1.1. \nRequirements for the set of program’s functions ..........................................................5 \n4.1.2. \nInterface requirements ...................................................................................................5 \n4.1.3. \nInput data format requirements .....................................................................................5 \n4.1.4. \nOutput data requirements ..............................................................................................5 \n4.2. \nReliability requirements ........................................................................................................5 \n4.3. \nOperational conditions ..........................................................................................................6 \n4.3.1. \nOperator qualification requirements ..............................................................................6 \n4.3.2. \nProcessing device hardware requirements .....................................................................6 \n4.3.3. \nSoftware compatibility requirements ............................................................................6 \n5. \nDOCUMENTATION REQUIREMENTS ...................................................................................7 \n5.1. \nPreliminary set of program documentation ..........................................................................7 \n5.2. \nSpecial requirements for program documentation ................................................................7 \n6. \nTECHNO-ECONOMIC ASSESSMENT ....................................................................................8 \n6.1. \nProjected economic effectiveness .........................................................................................8 \n6.2. \nProjected demand ..................................................................................................................8 \n7. \nSTAGES OF DEVELOPMENT ..................................................................................................9 \n7.1. \nTechnical requirements .........................................................................................................9 \n8. \nCONTROL AND ACCEPTANCE PROCEDURE ...................................................................10 \n9. \nREFERENCES ...........................................................................................................................11",
+          "order": 24,
+          "page": 3
+        },
+        {
+          "chunk_id": "ТЗ_00025",
+          "section_path": null,
+          "text": "2 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 25,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00026",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 26,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00027",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 27,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00028",
+          "section_path": null,
+          "text": "1. INTRODUCTION \n1.1.  Program name in Russian:",
+          "order": 28,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00029",
+          "section_path": null,
+          "text": "Сервис поиска случаев мошенничества по биометрии пользователей мобильного приложения \nбанка на основе машинного обучения \n1.2.  Program name in English: \nMachine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile App  \n1.3.  Program application domain:",
+          "order": 29,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00030",
+          "section_path": null,
+          "text": "The issue of fraudulent actions have never been as pressing as it is now in the banking sphere, with the \nspread of mobile banking and overall digitalization of the modern world. There are several different methods \nof detecting and disposal of fraudulent operations. One of the promising approaches to the problem of fraud \ndetection nowadays is machine learning. However, not the whole spectrum of available data is now being used \nto deal with the issue. This project is aimed at creating a service which uses behavioral biometry data from a \nbank mobile app for scoring transactions in real time. The program that is to be created should provide a testing \nground for the potential of such data and get the models ready for introduction into the bank’s security system.",
+          "order": 30,
+          "page": 4
+        },
+        {
+          "chunk_id": "ТЗ_00031",
+          "section_path": null,
+          "text": "3 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 31,
+          "page": 5
+        },
+        {
+          "chunk_id": "ТЗ_00032",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 32,
+          "page": 5
+        },
+        {
+          "chunk_id": "ТЗ_00033",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 33,
+          "page": 5
+        },
+        {
+          "chunk_id": "ТЗ_00034",
+          "section_path": null,
+          "text": "2. GROUNDS FOR DEVELOPMENT \n2.1. Document basis for development \nDevelopment is being carried out as part of thesis paper in accordance with the study plan of “Software \nEngineering” bachelor’s programme of the Higher School of Economics University, Faculty of Computer \nScience, Department of Software Engineering. \nThe grounds for development are the study plan for bachelors’ training at programme 09.03.04 “Software \nEngineering” and the topic of thesis paper, approved by the academic supervisor. \n2.2. Thesis topic name \nFull thesis topic name – Сервис поиска случаев мошенничества по биометрии пользователей \nмобильного приложения банка на основе машинного обучения \nNominal thesis topic name – Machine-Learning-Based Fraud Detection Service Using Biometric Data From \nBank Mobile App",
+          "order": 34,
+          "page": 5
+        },
+        {
+          "chunk_id": "ТЗ_00035",
+          "section_path": null,
+          "text": "4 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 35,
+          "page": 6
+        },
+        {
+          "chunk_id": "ТЗ_00036",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 36,
+          "page": 6
+        },
+        {
+          "chunk_id": "ТЗ_00037",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 37,
+          "page": 6
+        },
+        {
+          "chunk_id": "ТЗ_00038",
+          "section_path": null,
+          "text": "3. PURPOSE FOR DEVELOPMENT \n3.1.  Functional purpose",
+          "order": 38,
+          "page": 6
+        },
+        {
+          "chunk_id": "ТЗ_00039",
+          "section_path": null,
+          "text": "The program is to be used for fraudulent action detection while committing a transaction in a bank’s \nmobile app, based on the biometric data of the current and previous sessions. As a result of the program’s \nwork, a fraudulence score must be awarded to the transaction, given by a machine learning model. \n3.2.  Operational purpose \nThe program is to be used by the bank’s data science specialists. Moreover, the program is to be adequately \nready for the introduction into the bank’s fraud detection and security system.",
+          "order": 39,
+          "page": 6
+        },
+        {
+          "chunk_id": "ТЗ_00040",
+          "section_path": null,
+          "text": "5 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 40,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00041",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 41,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00042",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 42,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00043",
+          "section_path": null,
+          "text": "4. REQUIREMENTS \n4.1.  Functional requirements \n4.1.1. Requirements for the set of program’s functions \nThe program must: \n1) Perform data reading from Hadoop distributed data storage; \n2) Perform data reading from Oracle distributed data storage; \n3) Perform data saving to Hadoop or Oracle distributed data storage; \n4) Save trained machine learning models; \n5) Load trained machine learning models; \n6) Perform feature computation for machine learning models; \n7) Perform feature selection on the basis of relevance; \n8) Assign fraudulence scores to transactions; \n9) Apply configurations from a file; \n10) Write configurations to a file; \n11) Save model performance metrics; \n12) Save the most relevant features; \n13) Create and save graphs of the EER metric. \n4.1.2. Interface requirements",
+          "order": 43,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00044",
+          "section_path": null,
+          "text": "The software interface must be developed in a form of CLI (command line interface). The interface \nmust contain elements giving the operator an option to call the program functionality, namely:  \n1) User-help window with a list of available functions; \n2) A set of at least 5 windows for executing parts of the program’s functionality; \n3) A set of commands for altering the program configuration; \n4) A set of commands for starting the program or its parts; \n5) A command for saving the configuration file; \n6) A command for loading the configuration file.",
+          "order": 44,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00045",
+          "section_path": null,
+          "text": "Some of the program’s configurations may be unaccessible from the command line interface. For the \npurpose of operator’s work simplification, the least relevant configuration parameters may only be accessible \ndirectly in the configuration file.",
+          "order": 45,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00046",
+          "section_path": null,
+          "text": "4.1.3. Input data format requirements",
+          "order": 46,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00047",
+          "section_path": null,
+          "text": "The program’s input data are csv-format files, containing biometric data, collected through the use of \nthe bank’s mobile app, as well as analogous tables in parquet and pickle formats. Additionally, some of input \ndata is to be in the form of tables situated at the Oracle distributed data storage, configuration files in cfg or \nyaml format, machine learning models, saved in the form of pickle-format data, and text commands entered \ninto the CLI. \n4.1.4. Output data requirements",
+          "order": 47,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00048",
+          "section_path": null,
+          "text": "The program’s output data may be in the form of any of the objects presented in section 4.1.3, which \nare to be saved during the program’s runtime, except for the CLI commands. Additionally, the program must \nbe capable of displaying and saving graphs in the jpg format.  \n4.2. Reliability requirements \n1) The program must correctly execute on any set of input data, and must not terminate with an error \nstate. \n2) The program must periodically save its state or outputs for the purposes of continuation in the case \nof an error being encountered or the processing device crash. \n3) The program must terminate execution at a user’s command.",
+          "order": 48,
+          "page": 7
+        },
+        {
+          "chunk_id": "ТЗ_00049",
+          "section_path": null,
+          "text": "6 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 49,
+          "page": 8
+        },
+        {
+          "chunk_id": "ТЗ_00050",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 50,
+          "page": 8
+        },
+        {
+          "chunk_id": "ТЗ_00051",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 51,
+          "page": 8
+        },
+        {
+          "chunk_id": "ТЗ_00052",
+          "section_path": null,
+          "text": "4.3.Operational conditions \n4.3.1. Operator qualification requirements \n1) The operator must be experienced in working with command line interfaces. \n2) The operator must be sufficiently informed on the operation of machine learning models, \nspecifically for the problems of classifcation and anomaly detection. \n3) The operator must be familiar with the operation of SQL language, as well as Hadoop and Oracle \ndistributed data storages. \n4.3.2.  Processing device hardware requirements \nProgram execution is carried out on cloud servers with JupyterHub, Hadoop and Oracle. The server \nrunning the program must have at least 100 Gb of RAM and be capable of establishing connection with \ndatabases. The set of requirements for databases is under the NDA between the contractor and AO “ALFA-\nBANK”. \n4.3.3. Software compatibility requirements \nFor the program’s correct operation the following requirements to the device’s software must be satisfied: \n1) The device must have a Unix-like OS installed. \n2) Python 3.7 programming language and the latest version of pip package manager must be installed \non the device. \n3) All the packages found in the requirements file must be installed on the device. \n4) The device must be capable of connection to Hadoop and Oracle distributed data storages.",
+          "order": 52,
+          "page": 8
+        },
+        {
+          "chunk_id": "ТЗ_00053",
+          "section_path": null,
+          "text": "7 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 53,
+          "page": 9
+        },
+        {
+          "chunk_id": "ТЗ_00054",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 54,
+          "page": 9
+        },
+        {
+          "chunk_id": "ТЗ_00055",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 55,
+          "page": 9
+        },
+        {
+          "chunk_id": "ТЗ_00056",
+          "section_path": null,
+          "text": "5. DOCUMENTATION REQUIREMENTS \n5.1.Preliminary set of program documentation \nThe following documents must be developed in accordance with ГОСТ or ISO IEC IEEE standard: \n1) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Technical requirements [1]; \n2) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Testing programme and methods [3]; \n3) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Explanatory report [5]; \n4) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Operator’s manual [6]; \n5.2.Special requirements for program documentation \nProgram documentation must be prepared in accordance with ГОСТ 19.106-78 standard, as well as \nrelevant standards for each document type, or the ISO IEC IEEE relevant standards. \nThe explanatory report must be submitted to the anti-plagiarism system through HSE LMS service. \nThe documentation and program code must be submitted in the form of pdf or docx documents and/or zip or \nrar archives. \nOne day in advance to the set commission date, all work materials must be submitted as one ore several \narchives to the user’s account at the HSE LMS system. \nAll documents and files the distribution of which breaches the NDA between the contractor and AO “ALFA-\nBANK” must not be submitted. Explanation in the form of documented NDA confirmation must be submitted \ninstead.",
+          "order": 56,
+          "page": 9
+        },
+        {
+          "chunk_id": "ТЗ_00057",
+          "section_path": null,
+          "text": "8 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 57,
+          "page": 10
+        },
+        {
+          "chunk_id": "ТЗ_00058",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 58,
+          "page": 10
+        },
+        {
+          "chunk_id": "ТЗ_00059",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 59,
+          "page": 10
+        },
+        {
+          "chunk_id": "ТЗ_00060",
+          "section_path": null,
+          "text": "6. TECHNO-ECONOMIC ASSESSMENT \n6.1.Projected economic effectiveness",
+          "order": 60,
+          "page": 10
+        },
+        {
+          "chunk_id": "ТЗ_00061",
+          "section_path": null,
+          "text": "Economic effectiveness assessment is not provided owing to the fact that the program is being \ndeveloped as part of a work assignment at AO “ALFA-BANK”, and the required actions are beyond the \ncompetence and responsibility of the worker. The program is developed for internal use within AO “ALFA-\nBANK”. Projected economic parameters are trade secret of the bank. \n6.2. Projected demand \nThe demand for the program’s development comes from AO “ALFA-BANK” and is based upon a \nneed for improvement in quality of transactional fraud countermeasures.",
+          "order": 61,
+          "page": 10
+        },
+        {
+          "chunk_id": "ТЗ_00062",
+          "section_path": null,
+          "text": "9 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 62,
+          "page": 11
+        },
+        {
+          "chunk_id": "ТЗ_00063",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 63,
+          "page": 11
+        },
+        {
+          "chunk_id": "ТЗ_00064",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 64,
+          "page": 11
+        },
+        {
+          "chunk_id": "ТЗ_00065",
+          "section_path": null,
+          "text": "7. STAGES OF DEVELOPMENT \n7.1. Technical requirements \nCategory \nStage \nDeadline \nBasis for development demand \nProblem setting \n01.10.2022 \nStudy of problem landscape and \nalternative solutions \n20.10.2022 \nChoosing effectiveness  and \nquality criteria \n25.10.2022 \nTechnical requirements \ndevelopment \nSetting program requirements \n05.11.2022 \nSetting deadlines for \ndevelopment stages \n07.11.2022 \nMaking preliminary choice of \ndevelopment methods \n10.11.2022 \nFinalizing and approving the \ntechnical requirements \n23.04.2023 \nProgram development \nProgram MVP development for \nthe practice defence \n23.04.2023 \nFull functionality development \n10.05.2023 \nFunctionality testing \n15.05.2023 \nSoftware interface development \nand testing \n15.05.2023 \nDocumentation development \nTesting procedure finalization \n10.05.2023 \nFull documentation development \n20.05.2023 \nProject submission and defence \nAnti-plagiarism system checks \n20.05.2023 \nProgram and documentation \nsubmission to the LMS system \n20.05.2023 \nProject defence \n15.06.2023",
+          "order": 65,
+          "page": 11
+        },
+        {
+          "chunk_id": "ТЗ_00066",
+          "section_path": null,
+          "text": "Development deadlines and contractors \nThe project’s development must be completed before 25.05.2023. \nContractors: A.O. Mostachev, student of BSE196, Software Engineering, Faculty of Computer Science, \nHigher School of Economics.",
+          "order": 66,
+          "page": 11
+        },
+        {
+          "chunk_id": "ТЗ_00067",
+          "section_path": null,
+          "text": "10 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 67,
+          "page": 12
+        },
+        {
+          "chunk_id": "ТЗ_00068",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 68,
+          "page": 12
+        },
+        {
+          "chunk_id": "ТЗ_00069",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 69,
+          "page": 12
+        },
+        {
+          "chunk_id": "ТЗ_00070",
+          "section_path": null,
+          "text": "8. CONTROL AND ACCEPTANCE PROCEDURE",
+          "order": 70,
+          "page": 12
+        },
+        {
+          "chunk_id": "ТЗ_00071",
+          "section_path": null,
+          "text": "Control and acceptance must be carried out in accordance with the “Machine-Learning-Based Fraud \nDetection Service Using Biometric Data From Bank Mobile App” Testing programme and methods document.",
+          "order": 71,
+          "page": 12
+        },
+        {
+          "chunk_id": "ТЗ_00072",
+          "section_path": null,
+          "text": "11 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 72,
+          "page": 13
+        },
+        {
+          "chunk_id": "ТЗ_00073",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 73,
+          "page": 13
+        },
+        {
+          "chunk_id": "ТЗ_00074",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 74,
+          "page": 13
+        },
+        {
+          "chunk_id": "ТЗ_00075",
+          "section_path": null,
+          "text": "9. REFERENCES \n1. ГОСТ 19.201-78 Техническое задание. Требования к содержанию и оформлению. //Единая система \nпрограммной документации. – М.: ИПК Издательство стандартов, 2001.  \n2. ГОСТ 15150-69 Машины, приборы и другие технические изделия. Исполнения для различных \nклиматических районов. Категории, условия эксплуатации, хранения и транспортирования в части \nвоздействия климатических факторов внешней среды. – М.: Изд-во стандартов, 1997.  \n3. ГОСТ 19.301-79 Программа и методика испытаний. Требования к содержанию и оформлению. \n//Единая система программной документации. – М.: ИПК Издательство стандартов, 2001. \n4. ГОСТ 19.401-78. ЕСПД. Текст программы. Требования к содержанию и оформлению. – М.: ИПК \nИздательство стандартов, 2001. \n5. ГОСТ 19.404-79. ЕСПД. Пояснительная записка. Требования к содержанию и оформлению. – М.: \nИПК Издательство стандартов, 2001. \n6. ГОСТ 19.505-79. ЕСПД. Руководство оператора. Требования к содержанию и оформлению. . – М.: \nИПК Издательство стандартов, 2001.",
+          "order": 75,
+          "page": 13
+        },
+        {
+          "chunk_id": "ТЗ_00076",
+          "section_path": null,
+          "text": "12 \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 76,
+          "page": 14
+        },
+        {
+          "chunk_id": "ТЗ_00077",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ТЗ 01-1",
+          "order": 77,
+          "page": 14
+        },
+        {
+          "chunk_id": "ТЗ_00078",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 78,
+          "page": 14
+        },
+        {
+          "chunk_id": "ТЗ_00079",
+          "section_path": null,
+          "text": "CHANGES REGISTRATION SHEET",
+          "order": 79,
+          "page": 14
+        },
+        {
+          "chunk_id": "ТЗ_00080",
+          "section_path": null,
+          "text": "Ch. \nPage number \nTotal number \nof pages \nDocument \nnumber \nInbound \naccompanying \ndocument \nnumber and \ndate \nSignature \nDate \nchanged \nreplaced \nnew \nannulled",
+          "order": 80,
+          "page": 14
+        }
+      ]
+    },
+    {
+      "doc_id": "ПМИ",
+      "doc_type": "PMI",
+      "chunks": [
+        {
+          "chunk_id": "ПМИ_00001",
+          "section_path": null,
+          "text": "National Research University Higher School of Economics \nFaculty of Computer Science \nSoftware Engineering",
+          "order": 1,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00002",
+          "section_path": null,
+          "text": "AGREED \nSenior lecturer of the department of data \nanalysis and artificial intelligence \n_______________ A. A. Parinov  \nApril 25 2023 \n                     APPROVED \nAcademic supervisor of “Software \nEngineering” programme, candidate of \nsciences",
+          "order": 2,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00003",
+          "section_path": null,
+          "text": "________________ V. V. Shilov \n________________ 2023 \nПодп. и дата",
+          "order": 3,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00004",
+          "section_path": null,
+          "text": "Инв. №",
+          "order": 4,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00005",
+          "section_path": null,
+          "text": "Взам. Инв.",
+          "order": 5,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00006",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 6,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00007",
+          "section_path": null,
+          "text": "Инв. № подл. \nRU.17701729 .03.05-01 \nПМИ 01-1",
+          "order": 7,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00008",
+          "section_path": null,
+          "text": "Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank \nMobile App \nTesting programme and methods",
+          "order": 8,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00009",
+          "section_path": null,
+          "text": "APPROVAL SHEET \nRU.17701729.03.05-01 ПМИ 01-1-ЛУ",
+          "order": 9,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00010",
+          "section_path": null,
+          "text": "Contractor \nStudent of Software Engineering, \nBSE196 \n___________/A. O. Mostachev/ \nApril 23 2023",
+          "order": 10,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00011",
+          "section_path": null,
+          "text": "Moscow 2023",
+          "order": 11,
+          "page": 1
+        },
+        {
+          "chunk_id": "ПМИ_00012",
+          "section_path": null,
+          "text": "APPROVED \nRU.17701729.03.05-01 ПМИ 01-1-ЛУ",
+          "order": 12,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00013",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 13,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00014",
+          "section_path": null,
+          "text": "Инв. №",
+          "order": 14,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00015",
+          "section_path": null,
+          "text": "Взам. Инв.",
+          "order": 15,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00016",
+          "section_path": null,
+          "text": "Подп. и дата",
+          "order": 16,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00017",
+          "section_path": null,
+          "text": "Инв. № подл. \nRU.17701729.03.05-01 \nПМИ 01-1",
+          "order": 17,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00018",
+          "section_path": null,
+          "text": "Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank \nMobile App \nTesting programme and methods",
+          "order": 18,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00019",
+          "section_path": null,
+          "text": "RU.17701729.03.05-01 ПМИ 01-1 \nNumber of pages: 17",
+          "order": 19,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00020",
+          "section_path": null,
+          "text": "Moscow 2023",
+          "order": 20,
+          "page": 2
+        },
+        {
+          "chunk_id": "ПМИ_00021",
+          "section_path": null,
+          "text": "1 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 21,
+          "page": 3
+        },
+        {
+          "chunk_id": "ПМИ_00022",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 22,
+          "page": 3
+        },
+        {
+          "chunk_id": "ПМИ_00023",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 23,
+          "page": 3
+        },
+        {
+          "chunk_id": "ПМИ_00024",
+          "section_path": null,
+          "text": "TABLE OF CONTENTS \n1. \nOBJECT OF TESTING .............................................................................................................................. 3 \n2. \nTESTING PURPOSE ................................................................................................................................. 4 \n3. \nREQUIREMENTS...................................................................................................................................... 5 \n3.1. \nFunctional requirements ...................................................................................................................... 5 \n3.1.1. \nRequirements for the set of program’s functions ......................................................................... 5 \n3.1.2. \nInterface requirements .................................................................................................................. 5 \n3.1.3. \nInput data format requirements .................................................................................................... 5 \n3.1.4. \nOutput data requirements ............................................................................................................. 5 \n3.2. \nReliability requirements ...................................................................................................................... 6 \n4. \nDOCUMENTATION REQUIREMENTS ................................................................................................. 7 \n4.1. \nPreliminary set of program documentation ......................................................................................... 7 \n4.2. \nSpecial requirements for program documentation .............................................................................. 7 \n5. \nTESTING RESOURCES AND PROCESS ................................................................................................ 8 \n5.1. \nTechnical resources ............................................................................................................................. 8 \n5.2. \nSoftware requirements ......................................................................................................................... 8 \n5.3. \nTesting sequence ................................................................................................................................. 8 \n6. \nTESTING METHODS ............................................................................................................................... 9 \n6.1. \nFunctional requirements testing .......................................................................................................... 9 \n6.1.1. \nData reading from Hadoop distributed data storage ........................................................................ 9 \n6.1.2. \nData reading from Oracle distributed data storage .......................................................................... 9 \n6.1.3. \nData saving to Hadoop or Oracle distributed data storage .............................................................. 9 \n6.1.4. \nSaving trained machine learning models ......................................................................................... 9 \n6.1.5. \nLoading trained machine learning models ....................................................................................... 9 \n6.1.6. \nFeature computation for machine learning models .......................................................................... 9 \n6.1.7. \nFeature selection on the basis of relevance ...................................................................................... 9 \n6.1.8. \nAssigning fraudulence scores to transactions .................................................................................. 9 \n6.1.9. \nApplying configurations from a file ................................................................................................ 9 \n6.1.10. Writing configurations to a file ........................................................................................................ 9 \n6.1.11. Saving model performance metrics ............................................................................................... 10 \n6.1.12. Saving the most relevant features .................................................................................................. 10 \n6.1.13. Creating and saving graphs of the EER metric .............................................................................. 11 \n6.2. \nInterface requirements testing ........................................................................................................... 12 \n6.2.1. \nUser-help window .......................................................................................................................... 12 \n6.2.2. \nA set of at least 5 windows for executing parts of the program’s functionality ............................ 12",
+          "order": 24,
+          "page": 3
+        },
+        {
+          "chunk_id": "ПМИ_00025",
+          "section_path": null,
+          "text": "2 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 25,
+          "page": 4
+        },
+        {
+          "chunk_id": "ПМИ_00026",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 26,
+          "page": 4
+        },
+        {
+          "chunk_id": "ПМИ_00027",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 27,
+          "page": 4
+        },
+        {
+          "chunk_id": "ПМИ_00028",
+          "section_path": null,
+          "text": "6.2.3. \nA set of commands for altering the program configuration........................................................... 14 \n6.2.4. \nA set of commands for starting the program or its parts ............................................................... 14 \n6.2.5. \nA command for saving the configuration file ................................................................................ 14 \n6.2.6. \nA command for loading the configuration file .............................................................................. 14 \n6.3. \nReliability testing .............................................................................................................................. 14 \n6.4. \nInput and output requirements testing ............................................................................................... 15 \n6.5. \nDocumentation requirements checks ................................................................................................. 15",
+          "order": 28,
+          "page": 4
+        },
+        {
+          "chunk_id": "ПМИ_00029",
+          "section_path": null,
+          "text": "3 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 29,
+          "page": 5
+        },
+        {
+          "chunk_id": "ПМИ_00030",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 30,
+          "page": 5
+        },
+        {
+          "chunk_id": "ПМИ_00031",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 31,
+          "page": 5
+        },
+        {
+          "chunk_id": "ПМИ_00032",
+          "section_path": null,
+          "text": "1. OBJECT OF TESTING \nTitle: Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile App \nProject characteristics and application domain: The issue of fraudulent actions have never been as \npressing as it is now in the banking sphere, with the spread of mobile banking and overall digitalization of the \nmodern world. There are several different methods of detecting and disposal of fraudulent operations. One of \nthe promising approaches to the problem of fraud detection nowadays is machine learning. However, not the \nwhole spectrum of available data is now being used to deal with the issue. This project is aimed at creating a \nservice which uses behavioral biometry data from a bank mobile app for scoring transactions in real time. The \nprogram that is to be created should provide a testing ground for the potential of such data and get the models \nready for introduction into the bank’s security system.",
+          "order": 32,
+          "page": 5
+        },
+        {
+          "chunk_id": "ПМИ_00033",
+          "section_path": null,
+          "text": "4 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 33,
+          "page": 6
+        },
+        {
+          "chunk_id": "ПМИ_00034",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 34,
+          "page": 6
+        },
+        {
+          "chunk_id": "ПМИ_00035",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 35,
+          "page": 6
+        },
+        {
+          "chunk_id": "ПМИ_00036",
+          "section_path": null,
+          "text": "2. TESTING PURPOSE \nThe purpose for the testing described in this document is to check if the developed program executes \ncorrectly and whether all the technical requirements, outlined in the respective document, have been fulfilled.",
+          "order": 36,
+          "page": 6
+        },
+        {
+          "chunk_id": "ПМИ_00037",
+          "section_path": null,
+          "text": "5 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 37,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00038",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 38,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00039",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 39,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00040",
+          "section_path": null,
+          "text": "3. REQUIREMENTS \nThe program must fulfill all the requirements described in the «Machine-Learning-Based Fraud Detection \nService Using Biometric Data From Bank Mobile App» - Technical requirements document, specifically, the \nrequirements given below. \n3.1. Functional requirements \n3.1.1. Requirements for the set of program’s functions \nThe program must: \n1) Perform data reading from Hadoop distributed data storage; \n2) Perform data reading from Oracle distributed data storage; \n3) Perform data saving to Hadoop or Oracle distributed data storage; \n4) Save trained machine learning models; \n5) Load trained machine learning models; \n6) Perform feature computation for machine learning models; \n7) Perform feature selection on the basis of relevance; \n8) Assign fraudulence scores to transactions; \n9) Apply configurations from a file; \n10) Write configurations to a file; \n11) Save model performance metrics; \n12) Save the most relevant features; \n13) Create and save graphs of the EER metric; \n14) Display a user-help window with a set of available functions. \n3.1.2. Interface requirements",
+          "order": 40,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00041",
+          "section_path": null,
+          "text": "The software interface must be developed in a form of CLI (command line interface). The interface \nmust contain elements giving the operator an option to call the program functionality, namely:  \n1) User-help window with a list of available functions; \n2) A set of at least 5 windows for executing parts of the program’s functionality; \n3) A set of commands for altering the program configuration; \n4) A set of commands for starting the program or its parts; \n5) A command for saving the configuration file; \n6) A command for loading the configuration file.",
+          "order": 41,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00042",
+          "section_path": null,
+          "text": "Some of the program’s configurations may be unaccessible from the command line interface. For the \npurpose of operator’s work simplification, the least relevant configuration parameters may only be accessible \ndirectly in the configuration file.",
+          "order": 42,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00043",
+          "section_path": null,
+          "text": "3.1.3. Input data format requirements",
+          "order": 43,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00044",
+          "section_path": null,
+          "text": "The program’s input data are csv-format files, containing biometric data, collected through the use of \nthe bank’s mobile app, as well as analogous tables in parquet and pickle formats. Additionally, some of input \ndata is to be in the form of tables situated at the Oracle distributed data storage, configuration files in cfg or \nyaml format, machine learning models, saved in the form of pickle-format data, and text commands entered \ninto the CLI. \n3.1.4. Output data requirements",
+          "order": 44,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00045",
+          "section_path": null,
+          "text": "The program’s output data may be in the form of any of the objects presented in section 4.1.3, which \nare to be saved during the program’s runtime, except for the CLI commands. Additionally, the program must \nbe capable of displaying and saving graphs in the jpg format.",
+          "order": 45,
+          "page": 7
+        },
+        {
+          "chunk_id": "ПМИ_00046",
+          "section_path": null,
+          "text": "6 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 46,
+          "page": 8
+        },
+        {
+          "chunk_id": "ПМИ_00047",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 47,
+          "page": 8
+        },
+        {
+          "chunk_id": "ПМИ_00048",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 48,
+          "page": 8
+        },
+        {
+          "chunk_id": "ПМИ_00049",
+          "section_path": null,
+          "text": "3.2. Reliability requirements \n1) The program must correctly execute on any set of input data, and must not terminate with an error \nstate. \n2) The program must periodically save its state or outputs for the purposes of continuation in the case \nof an error being encountered or the processing device crash. \n3) The program must terminate execution at a user’s command.",
+          "order": 49,
+          "page": 8
+        },
+        {
+          "chunk_id": "ПМИ_00050",
+          "section_path": null,
+          "text": "7 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 50,
+          "page": 9
+        },
+        {
+          "chunk_id": "ПМИ_00051",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 51,
+          "page": 9
+        },
+        {
+          "chunk_id": "ПМИ_00052",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 52,
+          "page": 9
+        },
+        {
+          "chunk_id": "ПМИ_00053",
+          "section_path": null,
+          "text": "4. DOCUMENTATION REQUIREMENTS \n4.1.Preliminary set of program documentation \nThe following documents must be developed in accordance with ГОСТ or ISO IEC IEEE standard: \n1) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Technical requirements [1]; \n2) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Testing programme and methods [3]; \n3) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Explanatory report [5]; \n4) «Machine-Learning-Based Fraud Detection Service Using Biometric Data From Bank Mobile \nApp». Operator’s manual [6]; \n4.2.Special requirements for program documentation \nProgram documentation must be prepared in accordance with ГОСТ 19.106-78 standard, as well as \nrelevant standards for each document type, or the ISO IEC IEEE relevant standards. \nThe explanatory report must be submitted to the anti-plagiarism system through HSE LMS service. \nThe documentation and program code must be submitted in the form of pdf or docx documents and/or zip \nor rar archives. \nOne day in advance to the set commission date, all work materials must be submitted as one ore several \narchives to the user’s account at the HSE LMS system. \nAll documents and files the distribution of which breaches the NDA between the contractor and AO \n“ALFA-BANK” must not be submitted. Explanation in the form of documented NDA confirmation must be \nsubmitted instead.",
+          "order": 53,
+          "page": 9
+        },
+        {
+          "chunk_id": "ПМИ_00054",
+          "section_path": null,
+          "text": "8 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 54,
+          "page": 10
+        },
+        {
+          "chunk_id": "ПМИ_00055",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 55,
+          "page": 10
+        },
+        {
+          "chunk_id": "ПМИ_00056",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 56,
+          "page": 10
+        },
+        {
+          "chunk_id": "ПМИ_00057",
+          "section_path": null,
+          "text": "5. TESTING RESOURCES AND PROCESS \n5.1.Technical resources \nFor the testing process to run correctly, it must be carried out on cloud servers with JupyterHub, Hadoop \nand Oracle. The server running the program must have at least 100 Gb of RAM and be capable of establishing \nconnection with databases. The set of requirements for databases is under the NDA between the contractor \nand AO “ALFA-BANK”. \n5.2.Software requirements \nTo ensure correct execution of testing processes, the following requirements to the device’s software must \nbe satisfied: \n1) The device must have a Unix-like OS installed. \n2) Python 3.7 programming language and the latest version of pip package manager must be installed \non the device. \n3) All the packages found in the requirements file must be installed on the device. \n4) The device must be capable of connection to Hadoop and Oracle distributed data storages. \n5.3.Testing sequence \nBefore starting the testing sequence, the program must be correctly installed, according to the Operator’s \nmanual. \nThe tests must be carried out in the following order: \n1) Functional requirements testing \n2) Software interface testing \n3) Reliability testing \n4) Input and output requirements testing \n5) Documentation requirements checks",
+          "order": 57,
+          "page": 10
+        },
+        {
+          "chunk_id": "ПМИ_00058",
+          "section_path": null,
+          "text": "9 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 58,
+          "page": 11
+        },
+        {
+          "chunk_id": "ПМИ_00059",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 59,
+          "page": 11
+        },
+        {
+          "chunk_id": "ПМИ_00060",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 60,
+          "page": 11
+        },
+        {
+          "chunk_id": "ПМИ_00061",
+          "section_path": null,
+          "text": "6. TESTING METHODS \n6.1.Functional requirements testing \n6.1.1. Data reading from Hadoop distributed data storage \nThe operator should specify the input data paths in the program’s config through the Configuration \nwindow or by modifying the config file and start execution of a model’s pipeline from the Train or Inference \nwindow. Raw features and target tables are loaded from the Hadoop storage. Their paths are saved in the \nconfig file, and the loaded data is then used in the model’s pipeline for either train or inference. \n6.1.2. Data reading from Oracle distributed data storage \nThe operator should start execution of a model’s pipeline from the Train or Inference window. The data \non user sessions will be loaded from the Oracle data storage. The path to the relevant table is saved in the \nconfig file. \n6.1.3. Data saving to Hadoop or Oracle distributed data storage \nThe operator should specify the parameter out_scores_path in the program’s config through the Config \nwindow or by modifying the config file. Then the operator should start the inference pipeline from the \nInference window. The calculated scores for target transactions will be saved on Hadoop data storage. \n6.1.4. Saving trained machine learning models \nThe operator should specify the awad_models_path as outlined in section 6.1.3 and set the value for \nused_model to AWAD. Then the operator should start the training pipeline of the AWAD model from the \nTrain window. The individual models, created and trained for every user in the dataset, are saved at the \nspecified path. \n6.1.5. Loading trained machine learning models \nThe operator should specify the awad_models_path as outlined in section 6.1.3 and set the value for \nused_model to AWAD. Then the operator should start the inference pipeline of the AWAD model from the \nInference window. The individual models, created and trained for every user in the dataset, are loaded from \nthe specified path. \n6.1.6. Feature computation for machine learning models \nThe operator should change the used_model configuration parameter to SWC and then start the train \npipeline. Features are calculated through aggregation from raw data and then used to train the model. \n6.1.7. Feature selection on the basis of relevance \nThe operator should follow the steps described in section 6.1.4. For each user in the dataset, a set of the \nmost relevant features will be selected. The selection is based on three statistical metrics of the features’ \ndescriptive power. \n6.1.8. Assigning fraudulence scores to transactions \nThe operator should start the Inference pipeline for either of the two models. After computation is \ncomplete, transactions are scored on the basis of fraud likelihood, and the scores are saved on Hadoop or \nOracle storage. \n6.1.9. Applying configurations from a file \nThe operator should start the program or move to any window from the one they are currently situated on. \nThis leads to the configuration being loaded from the config file. \n6.1.10. Writing configurations to a file \nThe operator should navigate to the Configuration window, and then set any parameter as described in \nsection 6.2.3. The new configuration is written to the config file.",
+          "order": 61,
+          "page": 11
+        },
+        {
+          "chunk_id": "ПМИ_00062",
+          "section_path": null,
+          "text": "10 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 62,
+          "page": 12
+        },
+        {
+          "chunk_id": "ПМИ_00063",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 63,
+          "page": 12
+        },
+        {
+          "chunk_id": "ПМИ_00064",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 64,
+          "page": 12
+        },
+        {
+          "chunk_id": "ПМИ_00065",
+          "section_path": null,
+          "text": "6.1.11. Saving model performance metrics \nThe operator should start the train pipeline for either of the two models. After computations are complete, \nperformance metrics data is saved in the from of images in the program’s folder.",
+          "order": 65,
+          "page": 12
+        },
+        {
+          "chunk_id": "ПМИ_00066",
+          "section_path": null,
+          "text": "Fig. 1 – Roc-auc metric saved after train \n6.1.12. Saving the most relevant features \nThe process for testing is the same as in section 6.1.4. Relevant features for each user are stored in the \nsame table as the models.",
+          "order": 66,
+          "page": 12
+        },
+        {
+          "chunk_id": "ПМИ_00067",
+          "section_path": null,
+          "text": "11 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 67,
+          "page": 13
+        },
+        {
+          "chunk_id": "ПМИ_00068",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 68,
+          "page": 13
+        },
+        {
+          "chunk_id": "ПМИ_00069",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 69,
+          "page": 13
+        },
+        {
+          "chunk_id": "ПМИ_00070",
+          "section_path": null,
+          "text": "6.1.13. Creating and saving graphs of the EER metric \nThe process is the same as in section 6.1.11. The EER metric graph is saved alongside other performance \nmetrics.",
+          "order": 70,
+          "page": 13
+        },
+        {
+          "chunk_id": "ПМИ_00071",
+          "section_path": null,
+          "text": "Fig. 2 – EER metric saved after train",
+          "order": 71,
+          "page": 13
+        },
+        {
+          "chunk_id": "ПМИ_00072",
+          "section_path": null,
+          "text": "12 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 72,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00073",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 73,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00074",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 74,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00075",
+          "section_path": null,
+          "text": "6.2.Interface requirements testing \n6.2.1. User-help window \nTo see the Help window, the operator should type /help while being on the Start window. The Help window \nis shown, displaying basic information about the program’s functions.",
+          "order": 75,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00076",
+          "section_path": null,
+          "text": "Fig. 3 – Help window \n6.2.2. A set of at least 5 windows for executing parts of the program’s functionality \nThe operator should navigate from the Start window to any of the other windows through specified \nnavigation commands. A total of 9 main windows has been implemented.",
+          "order": 76,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00077",
+          "section_path": null,
+          "text": "Fig. 4 – Start window",
+          "order": 77,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00078",
+          "section_path": null,
+          "text": "Fig. 5 – Authentication window",
+          "order": 78,
+          "page": 14
+        },
+        {
+          "chunk_id": "ПМИ_00079",
+          "section_path": null,
+          "text": "13 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 79,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00080",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 80,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00081",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 81,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00082",
+          "section_path": null,
+          "text": "Fig. 6 – Config window",
+          "order": 82,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00083",
+          "section_path": null,
+          "text": "Fig. 7 – Run window",
+          "order": 83,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00084",
+          "section_path": null,
+          "text": "Fig. 8 – Start from scratch window",
+          "order": 84,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00085",
+          "section_path": null,
+          "text": "Fig. 9 – Continue from checkpoint window",
+          "order": 85,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00086",
+          "section_path": null,
+          "text": "Fig. 10 – Train window",
+          "order": 86,
+          "page": 15
+        },
+        {
+          "chunk_id": "ПМИ_00087",
+          "section_path": null,
+          "text": "14 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 87,
+          "page": 16
+        },
+        {
+          "chunk_id": "ПМИ_00088",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 88,
+          "page": 16
+        },
+        {
+          "chunk_id": "ПМИ_00089",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 89,
+          "page": 16
+        },
+        {
+          "chunk_id": "ПМИ_00090",
+          "section_path": null,
+          "text": "Fig. 11 – Inference window \n6.2.3. A set of commands for altering the program configuration \nTo alter the program’s configuration, the operator should navigate to the Config window, and then type \nthe name of the parameter that is to be changed, along with the new value. The process for a single \nconfiguration parameter is presented visually below:",
+          "order": 90,
+          "page": 16
+        },
+        {
+          "chunk_id": "ПМИ_00091",
+          "section_path": null,
+          "text": "Fig. 12 – Program configuration alteration \n6.2.4. A set of commands for starting the program or its parts \nTo start execution of a model’s pipeline, the operator should go to the Train or Inference window and type \n/start. If the operator navigated from the Start from scratch window, the program will start from the beginning. \nOtherwise, a checkpoint will be loaded to run the code from a set point. \n6.2.5. A command for saving the configuration file \nThe requirement for this command is fulfilled by the same commands as described in section 6.2.3. After \neach alteration of configuration, the new version of config file is saved. \n6.2.6. A command for loading the configuration file \nThe requirement for this command is satisfied by the set of navigational commands. When a new window \nis opened, the program’s configuration is updated, according to the config file. \n6.3.Reliability testing \nDuring the execution of the program, the operator is required to input console commands to navigate \nwindows and run sections of the program. This means that the program is susceptible to misprints and invalid",
+          "order": 91,
+          "page": 16
+        },
+        {
+          "chunk_id": "ПМИ_00092",
+          "section_path": null,
+          "text": "15 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 92,
+          "page": 17
+        },
+        {
+          "chunk_id": "ПМИ_00093",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 93,
+          "page": 17
+        },
+        {
+          "chunk_id": "ПМИ_00094",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 94,
+          "page": 17
+        },
+        {
+          "chunk_id": "ПМИ_00095",
+          "section_path": null,
+          "text": "commands. These inaccuracies are handled by input checks, and inputs are requested again if an invalid string \nhas been given. The data coming from databases and files is also checked for structural inconsistencies, raising \nerrors if further operation is impossible. All critical sections of the program are wrapped with try-catch \nconstructions, ensuring execution reliability. The program does not exit with error status on any set of input \ndata. \n6.4.Input and output requirements testing \nThe requirements for input and utput data formats and composition are satisfied by the functions described \nin section 6.1. The program indeed loads data from Hadoop and Oracle data storages, and saves the same data, \nalong with jpeg images. \n6.5.Documentation requirements checks \nThe composition of program documentation is checked manually, as well as presence of all required \nsignatures. All files are present, correctly formatted and uploaded to the LMS system.",
+          "order": 95,
+          "page": 17
+        },
+        {
+          "chunk_id": "ПМИ_00096",
+          "section_path": null,
+          "text": "16 \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 96,
+          "page": 18
+        },
+        {
+          "chunk_id": "ПМИ_00097",
+          "section_path": null,
+          "text": "Изм. \nЛист \n№ докум. \nПодп. \nДата \nRU.17701729.03.05-01 ПМИ 01-1",
+          "order": 97,
+          "page": 18
+        },
+        {
+          "chunk_id": "ПМИ_00098",
+          "section_path": null,
+          "text": "Инв. № подл. \nПодп. и дата \nВзам. Инв. № \nИнв. № дубл. \nПодп. и дата",
+          "order": 98,
+          "page": 18
+        },
+        {
+          "chunk_id": "ПМИ_00099",
+          "section_path": null,
+          "text": "CHANGES REGISTRATION SHEET",
+          "order": 99,
+          "page": 18
+        },
+        {
+          "chunk_id": "ПМИ_00100",
+          "section_path": null,
+          "text": "Ch. \nPage number \nTotal number \nof pages \nDocument \nnumber \nInbound \naccompanying \ndocument \nnumber and \ndate \nSignature \nDate \nchanged \nreplaced \nnew \nannulled",
+          "order": 100,
+          "page": 18
+        }
+      ]
+    }
+  ]
+}

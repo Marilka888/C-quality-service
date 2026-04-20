@@ -116,15 +116,37 @@ class CoverageEmbeddingConfig(BaseModel):
     model_path: Optional[str] = "./model"
 
 
+class RequirementModelConfig(BaseModel):
+    """Settings for the fine-tuned requirement classifier.
+
+    Only consulted when `CoverageConfig.requirement_extraction == "model"`.
+    The model checkpoint is NOT loaded at config-construction time — the
+    extractor loads it lazily on first use (see
+    `app.infrastructure.ml.requirement_classifier.RequirementClassifier`).
+    """
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    model_path: str = "./model/req_classifier"
+    threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    max_len: int = Field(default=192, ge=32, le=512)
+    batch_size: int = Field(default=32, ge=1, le=256)
+
+
 class CoverageConfig(BaseModel):
     retrieval: CoverageRetrievalConfig = Field(default_factory=CoverageRetrievalConfig)
     llm: CoverageLLMConfig = Field(default_factory=CoverageLLMConfig)
     embedding: CoverageEmbeddingConfig = Field(default_factory=CoverageEmbeddingConfig)
+    requirement_model: RequirementModelConfig = Field(
+        default_factory=RequirementModelConfig
+    )
     enable_rule_verification: bool = True
     # "auto"     — candidates → fragments → sections, first non-empty wins
     # "sections" — only trust sections hierarchy; re-segment text inside each
     #              requirement-section ourselves (prepare-service fragment
     #              splits are ignored)
+    # "model"    — use the fine-tuned requirement_classifier to score each
+    #              sentence in requirement-plausible sections
     # "candidates" / "fragments" — legacy paths for explicit control
     requirement_extraction: str = "auto"
 
@@ -143,6 +165,12 @@ class CoverageConfig(BaseModel):
             config.retrieval.min_retrieval_score = float(options["min_retrieval_score"])
         if "requirement_extraction" in options:
             mode = str(options["requirement_extraction"]).lower()
-            if mode in {"auto", "sections", "candidates", "fragments"}:
+            if mode in {"auto", "sections", "candidates", "fragments", "model"}:
                 config.requirement_extraction = mode
+        if "requirement_model_path" in options:
+            config.requirement_model.model_path = str(options["requirement_model_path"])
+        if "requirement_model_threshold" in options:
+            config.requirement_model.threshold = float(
+                options["requirement_model_threshold"]
+            )
         return config

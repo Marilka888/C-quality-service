@@ -1,0 +1,17 @@
+{
+  "raw_dir": "C:\\Users\\Marilka\\PycharmProjects\\C-quality-service\\raw",
+  "service_url": "http://127.0.0.1:8000",
+  "top_k": 20,
+  "top_pos": 1,
+  "min_score": 0.15,
+  "hard_neg_k": 5,
+  "rand_neg_k": 5,
+  "xpkg_neg_k": 3,
+  "chunk_chars": 900,
+  "overlap_sents": 1,
+  "w_char": 0.6,
+  "w_word": 0.4,
+  "seed": 42,
+  "packages_seen": 10,
+  "pairs_written": 14794
+}

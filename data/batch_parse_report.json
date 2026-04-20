@@ -87,7 +87,7 @@
       "status": "OK",
       "tz_file": "TZ.pdf",
       "pmi_file": "PMI.pdf",
-      "tz_chunks": 111,
+      "tz_chunks": 80,
       "pmi_chunks": 139,
       "out": "pkg_0003.json",
       "scoring": [
@@ -127,7 +127,7 @@
       "tz_file": "ТЗ Общее Корицкий Асташкина.pdf",
       "pmi_file": "ПИМИ Общее Корицкий Асташкина.pdf",
       "tz_chunks": 127,
-      "pmi_chunks": 460,
+      "pmi_chunks": 461,
       "out": "pkg_0004.json",
       "scoring": [
         {
@@ -320,8 +320,8 @@
       "status": "OK",
       "tz_file": "ТЗ_Анас.pdf",
       "pmi_file": "ПиМИ_Анас.pdf",
-      "tz_chunks": 154,
-      "pmi_chunks": 219,
+      "tz_chunks": 117,
+      "pmi_chunks": 217,
       "out": "pkg_0009.json",
       "scoring": [
         {
@@ -359,8 +359,8 @@
       "status": "OK",
       "tz_file": "╨в╨Ч_╨Ю╨▒╤Й╨╡╨╡_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
       "pmi_file": "╨Я╨Ь╨Ш_╨Ю╨▒╤Й╨░╤П_╨С╨╛╨▒╤А╨╛╨▓_╨Ъ╨╛╨┐╤В╨╡╨▓.pdf",
-      "tz_chunks": 136,
-      "pmi_chunks": 114,
+      "tz_chunks": 135,
+      "pmi_chunks": 113,
       "out": "pkg_0010.json",
       "scoring": [
         {
@@ -399,7 +399,7 @@
       "tz_file": "ТЗ.pdf",
       "pmi_file": "ПМИ.pdf",
       "tz_chunks": 79,
-      "pmi_chunks": 85,
+      "pmi_chunks": 84,
       "out": "pkg_0011.json",
       "scoring": [
         {
@@ -437,8 +437,8 @@
       "status": "OK",
       "tz_file": "ТЗ_БРЯНЦЕВ.pdf",
       "pmi_file": "ПМИ_БРЯНЦЕВ.pdf",
-      "tz_chunks": 127,
-      "pmi_chunks": 144,
+      "tz_chunks": 126,
+      "pmi_chunks": 143,
       "out": "pkg_0012.json",
       "scoring": [
         {
@@ -476,8 +476,8 @@
       "status": "OK",
       "tz_file": "ТЗ.pdf",
       "pmi_file": "Программа и методика испытаний.pdf",
-      "tz_chunks": 86,
-      "pmi_chunks": 91,
+      "tz_chunks": 50,
+      "pmi_chunks": 83,
       "out": "pkg_0013.json",
       "scoring": [
         {
@@ -632,8 +632,8 @@
       "status": "OK",
       "tz_file": "ТЗ_Власюк.pdf",
       "pmi_file": "ПМИ_Власюк.pdf",
-      "tz_chunks": 104,
-      "pmi_chunks": 139,
+      "tz_chunks": 105,
+      "pmi_chunks": 140,
       "out": "pkg_0017.json",
       "scoring": [
         {
@@ -678,7 +678,7 @@
       "status": "OK",
       "tz_file": "Галанов_ТЗ.pdf",
       "pmi_file": "Галанов_ПМИ.pdf",
-      "tz_chunks": 193,
+      "tz_chunks": 170,
       "pmi_chunks": 143,
       "out": "pkg_0019.json",
       "scoring": [
@@ -795,7 +795,7 @@
       "tz_file": "Техническое Задание ВКР.pdf",
       "pmi_file": "ПиМИ 2023.pdf",
       "tz_chunks": 118,
-      "pmi_chunks": 109,
+      "pmi_chunks": 94,
       "out": "pkg_0022.json",
       "scoring": [
         {
@@ -872,8 +872,8 @@
       "status": "OK",
       "tz_file": "ТехЗаданиеГорбач.pdf",
       "pmi_file": "ПМИГорбачДиплом.pdf",
-      "tz_chunks": 115,
-      "pmi_chunks": 258,
+      "tz_chunks": 111,
+      "pmi_chunks": 254,
       "out": "pkg_0024.json",
       "scoring": [
         {
@@ -911,8 +911,8 @@
       "status": "OK",
       "tz_file": "ТЗ Губайдуллин ВКР.pdf",
       "pmi_file": "ПМИ Губайдуллин ВКР.pdf",
-      "tz_chunks": 92,
-      "pmi_chunks": 243,
+      "tz_chunks": 71,
+      "pmi_chunks": 62,
       "out": "pkg_0025.json",
       "scoring": [
         {
@@ -951,7 +951,7 @@
       "tz_file": "ТЗ.pdf",
       "pmi_file": "Программа_и_методика_испытаний_общее.pdf",
       "tz_chunks": 137,
-      "pmi_chunks": 355,
+      "pmi_chunks": 352,
       "out": "pkg_0026.json",
       "scoring": [
         {
@@ -1028,7 +1028,7 @@
       "status": "OK",
       "tz_file": "ТЗ_Дадугин_Егор_Артемович_БПИ197.pdf",
       "pmi_file": "ПМИ_Дадугин_Егор_Артемович_БПИ197.docx",
-      "tz_chunks": 114,
+      "tz_chunks": 113,
       "pmi_chunks": 414,
       "out": "pkg_0028.json",
       "scoring": [
@@ -1106,7 +1106,7 @@
       "status": "OK",
       "tz_file": "Сервис для помощи туристам (Серверное приложение). Техническое задание.pdf",
       "pmi_file": "Сервис для помощи туристам (Серверное приложение). Программа и методика испытаний.pdf",
-      "tz_chunks": 104,
+      "tz_chunks": 103,
       "pmi_chunks": 323,
       "out": "pkg_0030.json",
       "scoring": [
@@ -1145,7 +1145,7 @@
       "status": "OK",
       "tz_file": "TZ-TogoldorDorzhsuren.pdf",
       "pmi_file": "PMI.pdf",
-      "tz_chunks": 112,
+      "tz_chunks": 109,
       "pmi_chunks": 85,
       "out": "pkg_0031.json",
       "scoring": [
@@ -1185,7 +1185,7 @@
       "tz_file": "ТЗ - Доскач_signed.pdf",
       "pmi_file": "ПМИ - Доскач _signed.pdf",
       "tz_chunks": 111,
-      "pmi_chunks": 303,
+      "pmi_chunks": 302,
       "out": "pkg_0032.json",
       "scoring": [
         {
@@ -1263,7 +1263,7 @@
       "tz_file": "Техническое задание Ефимов Даниил Александрович.pdf",
       "pmi_file": "Программа и методика испытаний Ефимов Даниил Александрович.pdf",
       "tz_chunks": 20,
-      "pmi_chunks": 141,
+      "pmi_chunks": 137,
       "out": "pkg_0034.json",
       "scoring": [
         {
@@ -1301,8 +1301,8 @@
       "status": "OK",
       "tz_file": "ТЗ Жданкин.pdf",
       "pmi_file": "ПМИ Жданкин.pdf",
-      "tz_chunks": 72,
-      "pmi_chunks": 102,
+      "tz_chunks": 68,
+      "pmi_chunks": 98,
       "out": "pkg_0035.json",
       "scoring": [
         {
@@ -1418,7 +1418,7 @@
       "status": "OK",
       "tz_file": "ВКР ТЗ Ибрагимов К.Л.pdf",
       "pmi_file": "ВКР ПМИ общее.pdf",
-      "tz_chunks": 171,
+      "tz_chunks": 114,
       "pmi_chunks": 534,
       "out": "pkg_0038.json",
       "scoring": [
@@ -1688,7 +1688,7 @@
       "status": "OK",
       "tz_file": "ТЗКозловАА.pdf",
       "pmi_file": "ПИМИКозловАА.pdf",
-      "tz_chunks": 149,
+      "tz_chunks": 148,
       "pmi_chunks": 121,
       "out": "pkg_0045.json",
       "scoring": [
@@ -1843,8 +1843,8 @@
       "status": "OK",
       "tz_file": "Техническое_Задание_Коптев.pdf",
       "pmi_file": "Программа_и_Методика_Испытаний_Коптев.pdf",
-      "tz_chunks": 135,
-      "pmi_chunks": 96,
+      "tz_chunks": 134,
+      "pmi_chunks": 95,
       "out": "pkg_0049.json",
       "scoring": [
         {
@@ -2115,8 +2115,8 @@
       "status": "OK",
       "tz_file": "KyznetsovMF193_TZ_ANDROID.pdf",
       "pmi_file": "KyznetsovMF193_PiMI_ANDROID.pdf",
-      "tz_chunks": 155,
-      "pmi_chunks": 214,
+      "tz_chunks": 88,
+      "pmi_chunks": 119,
       "out": "pkg_0056.json",
       "scoring": [
         {
@@ -2192,8 +2192,8 @@
       "status": "OK",
       "tz_file": "ТЗ - Курбанова Сабият.pdf",
       "pmi_file": "ПМИ - Курбанова Сабият.pdf",
-      "tz_chunks": 96,
-      "pmi_chunks": 278,
+      "tz_chunks": 98,
+      "pmi_chunks": 280,
       "out": "pkg_0058.json",
       "scoring": [
         {
@@ -2347,7 +2347,7 @@
       "status": "OK",
       "tz_file": "ТЗ Янкин Neekle.pdf",
       "pmi_file": "ПМИ Янкин Neekle.pdf",
-      "tz_chunks": 147,
+      "tz_chunks": 145,
       "pmi_chunks": 133,
       "out": "pkg_0062.json",
       "scoring": [
@@ -2464,8 +2464,8 @@
       "status": "OK",
       "tz_file": "Шуликов ТЗ.pdf",
       "pmi_file": "Шуликов ПМИ.pdf",
-      "tz_chunks": 133,
-      "pmi_chunks": 164,
+      "tz_chunks": 129,
+      "pmi_chunks": 163,
       "out": "pkg_0065.json",
       "scoring": [
         {
@@ -2503,7 +2503,7 @@
       "status": "OK",
       "tz_file": "ТЗ личное Шкляр МИ.pdf",
       "pmi_file": "ПМИ личное Шкляр МИ.pdf",
-      "tz_chunks": 148,
+      "tz_chunks": 147,
       "pmi_chunks": 167,
       "out": "pkg_0066.json",
       "scoring": [
@@ -2581,8 +2581,8 @@
       "status": "OK",
       "tz_file": "ТЗ_Шакуров_ВКР.pdf",
       "pmi_file": "ПМИ_Шакуров_ВКР.pdf",
-      "tz_chunks": 139,
-      "pmi_chunks": 76,
+      "tz_chunks": 133,
+      "pmi_chunks": 71,
       "out": "pkg_0068.json",
       "scoring": [
         {
@@ -2698,8 +2698,8 @@
       "status": "OK",
       "tz_file": "ТЗ_ВКР_Цыдыпов.pdf",
       "pmi_file": "ПМИ_ВКР_Цыдыпов.pdf",
-      "tz_chunks": 104,
-      "pmi_chunks": 197,
+      "tz_chunks": 101,
+      "pmi_chunks": 174,
       "out": "pkg_0071.json",
       "scoring": [
         {
@@ -2776,8 +2776,8 @@
       "status": "OK",
       "tz_file": "Техническое задание - Серверная часть Царёв БПИ191.pdf",
       "pmi_file": "Программа и методика испытаний - Серверная часть Царёв БПИ191.pdf",
-      "tz_chunks": 136,
-      "pmi_chunks": 181,
+      "tz_chunks": 124,
+      "pmi_chunks": 171,
       "out": "pkg_0073.json",
       "scoring": [
         {
@@ -2971,7 +2971,7 @@
       "status": "OK",
       "tz_file": "Приложение 1. Техническое задание ВКР. Федотова Д.А..pdf",
       "pmi_file": "Приложение 3. Программа и методика испытаний. Федотова Д.А..pdf",
-      "tz_chunks": 134,
+      "tz_chunks": 133,
       "pmi_chunks": 258,
       "out": "pkg_0078.json",
       "scoring": [
@@ -3049,8 +3049,8 @@
       "status": "OK",
       "tz_file": "Сервис для помощи туристам (Android приложение) - Техническое задание.pdf",
       "pmi_file": "Сервис для помощи туристам (Android приложение) - Программа и методика испытаний.pdf",
-      "tz_chunks": 104,
-      "pmi_chunks": 222,
+      "tz_chunks": 102,
+      "pmi_chunks": 221,
       "out": "pkg_0080.json",
       "scoring": [
         {
@@ -3088,7 +3088,7 @@
       "status": "OK",
       "tz_file": "ТЗ_Ткаченко_final.pdf",
       "pmi_file": "ПМИ_Ткаченко_final.pdf",
-      "tz_chunks": 115,
+      "tz_chunks": 114,
       "pmi_chunks": 148,
       "out": "pkg_0081.json",
       "scoring": [
@@ -3128,7 +3128,7 @@
       "tz_file": "Техническое задание Терехова.pdf",
       "pmi_file": "Программа_и_методика_испытаний_Терехова.pdf",
       "tz_chunks": 86,
-      "pmi_chunks": 125,
+      "pmi_chunks": 121,
       "out": "pkg_0082.json",
       "scoring": [
         {
@@ -3319,7 +3319,7 @@
       "status": "OK",
       "tz_file": "Снатенков _ТЗ.pdf",
       "pmi_file": "Снатенков_ПМИ.pdf",
-      "tz_chunks": 128,
+      "tz_chunks": 100,
       "pmi_chunks": 101,
       "out": "pkg_0087.json",
       "scoring": [
@@ -3435,8 +3435,8 @@
       "status": "OK",
       "tz_file": "ТЗ ВКР Скрыпина.pdf",
       "pmi_file": "ПМИ ВКР Скрыпина.pdf",
-      "tz_chunks": 107,
-      "pmi_chunks": 97,
+      "tz_chunks": 103,
+      "pmi_chunks": 96,
       "out": "pkg_0090.json",
       "scoring": [
         {
@@ -3474,7 +3474,7 @@
       "status": "OK",
       "tz_file": "ТЗ.pdf",
       "pmi_file": "ПиМИ.pdf",
-      "tz_chunks": 83,
+      "tz_chunks": 82,
       "pmi_chunks": 95,
       "out": "pkg_0091.json",
       "scoring": [
@@ -3590,8 +3590,8 @@
       "status": "OK",
       "tz_file": "ТЗ.pdf",
       "pmi_file": "ПиМИ.pdf",
-      "tz_chunks": 132,
-      "pmi_chunks": 176,
+      "tz_chunks": 130,
+      "pmi_chunks": 175,
       "out": "pkg_0094.json",
       "scoring": [
         {
@@ -3706,8 +3706,8 @@
       "status": "OK",
       "tz_file": "Signed_TZ_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
       "pmi_file": "Signed_PMI_Sagalov_Daniil_BSE191_Diploma_ECom.pdf",
-      "tz_chunks": 202,
-      "pmi_chunks": 156,
+      "tz_chunks": 198,
+      "pmi_chunks": 152,
       "out": "pkg_0097.json",
       "scoring": [
         {
@@ -3745,8 +3745,8 @@
       "status": "OK",
       "tz_file": "Рычков Кирилл, БПИ197, техническое задание.pdf",
       "pmi_file": "Рычков Кирилл, БПИ197, ПиМИ.pdf",
-      "tz_chunks": 105,
-      "pmi_chunks": 170,
+      "tz_chunks": 104,
+      "pmi_chunks": 169,
       "out": "pkg_0098.json",
       "scoring": [
         {
@@ -3766,10 +3766,10 @@
         {
           "file": "Рычков Кирилл, БПИ197, техническое задание.pdf",
           "dtype": "TZ",
-          "tz_score": 12,
+          "tz_score": 10,
           "pmi_score": 0,
           "dbg": {
-            "tz_hits": 12,
+            "tz_hits": 10,
             "pmi_hits": 0,
             "has_tz_title": 1,
             "has_pmi_title": 0,
@@ -3824,7 +3824,7 @@
       "tz_file": "Техническое задание.pdf",
       "pmi_file": "Программа методик и испытаний.pdf",
       "tz_chunks": 36,
-      "pmi_chunks": 40,
+      "pmi_chunks": 38,
       "out": "pkg_0100.json",
       "scoring": [
         {
@@ -3863,7 +3863,7 @@
       "tz_file": "ТЗ.pdf",
       "pmi_file": "ПиМИ.pdf",
       "tz_chunks": 98,
-      "pmi_chunks": 49,
+      "pmi_chunks": 48,
       "out": "pkg_0101.json",
       "scoring": [
         {
@@ -3940,7 +3940,7 @@
       "status": "OK",
       "tz_file": "тз_вкр_радайкин_2023 (3).pdf",
       "pmi_file": "ПиМИ Радайкин (2).pdf",
-      "tz_chunks": 101,
+      "tz_chunks": 100,
       "pmi_chunks": 104,
       "out": "pkg_0103.json",
       "scoring": [
@@ -3979,8 +3979,8 @@
       "status": "OK",
       "tz_file": "Текст_ТЗ_Пучин_Максим_Андреевич_подписанный_с_датами.pdf",
       "pmi_file": "Программа_и_методика_испытаний_Пучин_Максим_Андреевич_подписанная_с_датами.pdf",
-      "tz_chunks": 104,
-      "pmi_chunks": 124,
+      "tz_chunks": 103,
+      "pmi_chunks": 123,
       "out": "pkg_0104.json",
       "scoring": [
         {
@@ -4018,7 +4018,7 @@
       "status": "OK",
       "tz_file": "ТЗ_ВКР_ПоповОО196.pdf",
       "pmi_file": "ПМИ_ВКР_ПоповОО196.pdf",
-      "tz_chunks": 130,
+      "tz_chunks": 109,
       "pmi_chunks": 167,
       "out": "pkg_0105.json",
       "scoring": [
@@ -4289,8 +4289,8 @@
       "status": "OK",
       "tz_file": "ТЗ_Петропавловский.pdf",
       "pmi_file": "ПМИ_Петропавловский.pdf",
-      "tz_chunks": 93,
-      "pmi_chunks": 108,
+      "tz_chunks": 92,
+      "pmi_chunks": 107,
       "out": "pkg_0112.json",
       "scoring": [
         {
@@ -4444,8 +4444,8 @@
       "status": "OK",
       "tz_file": "Новоселов_ТЗ.pdf",
       "pmi_file": "Новоселов_ПИМИ.pdf",
-      "tz_chunks": 100,
-      "pmi_chunks": 135,
+      "tz_chunks": 87,
+      "pmi_chunks": 122,
       "out": "pkg_0116.json",
       "scoring": [
         {
@@ -4483,7 +4483,7 @@
       "status": "OK",
       "tz_file": "Ни_ТЗ_2023.pdf",
       "pmi_file": "Ни_ПМИ_2023.pdf",
-      "tz_chunks": 85,
+      "tz_chunks": 84,
       "pmi_chunks": 137,
       "out": "pkg_0117.json",
       "scoring": [
@@ -4522,8 +4522,8 @@
       "status": "OK",
       "tz_file": "TZ_SERVER.pdf",
       "pmi_file": "ПМИ PhotoWorld.pdf",
-      "tz_chunks": 131,
-      "pmi_chunks": 240,
+      "tz_chunks": 127,
+      "pmi_chunks": 238,
       "out": "pkg_0118.json",
       "scoring": [
         {
@@ -4600,8 +4600,8 @@
       "status": "OK",
       "tz_file": "ТЗ-.pdf",
       "pmi_file": "ПМИ-И.pdf",
-      "tz_chunks": 158,
-      "pmi_chunks": 94,
+      "tz_chunks": 155,
+      "pmi_chunks": 91,
       "out": "pkg_0120.json",
       "scoring": [
         {
@@ -4833,8 +4833,8 @@
       "status": "OK",
       "tz_file": "Техническое задание.pdf",
       "pmi_file": "Программа и методика испытаний.pdf",
-      "tz_chunks": 49,
-      "pmi_chunks": 80,
+      "tz_chunks": 45,
+      "pmi_chunks": 76,
       "out": "pkg_0126.json",
       "scoring": [
         {
@@ -5189,7 +5189,7 @@
       "tz_file": "Логунова ТЗ подписанное.pdf",
       "pmi_file": "Логунова ПИМИ подписанное.pdf",
       "tz_chunks": 117,
-      "pmi_chunks": 176,
+      "pmi_chunks": 175,
       "out": "pkg_0136.json",
       "scoring": [
         {
@@ -5227,7 +5227,7 @@
       "status": "OK",
       "tz_file": "Абдельсалам Шади, БПИ197, техническое задание.pdf",
       "pmi_file": "Абдельсалам Шади, БПИ197, программа и методика испытаний.pdf",
-      "tz_chunks": 138,
+      "tz_chunks": 82,
       "pmi_chunks": 93,
       "out": "pkg_0137.json",
       "scoring": [
@@ -5248,10 +5248,10 @@
         {
           "file": "Абдельсалам Шади, БПИ197, техническое задание.pdf",
           "dtype": "TZ",
-          "tz_score": 11,
+          "tz_score": 10,
           "pmi_score": 0,
           "dbg": {
-            "tz_hits": 11,
+            "tz_hits": 10,
             "pmi_hits": 0,
             "has_tz_title": 1,
             "has_pmi_title": 0,
