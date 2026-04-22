@@ -41,7 +41,15 @@ logger = get_logger(__name__)
 
 
 def _build_embedding_backend(config: CoverageConfig) -> EmbeddingBackend:
-    if config.embedding.backend == "transformer":
+    backend = (config.embedding.backend or "transformer").lower()
+    if backend == "e5":
+        try:
+            from app.infrastructure.embeddings.e5 import E5EmbeddingBackend
+            return E5EmbeddingBackend(model_name=config.embedding.e5_model_name)
+        except Exception as exc:
+            logger.warning("E5EmbeddingBackend failed (%s); falling back to BoW", exc)
+            return BagOfWordsEmbeddingBackend()
+    if backend == "transformer":
         model_path = config.embedding.model_path or "./model"
         resolved = Path(model_path)
         if resolved.exists():
@@ -51,6 +59,29 @@ def _build_embedding_backend(config: CoverageConfig) -> EmbeddingBackend:
             except Exception as exc:
                 logger.warning("TransformerEmbeddingBackend failed (%s); falling back to BoW", exc)
     return BagOfWordsEmbeddingBackend()
+
+
+def _build_reranker(config: CoverageConfig):
+    """Return a Reranker or None when reranking is disabled.
+
+    None signals `CandidateRetriever` to use its internal NoopReranker, so
+    the zero-dependency path stays clean.
+    """
+    if not config.reranker.enabled:
+        return None
+    backend = (config.reranker.backend or "bge").lower()
+    if backend == "bge":
+        try:
+            from app.infrastructure.reranker.bge import BGEReranker
+            return BGEReranker(
+                model_name=config.reranker.model_name,
+                max_len=config.reranker.max_len,
+                batch_size=config.reranker.batch_size,
+            )
+        except Exception as exc:
+            logger.warning("BGEReranker failed (%s); reranker disabled", exc)
+            return None
+    return None
 
 
 def _build_judge(config: CoverageConfig) -> CoverageJudge:
@@ -70,7 +101,10 @@ class CoverageAnalysisPipeline:
         self._req_builder = RequirementBuilder(self._config)
         self._unit_builder = CoverageUnitBuilder()
         self._embedding_backend = _build_embedding_backend(self._config)
-        self._retriever = CandidateRetriever(self._config.retrieval, self._embedding_backend)
+        self._reranker = _build_reranker(self._config)
+        self._retriever = CandidateRetriever(
+            self._config.retrieval, self._embedding_backend, self._reranker,
+        )
         self._judge_service = PairJudgeService(_build_judge(self._config))
         self._verifier = PairVerifier()
         self._aggregator = CoverageAggregator()

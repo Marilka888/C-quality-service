@@ -97,6 +97,12 @@ class CoverageRetrievalConfig(BaseModel):
     semantic_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     constraint_weight: float = Field(default=0.20, ge=0.0, le=1.0)
     section_prior_weight: float = Field(default=0.10, ge=0.0, le=1.0)
+    # When the reranker is enabled, the first-stage hybrid retrieval
+    # returns this many candidates; the cross-encoder then reorders them
+    # and the pipeline keeps `top_k` from the reordered list. 20 is the
+    # best quality/time trade-off on our data; too small reduces the
+    # rerank benefit, too large slows the pipeline without F1 gains.
+    top_k_before_rerank: int = Field(default=20, ge=5, le=100)
 
 
 class CoverageLLMConfig(BaseModel):
@@ -112,8 +118,23 @@ class CoverageLLMConfig(BaseModel):
 class CoverageEmbeddingConfig(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
-    backend: str = "transformer"  # "transformer" | "bow"
+    # "bow"        — lexical bag-of-words, no ML dependency
+    # "transformer" — local HF checkpoint at model_path (default ./model)
+    # "e5"         — multilingual-e5-base via HF hub (domain-optimised
+    #                for semantic similarity, 278M params)
+    backend: str = "transformer"
     model_path: Optional[str] = "./model"
+    e5_model_name: str = "intfloat/multilingual-e5-base"
+
+
+class CoverageRerankerConfig(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    enabled: bool = False
+    backend: str = "bge"  # "bge" | "disabled"
+    model_name: str = "BAAI/bge-reranker-v2-m3"
+    max_len: int = Field(default=512, ge=64, le=1024)
+    batch_size: int = Field(default=16, ge=1, le=128)
 
 
 class RequirementModelConfig(BaseModel):
@@ -137,6 +158,7 @@ class CoverageConfig(BaseModel):
     retrieval: CoverageRetrievalConfig = Field(default_factory=CoverageRetrievalConfig)
     llm: CoverageLLMConfig = Field(default_factory=CoverageLLMConfig)
     embedding: CoverageEmbeddingConfig = Field(default_factory=CoverageEmbeddingConfig)
+    reranker: CoverageRerankerConfig = Field(default_factory=CoverageRerankerConfig)
     requirement_model: RequirementModelConfig = Field(
         default_factory=RequirementModelConfig
     )
@@ -173,4 +195,12 @@ class CoverageConfig(BaseModel):
             config.requirement_model.threshold = float(
                 options["requirement_model_threshold"]
             )
+        if "embedding_backend" in options:
+            backend = str(options["embedding_backend"]).lower()
+            if backend in {"bow", "transformer", "e5"}:
+                config.embedding.backend = backend
+        if "enable_reranker" in options:
+            config.reranker.enabled = bool(options["enable_reranker"])
+        if "top_k_before_rerank" in options:
+            config.retrieval.top_k_before_rerank = int(options["top_k_before_rerank"])
         return config

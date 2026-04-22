@@ -22,6 +22,62 @@ logger = get_logger(__name__)
 # Compiled regex patterns
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Boilerplate / non-requirement post-filter
+# ---------------------------------------------------------------------------
+#
+# The fine-tuned classifier still occasionally marks document-form stamps,
+# bibliography entries and project-background prose as requirements — these
+# were underrepresented in the v5 training set. A cheap regex pass catches
+# the most common false-positive shapes. Applied AFTER the classifier gate,
+# BEFORE constructing a RequirementUnit.
+#
+# Added conservatively: each pattern corresponds to a concrete false
+# positive observed in manual review. Over-filtering loses real
+# requirements, so keep the rule set tight and test-covered.
+
+_BOILERPLATE_PATTERNS = [
+    # GOST-style form field / cover-page stamp
+    re.compile(r"\bПодп\.\s*Дата\b", re.I),
+    # Document-code lines like "RU.17701729.04.01-01 ТЗ 01-1"
+    re.compile(r"\bRU\.\d{5,}\.\d", re.I),
+    # Archival inventory stamps
+    re.compile(r"\bинв\.?\s*№\s*подп", re.I),
+    # Bibliography entries: "– М.: Изд-во стандартов, 1997"
+    re.compile(r"[–\-]\s*М\.\s*:\s*Изд-во", re.I),
+    # Title-page duplication: "Наименование программы Наименование темы …"
+    re.compile(r"^\s*Наименование\s+программы\s+Наименование\s+", re.I),
+    # Project rationale headers
+    re.compile(r"^\s*Предполагаемая\s+потребность\b", re.I),
+    re.compile(r"^\s*Актуальность\s+(разработки|автоматизации|проекта)", re.I),
+    re.compile(r"^\s*ПОРЯДОК\s+КОНТРОЛЯ\s+И\s+ПРИЕМКИ\b", re.I),
+]
+
+
+def _is_document_boilerplate(text: str) -> bool:
+    """True if the text is a form stamp / citation / rationale header.
+
+    Intended as a conservative net: matches a short list of concrete
+    non-requirement shapes. Requirement-bearing sentences that happen to
+    contain one of these patterns (e.g. "Подп." occurring mid-sentence)
+    can still slip past because the patterns are anchored or specific.
+    """
+    if not text:
+        return True
+    for pat in _BOILERPLATE_PATTERNS:
+        if pat.search(text):
+            return True
+    # Stamp heuristic: very short line (≤ 8 words) with a dense mix of
+    # digits / dots / dashes — typical of document codes lines.
+    words = text.split()
+    if len(words) <= 8:
+        digit_punct_chars = sum(1 for c in text if c.isdigit() or c in ".-/№")
+        alpha_chars = sum(1 for c in text if c.isalpha())
+        if alpha_chars and digit_punct_chars / max(1, alpha_chars + digit_punct_chars) > 0.4:
+            return True
+    return False
+
+
 _MUST_NOT_RE = re.compile(
     r"\b(не должен|не должна|не должны|запрещено|недопустимо|не допускается)\b", re.I
 )
@@ -364,6 +420,54 @@ def _extract_constraints(text: str) -> List[Constraint]:
     return constraints
 
 
+# Entity stop-list: words/phrases that the capitalisation-based extractor
+# picks up but which carry no discriminative meaning. They appear in
+# virtually every TZ / PMI — leaving them in the entity set poisons the
+# entity-overlap score in PairVerifier (any two random sentences would
+# "share" these tokens).
+#
+# Compared case-insensitively and also against the lemmatised form when
+# pymorphy3 is available.
+_ENTITY_STOPLIST = {
+    # Document/structure chrome
+    "система", "программа", "приложение", "подсистема", "подсистемы",
+    "требование", "требования", "документ", "раздел", "подраздел",
+    "пункт", "подпункт", "глава", "параграф", "пример", "таблица",
+    "рисунок", "приложение", "настоящий", "данный", "указанный",
+    "соответствующий", "следующий",
+    # Generic actors / objects
+    "пользователь", "оператор", "администратор", "разработчик",
+    "исполнитель", "заказчик", "клиент",
+    # Common words that get capitalised at sentence start
+    "необходимо", "следует", "требуется", "должен", "должна", "должно",
+    "обязательно", "рекомендуется", "допускается",
+    # Document metadata
+    "гост", "фстэк", "фсб", "ту",
+}
+
+
+def _is_stop_entity(term: str) -> bool:
+    """True if `term` or its lemma is in the entity stop-list."""
+    low = term.lower().strip()
+    if low in _ENTITY_STOPLIST:
+        return True
+    # Multi-word terms: drop only if EVERY word is a stop-entity lemma —
+    # "Пользователь системы" is all-stop and drops; "Модуль Учёта" stays.
+    words = low.split()
+    if not words:
+        return True
+    lemmas = [_lemma(w) for w in words]
+    return all(l in _ENTITY_STOPLIST for l in lemmas)
+
+
+def _lemma(word: str) -> str:
+    """Thin wrapper — avoids importing the lemmatiser at module top-level
+    (keeps the circular-import risk zero if build_requirements is ever
+    imported from a lemma consumer)."""
+    from app.core.lemmatize import lemma as _lemma_impl
+    return _lemma_impl(word)
+
+
 def _extract_entities(text: str) -> List[str]:
     # Keyword/noun-phrase extraction (MVP: title-cased words + domain nouns)
     domain_terms = re.findall(
@@ -376,9 +480,15 @@ def _extract_entities(text: str) -> List[str]:
     result: List[str] = []
     for term in domain_terms + acronyms:
         t = term.strip()
-        if t and t.lower() not in seen and len(t) > 2:
-            seen.add(t.lower())
-            result.append(t)
+        if not t or len(t) <= 2:
+            continue
+        if _is_stop_entity(t):
+            continue
+        key = t.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(t)
     return result[:15]  # cap to avoid noise
 
 
@@ -803,8 +913,16 @@ class RequirementBuilder:
 
         units: List[RequirementUnit] = []
         seen_req_ids: set = set()
+        skipped_boilerplate = 0
         for (sid, idx, sent, title), p in zip(candidates, probs):
             if p < threshold:
+                continue
+            # Post-filter: the classifier is sometimes tricked by document
+            # stamps, bibliography entries and project-background prose
+            # that share surface features with requirements. Drop them
+            # regardless of the classifier's confidence.
+            if _is_document_boilerplate(sent):
+                skipped_boilerplate += 1
                 continue
             base_id = f"{doc_id}::{sid}::s{idx}"
             req_id = base_id
@@ -834,7 +952,8 @@ class RequirementBuilder:
             )
 
         logger.info(
-            "Model extractor: %d/%d candidate sentences classified as requirements (threshold=%.2f) in %s",
-            len(units), len(candidates), threshold, doc_id,
+            "Model extractor: %d/%d candidate sentences classified as requirements "
+            "(threshold=%.2f, boilerplate_filtered=%d) in %s",
+            len(units), len(candidates), threshold, skipped_boilerplate, doc_id,
         )
         return units

@@ -77,7 +77,22 @@
       "Bash(.venv/Scripts/python.exe scripts/build_requirement_dataset.py --packages ./data/packages --fuzzy-threshold 0.85 --neg-ratio 3 --out ./data/req_dataset_v3)",
       "Bash(.venv/Scripts/python.exe scripts/build_requirement_dataset.py --packages ./data/packages --fuzzy-threshold 0.85 --neg-ratio 3 --out ./data/req_dataset_v4)",
       "Bash(.venv/Scripts/python.exe scripts/build_requirement_dataset.py --packages ./data/packages --fuzzy-threshold 0.85 --neg-ratio 3 --out ./data/req_dataset_v5)",
-      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestModelDrivenExtraction -v)"
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestModelDrivenExtraction -v)",
+      "Bash(.venv/Scripts/python.exe -m pip install pymorphy3)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestObjectAwareJudge::test_extract_action_object_basic -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestDisabledJudgeConservatism::test_high_lex_without_constraint_match_is_partial -v)",
+      "Bash(.venv/Scripts/python.exe scripts/live_compare.py --pkg pkg_0002)",
+      "Bash(echo \"=== EXIT: $? ===\")",
+      "Bash(taskkill //F //PID 418 //PID 399)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(.venv/Scripts/python.exe scripts/sample_for_review.py --packages pkg_0002 pkg_0005 pkg_0008 pkg_0010 --per-status 2 --out .probe/review_samples.txt)",
+      "Bash(.venv/Scripts/python.exe -m pip install -q openpyxl)",
+      "Bash(.venv/Scripts/python.exe scripts/sample_for_review.py --packages pkg_0002 pkg_0005 pkg_0008 pkg_0010 --per-status 2 --out .probe/review_samples_v2.txt)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestRerankerIntegration -v)",
+      "Bash(rm -f .probe/live_abc.*)",
+      "Bash(ps -p 1722 -o pid,etime,pcpu,pmem,vsz)",
+      "Bash(powershell -Command \"Get-Process -Id 1722 -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet64, StartTime, Responding\")",
+      "PowerShell(Stop-Process -Id 10628, 16080 -Force -ErrorAction SilentlyContinue)"
     ]
   }
 }

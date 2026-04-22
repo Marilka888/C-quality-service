@@ -35,12 +35,50 @@ _PROHIBITION_RE = re.compile(
 )
 
 
+_TIME_UNITS = {"days", "hours", "min", "sec", "ms"}
+_SIZE_UNITS = {"kb", "mb", "gb", "tb"}
+_RATE_UNITS = {"rps", "rpm"}
+
+# Factors that convert a given unit into the canonical unit of its class.
+# Canonicals: seconds for time, bytes for size, requests-per-second for rate.
+# A value in unit U can be compared to a value in unit V (same class) by
+# multiplying each by its factor, then comparing numerically.
+_UNIT_TO_CANONICAL: dict = {
+    # time → seconds
+    "ms":   0.001,
+    "sec":  1.0,
+    "min":  60.0,
+    "hours": 3600.0,
+    "days": 86400.0,
+    # size → bytes
+    "kb": 1024.0,
+    "mb": 1024.0 ** 2,
+    "gb": 1024.0 ** 3,
+    "tb": 1024.0 ** 4,
+    # rate → rps
+    "rps": 1.0,
+    "rpm": 1.0 / 60.0,
+}
+
+
+def _canonical_value(value: float, unit: Optional[str]) -> Optional[float]:
+    """
+    Convert `value` from `unit` to the canonical unit of its class.
+
+    Returns None if the unit has no canonical mapping (e.g. "%", None) —
+    callers should then fall back to strict equality by unit string.
+    """
+    if not unit:
+        return None
+    factor = _UNIT_TO_CANONICAL.get(unit)
+    if factor is None:
+        return None
+    return value * factor
+
+
 def _same_unit_class(u1: Optional[str], u2: Optional[str]) -> bool:
     """Are two units in the same equivalence class?"""
-    _time_units = {"days", "hours", "min", "sec", "ms"}
-    _size_units = {"kb", "mb", "gb", "tb"}
-    _rate_units = {"rps", "rpm"}
-    for cls in (_time_units, _size_units, _rate_units):
+    for cls in (_TIME_UNITS, _SIZE_UNITS, _RATE_UNITS):
         if u1 in cls and u2 in cls:
             return True
     return u1 == u2
@@ -73,8 +111,28 @@ def _values_conflict(rc: Constraint, uc: Constraint) -> Optional[str]:
     if rc.kind and uc.kind and rc.kind != uc.kind:
         return None
 
+    # Compare in a common unit when possible: "90 дней" vs "3 месяца" (if a
+    # months→days converter existed) or "2 сек" vs "2000 мс" must NOT fire
+    # a conflict. Fall back to strict value equality when either unit lies
+    # outside the known canonical table.
+    rc_canon = _canonical_value(rc.value, rc.unit)
+    uc_canon = _canonical_value(uc.value, uc.unit)
+    if rc_canon is not None and uc_canon is not None:
+        # Tolerance: 0.1% of the larger value — handles rounding in
+        # conversions like 60*60*24 days without false conflicts.
+        tol = max(abs(rc_canon), abs(uc_canon)) * 1e-3
+        if abs(rc_canon - uc_canon) <= max(tol, _VALUE_TOLERANCE):
+            return None
+        return (
+            f"req[{rc.kind}]: {rc.operator}{rc.value} {rc.unit or ''} "
+            f"(~{rc_canon:g} canon) | "
+            f"unit[{uc.kind}]: {uc.operator}{uc.value} {uc.unit or ''} "
+            f"(~{uc_canon:g} canon)"
+        )
+
+    # No canonical conversion available — require exact match on raw value.
     if abs(rc.value - uc.value) < _VALUE_TOLERANCE:
-        return None  # same value → no conflict
+        return None
 
     return (
         f"req[{rc.kind}]: {rc.operator}{rc.value} {rc.unit or ''} | "
@@ -111,8 +169,21 @@ def _negation_contradiction(req: RequirementUnit, unit: CoverageUnit) -> bool:
 def _entity_overlap(req: RequirementUnit, unit: CoverageUnit) -> float:
     if not req.entities or not unit.entities:
         return 0.0
-    req_set = {e.lower() for e in req.entities}
-    unit_set = {e.lower() for e in unit.entities}
+    # Compare entities by lemmatised word-bag so "Модуль аутентификации"
+    # and "модулем аутентификации" (same concept, different surface form)
+    # count as a match.
+    from app.core.lemmatize import lemma
+
+    def _key(entity: str) -> frozenset:
+        return frozenset(lemma(w) for w in entity.lower().split() if w)
+
+    req_set = {_key(e) for e in req.entities}
+    unit_set = {_key(e) for e in unit.entities}
+    # Remove trivial empty keys that can appear for degenerate inputs
+    req_set.discard(frozenset())
+    unit_set.discard(frozenset())
+    if not req_set or not unit_set:
+        return 0.0
     return len(req_set & unit_set) / len(req_set | unit_set)
 
 
@@ -131,15 +202,60 @@ class PairVerifier:
 
         conflict_details: List[str] = list(judgment.conflict_aspects)
 
-        # Rule 1: numeric constraint conflict
+        # Rule 1: numeric constraint conflict.
+        #
+        # Guard: require some topical-relatedness signal before we claim a
+        # conflict. A req and a unit that happen to share `3 сек` as a
+        # number, with zero entity overlap and almost no lexical overlap,
+        # are simply two unrelated sentences — not a contradiction. Raising
+        # CONFLICT on them was the biggest single source of false positives
+        # in manual review (e.g. pkg_0005 #7, pkg_0008 #7).
         numeric_conflicts = _find_numeric_conflict(req.constraints, unit.constraints)
         if numeric_conflicts:
-            conflict_details.extend(numeric_conflicts)
-            judgment.rule_adjusted_label = LLMLabel.CONFLICT
-            judgment.conflict_aspects = conflict_details
-            judgment.explanation += f" [rule] Numeric conflict: {'; '.join(numeric_conflicts)}"
-            logger.debug("Rule: numeric conflict for req=%s unit=%s", req.req_id[:8], unit.unit_id[:8])
-            return judgment
+            from app.core.text import tokenize_content
+
+            ent_overlap = _entity_overlap(req, unit)
+            req_tokens = tokenize_content(req.normalized_text)
+            unit_tokens = tokenize_content(unit.normalized_text)
+            shared_tokens = req_tokens & unit_tokens
+            # If both sides have a constraint with the same declared kind
+            # (e.g. both `retention_period`), we already know they are
+            # talking about the same aspect — that IS the topic link.
+            shared_constraint_kinds = (
+                {c.kind for c in req.constraints if c.kind and c.kind != "generic"}
+                & {c.kind for c in unit.constraints if c.kind and c.kind != "generic"}
+            )
+            # Topical signal: same constraint kind OR some entity overlap
+            # OR enough shared content tokens OR LLM confidence.
+            has_topic_link = (
+                bool(shared_constraint_kinds)
+                or ent_overlap >= 0.15
+                or len(shared_tokens) >= 2
+                or (judgment.llm_confidence or 0) >= 0.4
+            )
+            if has_topic_link:
+                conflict_details.extend(numeric_conflicts)
+                judgment.rule_adjusted_label = LLMLabel.CONFLICT
+                judgment.conflict_aspects = conflict_details
+                judgment.explanation += (
+                    f" [rule] Numeric conflict (ent_ov={ent_overlap:.2f}, "
+                    f"shared_tokens={len(shared_tokens)}): {'; '.join(numeric_conflicts)}"
+                )
+                logger.debug(
+                    "Rule: numeric conflict for req=%s unit=%s (ent=%.2f, shared=%d)",
+                    req.req_id[:8], unit.unit_id[:8], ent_overlap, len(shared_tokens),
+                )
+                return judgment
+            else:
+                judgment.explanation += (
+                    f" [rule] Numeric value mismatch suppressed — no topical link "
+                    f"(ent_ov={ent_overlap:.2f}, shared_tokens={len(shared_tokens)}, "
+                    f"conf={judgment.llm_confidence:.2f}): {'; '.join(numeric_conflicts)}"
+                )
+                logger.debug(
+                    "Rule: numeric mismatch SUPPRESSED for req=%s unit=%s (no topic)",
+                    req.req_id[:8], unit.unit_id[:8],
+                )
 
         # Rule 2: negation/modality contradiction
         # Guard: only fire when llm_confidence >= 0.25.
