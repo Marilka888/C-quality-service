@@ -112,6 +112,8 @@ def main() -> None:
     ap.add_argument("--threshold", type=float, default=0.7,
                     help="Classifier threshold for 'model' mode.")
     ap.add_argument("--packages-dir", default="./data/packages")
+    ap.add_argument("--with-c", action="store_true",
+                    help="Include Run C (E5 + reranker). Heavy on CPU; skipped by default.")
     args = ap.parse_args()
 
     pkg_path = Path(args.packages_dir) / f"{args.pkg}.json"
@@ -143,17 +145,37 @@ def main() -> None:
     _summarise(res_b, f"B) model + BoW (classifier, thr={args.threshold})")
 
     # --- Run C: model + E5 embedder + cross-encoder reranker ---
-    config_c = CoverageConfig()
-    config_c.requirement_extraction = "model"
-    config_c.requirement_model.threshold = args.threshold
-    config_c.embedding.backend = "e5"
-    config_c.reranker.enabled = True
-    pipeline_c = CoverageAnalysisPipeline(config_c)
-    res_c = pipeline_c.run(request)
-    _summarise(res_c, f"C) model + E5 + BGE reranker")
+    # (Heavy on CPU; skip by default — set --with-c to include)
+    if args.with_c:
+        config_c = CoverageConfig()
+        config_c.requirement_extraction = "model"
+        config_c.requirement_model.threshold = args.threshold
+        config_c.embedding.backend = "e5"
+        config_c.reranker.enabled = True
+        pipeline_c = CoverageAnalysisPipeline(config_c)
+        res_c = pipeline_c.run(request)
+        _summarise(res_c, f"C) model + E5 + BGE reranker")
+    else:
+        res_c = None
+
+    # --- Run D: model + BoW + cross-encoder judge (BGE-as-judge) ---
+    # Key question this run answers: does BGE zero-shot judging outperform
+    # the rule-based DisabledCoverageJudge on status decisions?
+    config_d = CoverageConfig()
+    config_d.requirement_extraction = "model"
+    config_d.requirement_model.threshold = args.threshold
+    config_d.embedding.backend = "bow"  # keep retrieval cheap
+    config_d.reranker.enabled = False    # judge reuses BGE directly
+    config_d.llm.enabled = True
+    config_d.llm.backend = "cross_encoder"
+    pipeline_d = CoverageAnalysisPipeline(config_d)
+    res_d = pipeline_d.run(request)
+    _summarise(res_d, f"D) model + BoW + cross-encoder judge")
 
     # --- Diff ---
     def _counts(r):
+        if r is None:
+            return None, None
         d = r.model_dump() if hasattr(r, "model_dump") else r
         results = d.get("requirement_results") or []
         return len(results), Counter(x.get("status") for x in results)
@@ -161,16 +183,30 @@ def main() -> None:
     n_a, sa = _counts(res_a)
     n_b, sb = _counts(res_b)
     n_c, sc = _counts(res_c)
+    n_d, sd = _counts(res_d)
 
     def _short(k):
         return str(k).rsplit(".", 1)[-1].rstrip("'>")
 
     print("\n=== DIFF across runs ===")
-    print(f"  {'metric':18s} {'A (regex)':>12s} {'B (model+BoW)':>16s} {'C (+E5+rerank)':>18s}")
-    print(f"  {'requirements':18s} {n_a:>12d} {n_b:>16d} {n_c:>18d}")
-    for status_enum in sorted(set(list(sa.keys()) + list(sb.keys()) + list(sc.keys())), key=_short):
+    cols = [("A (regex)", n_a, sa),
+            ("B (model+BoW)", n_b, sb)]
+    if sc is not None:
+        cols.append(("C (+E5+rerank)", n_c, sc))
+    cols.append(("D (+CE judge)", n_d, sd))
+
+    print("  " + f"{'metric':18s}" + "".join(f"{name:>18s}" for name, _, _ in cols))
+    print("  " + f"{'requirements':18s}" + "".join(f"{n:>18d}" for _, n, _ in cols))
+    all_statuses = set()
+    for _, _, s in cols:
+        if s is not None:
+            all_statuses.update(s.keys())
+    for status_enum in sorted(all_statuses, key=_short):
         label = _short(status_enum)
-        print(f"  {label:18s} {sa.get(status_enum, 0):>12d} {sb.get(status_enum, 0):>16d} {sc.get(status_enum, 0):>18d}")
+        row = "  " + f"{label:18s}"
+        for _, _, s in cols:
+            row += f"{(s.get(status_enum, 0) if s else 0):>18d}"
+        print(row)
 
 
 if __name__ == "__main__":

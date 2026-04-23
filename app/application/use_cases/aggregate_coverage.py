@@ -60,8 +60,34 @@ class CoverageAggregator:
         uncovered: List[str] = []
         conflicts: List[str] = []
 
+        # Pre-scan: is there any high-confidence COVERED judgment in the
+        # shortlist? If yes, we suppress CONFLICT when it comes from a
+        # less-confident pair. Rationale: the rule verifier's numeric
+        # conflict signal is noisy on compound requirements where one
+        # PMI unit cleanly covers the aspect and another happens to share
+        # a different number. In the demo report on 4 packages this was
+        # the dominant source of CONFLICT false-positives (pkg_0008: 18).
+        strong_covered = max(
+            (j.llm_confidence or 0.0
+             for j in judgments
+             if j.rule_adjusted_label == LLMLabel.COVERED),
+            default=0.0,
+        )
+        has_strong_covered = strong_covered >= 0.8
+
         for j in judgments:
             status = _label_to_status(j.rule_adjusted_label)
+            # Demote CONFLICT → PARTIAL when a strong COVERED already
+            # exists for this requirement and this particular conflict
+            # judgment is weak (conf < strong_covered). The judge on the
+            # winning pair already resolved the ambiguity.
+            if (
+                status == CoverageStatus.CONFLICT
+                and has_strong_covered
+                and (j.llm_confidence or 0.0) < strong_covered
+            ):
+                status = CoverageStatus.PARTIAL
+
             if _STATUS_RANK[status] > _STATUS_RANK[best_status]:
                 best_status = status
 

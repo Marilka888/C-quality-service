@@ -53,6 +53,26 @@ _BOILERPLATE_PATTERNS = [
     re.compile(r"^\s*ПОРЯДОК\s+КОНТРОЛЯ\s+И\s+ПРИЕМКИ\b", re.I),
 ]
 
+# Trailing section marker: short text ending in a bare section number with
+# no body content after it. Examples from v3 review:
+#   "Разрабатываемая программа должно иметь следующий функционал: 4.2."
+#   "Требования к функциональным характеристикам 4.1.1."
+# These are headings glued onto truncated text by the PDF parser.
+_TRAILING_SECTION_NUM_RE = re.compile(r"\s\d+(?:\.\d+)+\.?\s*$")
+
+# Standalone GOST reference lines that list a standard without imposing a
+# requirement: "ГОСТ 19.101-77 Виды программ и программных документов."
+# Heuristic: starts with "ГОСТ N...", has no modality trigger, ≤ 14 words.
+_GOST_LINE_RE = re.compile(r"^\s*ГОСТ\s+\d", re.I)
+
+# Glossary-style entry: single term followed by em-dash / en-dash and a
+# definition, within a short fragment. Example:
+#   "Триггер – пороговое значение свойства объекта мониторинга..."
+# We only fire when the LEFT side is 1-3 words (a term, not a sentence).
+_GLOSSARY_RE = re.compile(
+    r"^\s*[А-ЯЁA-Z][\wа-яёА-ЯЁ\-]*(?:\s+[\wа-яёА-ЯЁ\-]+){0,2}\s*[\u2013\u2014\-]\s+[А-ЯЁа-яёa-zA-Z]",
+)
+
 
 def _is_document_boilerplate(text: str) -> bool:
     """True if the text is a form stamp / citation / rationale header.
@@ -67,9 +87,54 @@ def _is_document_boilerplate(text: str) -> bool:
     for pat in _BOILERPLATE_PATTERNS:
         if pat.search(text):
             return True
+
+    stripped = text.strip()
+    # Strip common list markers before pattern matching so "2) ГОСТ N ..." is
+    # recognised as the same shape as "ГОСТ N ...".
+    stripped_nolist = re.sub(
+        r"^\s*(?:\d+[.)]|[а-яёa-z][.)]|[•\-\u2013\u2014])\s+",
+        "",
+        stripped,
+    )
+    words = stripped.split()
+    has_modality = (
+        bool(_BODY_TRIGGER_RE.search(stripped))
+        if "_BODY_TRIGGER_RE" in globals()
+        else False
+    )
+
+    # Trailing bare section number ("... 4.2." at end) in a short fragment —
+    # heading got glued onto section marker.
+    if len(words) <= 14 and _TRAILING_SECTION_NUM_RE.search(stripped):
+        return True
+
+    # Leading page-number + section-number chain: "11 4.1.1.2 Требования…".
+    # Two numeric groups with the second one multi-level is the hallmark of
+    # a PDF-extracted heading line.
+    if len(words) <= 16 and re.match(r"^\s*\d+\s+\d+(?:\.\d+)+\s+", stripped):
+        return True
+
+    # GOST standard reference line without a modality verb. A real
+    # requirement might say "должны соответствовать ГОСТ 19.101"; a bare
+    # list entry is just the reference. Also handles leading list markers.
+    if _GOST_LINE_RE.match(stripped_nolist) and not has_modality and len(words) <= 16:
+        return True
+
+    # "Something (ГОСТ N-N)" standalone short line — document name in
+    # parentheses is a citation shape, not a requirement.
+    if (
+        len(words) <= 12
+        and not has_modality
+        and re.search(r"\(ГОСТ\s+\d+[\-.]\d", stripped, re.I)
+    ):
+        return True
+
+    # Glossary / terminology definition in a short block.
+    if len(words) <= 18 and not has_modality and _GLOSSARY_RE.match(stripped):
+        return True
+
     # Stamp heuristic: very short line (≤ 8 words) with a dense mix of
     # digits / dots / dashes — typical of document codes lines.
-    words = text.split()
     if len(words) <= 8:
         digit_punct_chars = sum(1 for c in text if c.isdigit() or c in ".-/№")
         alpha_chars = sum(1 for c in text if c.isalpha())
@@ -496,6 +561,109 @@ def _is_requirement_fragment(text: str) -> bool:
     return bool(_TRIGGER_RE.search(text)) and len(text.split()) >= 5
 
 
+# ---------------------------------------------------------------------------
+# Compound requirement splitting
+# ---------------------------------------------------------------------------
+#
+# A common TZ shape is:
+#     "Приложение должно предоставлять следующие функции:
+#        • Регистрация и управление учётной записью;
+#        • Просмотр списка проектов;
+#        • Создание нового проекта."
+#
+# Until now we extracted this as ONE RequirementUnit. The cross-encoder
+# judge would find PMI steps that test ANY of the sub-items and return
+# COVERED, which the manual v3/v4 review flagged as misleading — the
+# requirement is really compound and should be evaluated per-item.
+#
+# Heuristic splitter: find a colon, detect a consistent list marker in the
+# body (bullets, numbered items, semi-colon separated dashes), split, and
+# prepend the intro to each item so the sub-requirement remains
+# self-contained. Modality / requirement_type / entities are re-extracted
+# per sub-item by the normal helpers.
+#
+# Conservative: at least 2 items, each ≥ 2 words, each sharing the intro's
+# subject line. If any check fails we fall back to the original text.
+
+_INTRO_COLON_RE = re.compile(r":\s*", re.UNICODE)
+
+# A marker that, appearing ≥ 2 times, signals an enumerated list. Order is
+# important: bullets are unambiguous; semicolons are a last-resort signal.
+_LIST_MARKERS = [
+    # Cyrillic / Latin bullets glyphs
+    re.compile(r"(?:(?<=\n)|(?<=\s)|^)\s*[•●◦▪]\s+", re.MULTILINE),
+    # En-dash / em-dash bullet
+    re.compile(r"(?:(?<=\n)|(?<=;))\s*[\u2013\u2014]\s+"),
+    # Leading "1) " or "1. "
+    re.compile(r"(?:(?<=\n)|(?<=\s)|^)\s*\d+[\.\)]\s+", re.MULTILINE),
+    # Leading "а) " or "а."
+    re.compile(r"(?:(?<=\n)|(?<=\s)|^)\s*[а-яё][\.\)]\s+", re.MULTILINE),
+    # Semicolon between non-empty phrases (≥ 3 words each side)
+    re.compile(r";\s*"),
+]
+
+
+def _split_compound_requirement(text: str) -> List[str]:
+    """
+    Return a list of atomic requirement strings.
+
+    - Single-statement requirement     → [original_text]
+    - Compound with ≥ 2 list items     → [intro + item_1, intro + item_2, …]
+
+    The intro is preserved verbatim so each sub-requirement is
+    grammatically complete and retrieval/judge get useful context.
+    """
+    if not text:
+        return [text]
+    stripped = text.strip()
+
+    # Find the MAIN colon that introduces the list. Skip colons inside
+    # parentheses (common in citations).
+    colon_match = None
+    depth = 0
+    for i, ch in enumerate(stripped):
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        elif ch == ":" and depth == 0 and i + 1 < len(stripped):
+            colon_match = i
+            break
+    if colon_match is None:
+        return [stripped]
+
+    intro = stripped[:colon_match].strip()
+    body = stripped[colon_match + 1 :].strip()
+    if len(intro.split()) < 3 or len(body.split()) < 4:
+        return [stripped]
+
+    # Try each marker in priority order; first one that yields ≥ 2
+    # reasonable items wins.
+    for marker in _LIST_MARKERS:
+        parts = [p.strip(" \t\n.,;:") for p in marker.split(body)]
+        # Drop empty fragments (the first one is usually empty when the
+        # marker is at the very start of body).
+        parts = [p for p in parts if p]
+        # Each part must look like a real item and not be absurdly long
+        # (cap at 40 words — beyond that it's probably a full sentence,
+        # not a list entry). Single-word items are allowed when they are
+        # substantive (≥ 5 chars, to exclude stray "и" / "или" noise).
+        def _valid_item(p: str) -> bool:
+            n_words = len(p.split())
+            if n_words > 40:
+                return False
+            if n_words >= 2:
+                return True
+            # 1-word item: accept if the word itself is substantive
+            return len(p.strip()) >= 5
+        parts = [p for p in parts if _valid_item(p)]
+        if len(parts) >= 2:
+            # Rebuild full sentences: "intro: item"
+            return [f"{intro}: {p}" for p in parts]
+
+    return [stripped]
+
+
 def _section_allows_candidate(section_id: Optional[str], modality: Modality) -> bool:
     """
     Gate for whether a candidate/fragment from a given section should be included
@@ -914,6 +1082,7 @@ class RequirementBuilder:
         units: List[RequirementUnit] = []
         seen_req_ids: set = set()
         skipped_boilerplate = 0
+        compound_expansions = 0
         for (sid, idx, sent, title), p in zip(candidates, probs):
             if p < threshold:
                 continue
@@ -924,36 +1093,48 @@ class RequirementBuilder:
             if _is_document_boilerplate(sent):
                 skipped_boilerplate += 1
                 continue
-            base_id = f"{doc_id}::{sid}::s{idx}"
-            req_id = base_id
-            dedup = 0
-            while req_id in seen_req_ids:
-                dedup += 1
-                req_id = f"{base_id}::{dedup}"
-            seen_req_ids.add(req_id)
+            # Compound requirement detection: a single sentence of the form
+            # "X должно предоставлять: • A; • B; • C" is split into one
+            # sub-requirement per bullet so downstream judging evaluates
+            # each aspect separately.
+            sub_texts = _split_compound_requirement(sent)
+            if len(sub_texts) > 1:
+                compound_expansions += 1
+            for sub_i, sub_text in enumerate(sub_texts):
+                base_id = f"{doc_id}::{sid}::s{idx}"
+                if len(sub_texts) > 1:
+                    base_id = f"{base_id}::i{sub_i}"
+                req_id = base_id
+                dedup = 0
+                while req_id in seen_req_ids:
+                    dedup += 1
+                    req_id = f"{base_id}::{dedup}"
+                seen_req_ids.add(req_id)
 
-            units.append(
-                RequirementUnit(
-                    req_id=req_id,
-                    source_document_id=doc_id,
-                    source_section_id=sid,
-                    source_fragment_id=None,
-                    text=sent,
-                    normalized_text=_normalize_text(sent),
-                    requirement_type=_extract_requirement_type(sent),
-                    modality=_extract_modality(sent),
-                    entities=_extract_entities(sent),
-                    constraints=_extract_constraints(sent),
-                    metadata={
-                        "section_title": title,
-                        "classifier_score": round(float(p), 4),
-                    },
+                units.append(
+                    RequirementUnit(
+                        req_id=req_id,
+                        source_document_id=doc_id,
+                        source_section_id=sid,
+                        source_fragment_id=None,
+                        text=sub_text,
+                        normalized_text=_normalize_text(sub_text),
+                        requirement_type=_extract_requirement_type(sub_text),
+                        modality=_extract_modality(sub_text),
+                        entities=_extract_entities(sub_text),
+                        constraints=_extract_constraints(sub_text),
+                        metadata={
+                            "section_title": title,
+                            "classifier_score": round(float(p), 4),
+                            "compound_source_idx": sub_i if len(sub_texts) > 1 else None,
+                        },
+                    )
                 )
-            )
 
         logger.info(
             "Model extractor: %d/%d candidate sentences classified as requirements "
-            "(threshold=%.2f, boilerplate_filtered=%d) in %s",
-            len(units), len(candidates), threshold, skipped_boilerplate, doc_id,
+            "(threshold=%.2f, boilerplate_filtered=%d, compound_expansions=%d) in %s",
+            len(units), len(candidates), threshold, skipped_boilerplate,
+            compound_expansions, doc_id,
         )
         return units

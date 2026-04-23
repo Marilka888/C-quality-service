@@ -27,12 +27,28 @@ class PairJudgeService:
         shortlist: List[RetrievedCandidate],
         units_by_id: Dict[str, CoverageUnit],
     ) -> List[PairJudgment]:
-        judgments: List[PairJudgment] = []
+        # Collect existing units once so we can dispatch to a batch judge
+        # when the backend supports it (~10× faster for cross-encoders).
+        pairs: List[CoverageUnit] = []
         for candidate in shortlist:
             unit = units_by_id.get(candidate.unit_id)
             if unit is None:
                 logger.warning("unit_id=%s not found in index; skipping", candidate.unit_id)
                 continue
-            judgment = self._judge.judge(requirement, unit)
-            judgments.append(judgment)
-        return judgments
+            pairs.append(unit)
+
+        if not pairs:
+            return []
+
+        judge_batch = getattr(self._judge, "judge_batch", None)
+        if callable(judge_batch):
+            try:
+                return list(judge_batch(requirement, pairs))
+            except Exception as exc:
+                # If the batch path errors (e.g. network blip), fall back
+                # to per-pair — we'd rather be slow than lose the request.
+                logger.warning(
+                    "judge.judge_batch failed (%s); falling back to per-pair", exc,
+                )
+
+        return [self._judge.judge(requirement, u) for u in pairs]

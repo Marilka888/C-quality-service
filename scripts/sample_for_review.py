@@ -112,6 +112,9 @@ def main() -> None:
     ap.add_argument("--out", default=".probe/review_samples.txt")
     ap.add_argument("--threshold", type=float, default=0.7)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--judge", default="disabled",
+                    choices=["disabled", "cross_encoder", "ollama"],
+                    help="Pair judge backend. 'cross_encoder' uses BGE as judge.")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -121,6 +124,9 @@ def main() -> None:
     config.requirement_extraction = "model"
     config.requirement_model.threshold = args.threshold
     config.embedding.backend = "bow"
+    if args.judge != "disabled":
+        config.llm.enabled = True
+        config.llm.backend = args.judge
 
     # One shared pipeline — reuses loaded classifier across packages
     pipeline = CoverageAnalysisPipeline(config)

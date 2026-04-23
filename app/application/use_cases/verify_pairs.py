@@ -233,6 +233,31 @@ class PairVerifier:
                 or len(shared_tokens) >= 2
                 or (judgment.llm_confidence or 0) >= 0.4
             )
+
+            # v3-review regression: the BGE judge confidently says COVERED on
+            # pairs like "ОС Windows 7/10/11" vs "Windows 10" (10 is in the
+            # allowed set). The numeric_conflicts rule then blindly fires
+            # CONFLICT because 7 ≠ 10. The judge already aggregated the
+            # semantic picture — if it is confidently COVERED, trust it and
+            # suppress the rule override. 4/4 false CONFLICTs in manual
+            # review came from this path.
+            judge_strongly_says_covered = (
+                judgment.llm_label == LLMLabel.COVERED
+                and (judgment.llm_confidence or 0) >= 0.7
+            )
+            if judge_strongly_says_covered:
+                judgment.explanation += (
+                    f" [rule] Numeric value mismatch suppressed — judge is "
+                    f"confidently COVERED (conf={judgment.llm_confidence:.2f}): "
+                    f"{'; '.join(numeric_conflicts)}"
+                )
+                logger.debug(
+                    "Rule: numeric mismatch SUPPRESSED (judge confident COVERED) "
+                    "for req=%s unit=%s",
+                    req.req_id[:8], unit.unit_id[:8],
+                )
+                # fall through to subsequent rules — skip the CONFLICT branch
+                has_topic_link = False
             if has_topic_link:
                 conflict_details.extend(numeric_conflicts)
                 judgment.rule_adjusted_label = LLMLabel.CONFLICT

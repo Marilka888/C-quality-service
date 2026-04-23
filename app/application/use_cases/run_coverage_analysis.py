@@ -84,11 +84,38 @@ def _build_reranker(config: CoverageConfig):
     return None
 
 
-def _build_judge(config: CoverageConfig) -> CoverageJudge:
+def _build_judge(config: CoverageConfig, reranker=None) -> CoverageJudge:
     if config.llm.enabled and config.llm.backend == "ollama":
         return OllamaCoverageJudge(
             model_name=config.llm.model_name,
             timeout=config.llm.timeout,
+        )
+    if config.llm.enabled and config.llm.backend == "cross_encoder":
+        # Reuse the already-built reranker when available to avoid loading
+        # BGE twice. If the reranker isn't available (rerank disabled by
+        # config), build a fresh BGE instance purely for the judge.
+        judge_reranker = reranker
+        if judge_reranker is None:
+            try:
+                from app.infrastructure.reranker.bge import BGEReranker
+                judge_reranker = BGEReranker(
+                    model_name=config.reranker.model_name,
+                    max_len=config.reranker.max_len,
+                    batch_size=config.reranker.batch_size,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "cross_encoder judge: BGE unavailable (%s); falling back to DisabledCoverageJudge",
+                    exc,
+                )
+                return DisabledCoverageJudge()
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        return CrossEncoderCoverageJudge(
+            reranker=judge_reranker,
+            covered_threshold=config.llm.cross_encoder_covered_threshold,
+            partial_threshold=config.llm.cross_encoder_partial_threshold,
         )
     return DisabledCoverageJudge()
 
@@ -105,7 +132,9 @@ class CoverageAnalysisPipeline:
         self._retriever = CandidateRetriever(
             self._config.retrieval, self._embedding_backend, self._reranker,
         )
-        self._judge_service = PairJudgeService(_build_judge(self._config))
+        self._judge_service = PairJudgeService(
+            _build_judge(self._config, reranker=self._reranker)
+        )
         self._verifier = PairVerifier()
         self._aggregator = CoverageAggregator()
         self._report_builder = CoverageReportBuilder()
@@ -128,7 +157,7 @@ class CoverageAnalysisPipeline:
         # would always be DisabledCoverageJudge; rebuild here if the effective
         # config differs.
         if config.llm.enabled != self._config.llm.enabled or config.llm.backend != self._config.llm.backend:
-            judge_service = PairJudgeService(_build_judge(config))
+            judge_service = PairJudgeService(_build_judge(config, reranker=self._reranker))
         else:
             judge_service = self._judge_service
 

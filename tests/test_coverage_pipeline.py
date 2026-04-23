@@ -365,6 +365,64 @@ class TestCoverageAggregator:
         result = self.agg.aggregate(req, [], {}, {}, "doc-pmi", "pmi")
         assert result.status == CoverageStatus.MISSING
 
+    def test_strong_covered_suppresses_weak_conflict(self):
+        """demo-report regression (pkg_0008 had 18 CONFLICTs, many false).
+
+        When the shortlist contains a confidently COVERED pair AND a less-
+        confident CONFLICT pair, the aggregator must NOT pick CONFLICT —
+        the winning pair has already resolved the ambiguity. The weak
+        CONFLICT should be demoted to PARTIAL so the row is still flagged
+        for attention but doesn't dominate the summary.
+        """
+        req = _make_req("Хранить журнал 90 дней.")
+        unit_covered = _make_unit("Хранить журнал 90 дней.")
+        unit_conflict = _make_unit("Другой неподходящий фрагмент с числом 45.")
+        # Confident COVERED (conf 0.98), weak CONFLICT (conf 0.30)
+        j1 = PairJudgment(
+            req_id=req.req_id, unit_id=unit_covered.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.COVERED,
+            rule_adjusted_label=LLMLabel.COVERED, llm_confidence=0.98,
+        )
+        j2 = PairJudgment(
+            req_id=req.req_id, unit_id=unit_conflict.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.CONFLICT,
+            rule_adjusted_label=LLMLabel.CONFLICT, llm_confidence=0.30,
+        )
+        result = self.agg.aggregate(
+            req, [j1, j2],
+            {u.unit_id: _make_candidate(req, u) for u in [unit_covered, unit_conflict]},
+            {u.unit_id: u for u in [unit_covered, unit_conflict]},
+            "doc-pmi", "pmi",
+        )
+        assert result.status == CoverageStatus.COVERED, (
+            f"Strong COVERED should win over weak CONFLICT, got {result.status}"
+        )
+
+    def test_high_confidence_conflict_still_wins(self):
+        """Guardrail: a CONFLICT at same-or-higher confidence than the
+        COVERED judgment must still win (real contradictions shouldn't be
+        hidden)."""
+        req = _make_req("Хранить журнал 90 дней.")
+        unit_covered = _make_unit("Частично совпадающий фрагмент.")
+        unit_conflict = _make_unit("Хранить журнал 30 дней.")
+        j_cov = PairJudgment(
+            req_id=req.req_id, unit_id=unit_covered.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.COVERED,
+            rule_adjusted_label=LLMLabel.COVERED, llm_confidence=0.70,
+        )
+        j_con = PairJudgment(
+            req_id=req.req_id, unit_id=unit_conflict.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.CONFLICT,
+            rule_adjusted_label=LLMLabel.CONFLICT, llm_confidence=0.85,
+        )
+        result = self.agg.aggregate(
+            req, [j_cov, j_con],
+            {u.unit_id: _make_candidate(req, u) for u in [unit_covered, unit_conflict]},
+            {u.unit_id: u for u in [unit_covered, unit_conflict]},
+            "doc-pmi", "pmi",
+        )
+        assert result.status == CoverageStatus.CONFLICT
+
 
 # ===========================================================================
 # Integration tests: four canonical scenarios
@@ -2848,6 +2906,83 @@ class TestEntityStopList:
         assert "требованиям" not in lowered
         assert "требования" not in lowered
 
+    def test_compound_splitter_atomic_requirement_unchanged(self):
+        from app.application.use_cases.build_requirements import _split_compound_requirement
+        # Standalone requirement — stays as one unit.
+        out = _split_compound_requirement("Система должна хранить журнал не менее 90 дней.")
+        assert out == ["Система должна хранить журнал не менее 90 дней."]
+
+    def test_compound_splitter_bullet_list(self):
+        from app.application.use_cases.build_requirements import _split_compound_requirement
+        text = (
+            "Приложение должно предоставлять следующие функции: "
+            "• Регистрация учётной записи; • Просмотр списка проектов; "
+            "• Создание нового проекта."
+        )
+        out = _split_compound_requirement(text)
+        assert len(out) == 3
+        for s in out:
+            assert s.startswith("Приложение должно предоставлять следующие функции:")
+        assert any("Регистрация" in s for s in out)
+        assert any("Просмотр" in s for s in out)
+        assert any("Создание" in s for s in out)
+
+    def test_compound_splitter_numbered_list(self):
+        from app.application.use_cases.build_requirements import _split_compound_requirement
+        text = (
+            "Предъявляются следующие требования к вводу: "
+            "1) нажатие на экран; 2) использование физических клавиш."
+        )
+        out = _split_compound_requirement(text)
+        assert len(out) == 2
+
+    def test_compound_splitter_cyrillic_lettered_list(self):
+        from app.application.use_cases.build_requirements import _split_compound_requirement
+        text = (
+            "Программа должна обеспечивать: "
+            "а) резервное копирование; б) восстановление; в) проверку целостности."
+        )
+        out = _split_compound_requirement(text)
+        assert len(out) == 3
+
+    def test_compound_splitter_ignores_alternatives(self):
+        """'Windows 10 или Windows 11' is an allowed-values expression, not a
+        multi-item requirement list. Should stay as one unit."""
+        from app.application.use_cases.build_requirements import _split_compound_requirement
+        out = _split_compound_requirement("ОС должна быть одной из: Windows 10 или Windows 11.")
+        assert len(out) == 1
+
+    def test_boilerplate_filter_catches_v3_review_cases(self):
+        """v3-review regression: the cases manually flagged as N (not
+        requirements) must be filtered by _is_document_boilerplate."""
+        from app.application.use_cases.build_requirements import _is_document_boilerplate
+        boilerplate = [
+            "2) ГОСТ 15150-69 Машины, приборы и другие технические изделия.",
+            "Разрабатываемая программа должно иметь следующий функционал: 4.2.",
+            "Программа и методика испытаний (ГОСТ 19.301-79).",
+            "11 4.1.1.2 Требования к составу выполняемых функций рекомендательного алгоритма.",
+            "Триггер – пороговое значение свойства объекта мониторинга.",
+            "Требования к функциональным характеристикам 4.1.1.",
+            "Подп. Дата RU.17701729.04.01-01 ТЗ 01-1",
+        ]
+        for text in boilerplate:
+            assert _is_document_boilerplate(text), (
+                f"Expected boilerplate: {text!r}"
+            )
+        # Real requirements must survive
+        real = [
+            "Система должна хранить журнал событий не менее 90 дней.",
+            "Время отклика не должно превышать 2 секунд.",
+            "Серверное приложение должно использовать среду NodeJS.",
+            "4.6.2 Требования к программным средствам, используемым программой "
+            "Для корректной работы программы на устройстве должна быть установлена "
+            "операционная система.",
+        ]
+        for text in real:
+            assert not _is_document_boilerplate(text), (
+                f"Real requirement was mis-filtered: {text!r}"
+            )
+
     def test_meaningful_entity_survives_stop_list(self):
         from app.application.use_cases.build_requirements import _extract_entities
         ents = _extract_entities("Модуль Аутентификации должен использовать OAuth2.")
@@ -2978,3 +3113,184 @@ class TestRerankerIntegration:
         # anyway; passing it explicitly here just exercises the same path.
         candidates = retriever.retrieve(req, units)
         assert candidates[0].unit_id == "test-unit-A"
+
+
+# ===========================================================================
+# CrossEncoderCoverageJudge tests (BGE or any reranker as judge)
+# ===========================================================================
+
+
+class _ScriptedReranker:
+    """Deterministic score-returning reranker for judge tests.
+
+    Given a list of `score_by_keyword` tuples, returns a matching score
+    for each candidate whose text contains any listed keyword. Falls back
+    to `default_score` otherwise. Scores are raw logits (not sigmoided).
+    """
+
+    def __init__(self, score_by_keyword, default_score=-5.0):
+        self._rules = [(kw.lower(), float(s)) for kw, s in score_by_keyword]
+        self._default = float(default_score)
+        self.calls = []
+
+    def score(self, query, candidates):
+        self.calls.append((query, list(candidates)))
+        out = []
+        for c in candidates:
+            low = c.lower()
+            matched = False
+            for kw, s in self._rules:
+                if kw in low:
+                    out.append(s)
+                    matched = True
+                    break
+            if not matched:
+                out.append(self._default)
+        return out
+
+
+class TestCrossEncoderCoverageJudge:
+    def _make_req(self, text):
+        return _make_req(text)
+
+    def _make_unit(self, text):
+        u = _make_unit(text)
+        u.unit_id = "u-1"
+        return u
+
+    def test_score_maps_to_covered(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        # Raw logit 2.2 → sigmoid ≈ 0.90 → COVERED (>= 0.8 default)
+        rr = _ScriptedReranker([("журнал", 2.2)])
+        judge = CrossEncoderCoverageJudge(rr)
+        j = judge.judge(
+            self._make_req("Хранить журнал 90 дней."),
+            self._make_unit("Журнал событий сохраняется 90 дней."),
+        )
+        assert j.llm_label == LLMLabel.COVERED
+        assert j.llm_confidence >= 0.8
+
+    def test_score_maps_to_partial(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        # Raw 0.0 → sigmoid 0.5 → PARTIAL (between 0.3 and 0.8)
+        rr = _ScriptedReranker([("журнал", 0.0)])
+        judge = CrossEncoderCoverageJudge(rr)
+        j = judge.judge(
+            self._make_req("Хранить журнал 90 дней."),
+            self._make_unit("Проверить журнал."),
+        )
+        assert j.llm_label == LLMLabel.PARTIAL
+
+    def test_score_maps_to_irrelevant(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        # Raw -5 → sigmoid ≈ 0.0067 → IRRELEVANT (< 0.3)
+        rr = _ScriptedReranker([])
+        judge = CrossEncoderCoverageJudge(rr)
+        j = judge.judge(
+            self._make_req("Хранить журнал 90 дней."),
+            self._make_unit("Совершенно не связанный текст про интерфейс."),
+        )
+        assert j.llm_label == LLMLabel.IRRELEVANT
+        assert j.llm_confidence < 0.3
+
+    def test_custom_thresholds_respected(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        # Strict thresholds: COVERED only at sigmoid>=0.95, PARTIAL>=0.6
+        rr = _ScriptedReranker([("журнал", 2.0)])  # sigmoid ≈ 0.881
+        judge = CrossEncoderCoverageJudge(
+            rr, covered_threshold=0.95, partial_threshold=0.6
+        )
+        j = judge.judge(
+            self._make_req("журнал"), self._make_unit("журнал учёта."),
+        )
+        # 0.881 is between 0.6 and 0.95 → PARTIAL
+        assert j.llm_label == LLMLabel.PARTIAL
+
+    def test_threshold_ordering_validated(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        rr = _ScriptedReranker([])
+        with pytest.raises(ValueError):
+            CrossEncoderCoverageJudge(
+                rr, covered_threshold=0.3, partial_threshold=0.8
+            )
+
+    def test_confident_covered_suppresses_conflict_override(self):
+        """v3-review regression. When the CE judge is confidently COVERED,
+        the numeric-conflict rule must NOT override to CONFLICT. Example:
+        "Windows 7/10/11" vs "Windows 10" — 10 is in the allowed set, not
+        a conflict, but blind numeric comparison fires otherwise.
+        """
+        from app.application.use_cases.verify_pairs import PairVerifier
+        req = _make_req(
+            "ОС должна быть Windows 7, 10 или 11.",
+            constraints=[Constraint(kind="generic", operator="=", value=7, unit=None),
+                         Constraint(kind="generic", operator="=", value=10, unit=None),
+                         Constraint(kind="generic", operator="=", value=11, unit=None)],
+        )
+        unit = _make_unit(
+            "Проверить работу на Windows 10.",
+            constraints=[Constraint(kind="generic", operator="=", value=10, unit=None)],
+        )
+        j = PairJudgment(
+            req_id=req.req_id, unit_id=unit.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.COVERED,
+            llm_confidence=0.92,
+            rule_adjusted_label=LLMLabel.COVERED,
+            matched_aspects=[], missing_aspects=[], conflict_aspects=[],
+            explanation="",
+        )
+        result = PairVerifier().verify(j, req, unit)
+        # Stays COVERED — rule must not flip to CONFLICT
+        assert result.rule_adjusted_label == LLMLabel.COVERED
+
+    def test_low_confidence_still_allows_conflict_override(self):
+        """Conversely, if the judge is only weakly confident the numeric
+        conflict rule should still be able to flip to CONFLICT."""
+        from app.application.use_cases.verify_pairs import PairVerifier
+        req = _make_req(
+            "Хранить журнал не менее 90 дней.",
+            constraints=[Constraint(kind="retention_period", operator=">=", value=90, unit="days")],
+        )
+        unit = _make_unit(
+            "Журнал хранится 30 дней.",
+            constraints=[Constraint(kind="retention_period", operator="=", value=30, unit="days")],
+        )
+        j = PairJudgment(
+            req_id=req.req_id, unit_id=unit.unit_id,
+            target_document_id="doc-pmi", llm_label=LLMLabel.PARTIAL,
+            llm_confidence=0.5,
+            rule_adjusted_label=LLMLabel.PARTIAL,
+            matched_aspects=[], missing_aspects=[], conflict_aspects=[],
+            explanation="",
+        )
+        result = PairVerifier().verify(j, req, unit)
+        assert result.rule_adjusted_label == LLMLabel.CONFLICT
+
+    def test_batch_judge_matches_per_pair_calls(self):
+        from app.infrastructure.llm.cross_encoder_coverage_judge import (
+            CrossEncoderCoverageJudge,
+        )
+        rr = _ScriptedReranker([("match", 2.2), ("nope", -5.0)])
+        judge = CrossEncoderCoverageJudge(rr)
+        req = self._make_req("Хранить журнал.")
+        unit_match = _make_unit("Это match кейс."); unit_match.unit_id = "m"
+        unit_nope = _make_unit("Это nope кейс."); unit_nope.unit_id = "n"
+
+        # Batch call → one reranker invocation, two judgments
+        out = judge.judge_batch(req, [unit_match, unit_nope])
+        assert len(out) == 2
+        assert out[0].llm_label == LLMLabel.COVERED
+        assert out[1].llm_label == LLMLabel.IRRELEVANT
+        # Exactly one call with both candidates batched together
+        assert len(rr.calls) == 1
+        assert len(rr.calls[0][1]) == 2

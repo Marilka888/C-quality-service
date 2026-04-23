@@ -109,10 +109,18 @@ class CoverageLLMConfig(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     enabled: bool = False
-    backend: str = "ollama"  # "ollama" | "disabled"
+    # "ollama"        — local Ollama HTTP API (llama3 etc.)
+    # "cross_encoder" — zero-shot BGE cross-encoder as judge (reuses the
+    #                   reranker model; no training required)
+    # "disabled"      — rule-based DisabledCoverageJudge fallback
+    backend: str = "ollama"
     model_name: str = "qwen2.5:3b"
     prompt_version: str = "v1"
     timeout: int = 120
+    # Thresholds for cross_encoder backend. Calibrated for BAAI/bge-reranker-v2-m3
+    # sigmoid output. Tune against a manually reviewed sample on real packages.
+    cross_encoder_covered_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
+    cross_encoder_partial_threshold: float = Field(default=0.3, ge=0.0, le=1.0)
 
 
 class CoverageEmbeddingConfig(BaseModel):
@@ -181,6 +189,11 @@ class CoverageConfig(BaseModel):
             config.llm.enabled = bool(options["enable_llm_judge"])
             if config.llm.enabled:
                 config.llm.backend = "ollama"
+        if "judge_backend" in options:
+            backend = str(options["judge_backend"]).lower()
+            if backend in {"ollama", "cross_encoder", "disabled"}:
+                config.llm.backend = backend
+                config.llm.enabled = backend != "disabled"
         if "enable_rule_verification" in options:
             config.enable_rule_verification = bool(options["enable_rule_verification"])
         if "min_retrieval_score" in options:
