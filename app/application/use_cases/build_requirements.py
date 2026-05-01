@@ -422,7 +422,19 @@ def _extract_modality(text: str) -> Modality:
     return Modality.UNKNOWN
 
 
-def _extract_requirement_type(text: str) -> RequirementType:
+def _extract_requirement_type(text: str, section_title: str = "") -> RequirementType:
+    """Classify a requirement by type. Delegates to the rule-based
+    classifier in `classify_requirement`, which uses both the section
+    title (most reliable signal) and the requirement text. Legacy
+    callers passing only `text` fall back to text-only classification."""
+    from app.application.use_cases.classify_requirement import classify_requirement
+    return classify_requirement(text, section_title)
+
+
+def _legacy_extract_requirement_type_keywords(text: str) -> RequirementType:
+    """Fallback keyword classifier (kept for tests that pin old behaviour
+    on the FUNCTIONAL / PERFORMANCE / SECURITY / LOGGING / STORAGE /
+    INTERFACE axes). Not used by the production builder anymore."""
     lower = text.lower()
     for req_type, keywords in _TYPE_KEYWORDS.items():
         if any(kw in lower for kw in keywords):
@@ -769,9 +781,23 @@ class RequirementBuilder:
             )
 
         seen_req_ids: set = set()
+        n_boilerplate_dropped = 0
         for i, cand in enumerate(candidates):
             text = (cand.get("text") or "").strip()
             if not text:
+                continue
+
+            # BUG-06 fix: apply the same boilerplate filter the model path uses
+            # (form stamps, document-code lines, GOST-citation-only lines,
+            # glossary entries, "– М.: Изд-во стандартов, 1997"). The filter
+            # is modality-aware via _is_document_boilerplate's has_modality
+            # checks, so genuine requirements that mention ГОСТ ("должны
+            # соответствовать ГОСТ 19.101") still pass.
+            if _is_document_boilerplate(text):
+                n_boilerplate_dropped += 1
+                logger.debug(
+                    "Skipping boilerplate candidate in %s: %r", doc_id, text[:120]
+                )
                 continue
 
             # Build deterministic unique req_id:
@@ -798,6 +824,8 @@ class RequirementBuilder:
 
             section_id = cand.get("section_id")
             modality = _extract_modality(text)
+            cand_meta = cand.get("metadata") or {}
+            section_title = cand_meta.get("sectionTitle") or cand_meta.get("section_title") or ""
 
             if not _section_allows_candidate(section_id, modality):
                 logger.debug(
@@ -814,24 +842,42 @@ class RequirementBuilder:
                     source_fragment_id=frag_id,
                     text=text,
                     normalized_text=_normalize_text(text),
-                    requirement_type=_extract_requirement_type(text),
+                    requirement_type=_extract_requirement_type(text, section_title),
                     modality=modality,
                     entities=_extract_entities(text),
                     constraints=_extract_constraints(text),
-                    metadata=cand.get("metadata") or {},
+                    metadata=cand_meta,
                 )
+            )
+
+        if n_boilerplate_dropped:
+            logger.info(
+                "[%s] _from_candidates dropped %d boilerplate candidates",
+                doc_id, n_boilerplate_dropped,
             )
         return units
 
     def _from_fragments(self, artifact: dict, fragments: List[dict]) -> List[RequirementUnit]:
         doc_id = artifact.get("document_id", "unknown")
         units: List[RequirementUnit] = []
+        n_boilerplate_dropped = 0
         for frag in fragments:
             text = (frag.get("text") or "").strip()
             if not text or not _is_requirement_fragment(text):
                 continue
+            # BUG-06 fix: same boilerplate filter as in _from_model and
+            # _from_candidates. Modality-aware so genuine ГОСТ-referencing
+            # requirements are kept.
+            if _is_document_boilerplate(text):
+                n_boilerplate_dropped += 1
+                logger.debug(
+                    "Skipping boilerplate fragment in %s: %r", doc_id, text[:120]
+                )
+                continue
             section_id = frag.get("section_id")
             modality = _extract_modality(text)
+            frag_meta = frag.get("metadata") or {}
+            section_title = frag_meta.get("sectionTitle") or frag_meta.get("section_title") or ""
             if not _section_allows_candidate(section_id, modality):
                 logger.debug(
                     "Skipping fragment in non-requirement section %r (modality=%s) in %s",
@@ -845,12 +891,17 @@ class RequirementBuilder:
                     source_fragment_id=frag.get("fragment_id"),
                     text=text,
                     normalized_text=_normalize_text(text),
-                    requirement_type=_extract_requirement_type(text),
+                    requirement_type=_extract_requirement_type(text, section_title),
                     modality=modality,
                     entities=_extract_entities(text),
                     constraints=_extract_constraints(text),
-                    metadata=frag.get("metadata") or {},
+                    metadata=frag_meta,
                 )
+            )
+        if n_boilerplate_dropped:
+            logger.info(
+                "[%s] _from_fragments dropped %d boilerplate fragments",
+                doc_id, n_boilerplate_dropped,
             )
         if not units:
             logger.warning("No requirement fragments found in %s", doc_id)
@@ -953,7 +1004,7 @@ class RequirementBuilder:
                         source_fragment_id=None,
                         text=sent,
                         normalized_text=_normalize_text(sent),
-                        requirement_type=_extract_requirement_type(sent),
+                        requirement_type=_extract_requirement_type(sent, title),
                         modality=modality,
                         entities=_extract_entities(sent),
                         constraints=_extract_constraints(sent),
@@ -1119,7 +1170,7 @@ class RequirementBuilder:
                         source_fragment_id=None,
                         text=sub_text,
                         normalized_text=_normalize_text(sub_text),
-                        requirement_type=_extract_requirement_type(sub_text),
+                        requirement_type=_extract_requirement_type(sub_text, title),
                         modality=_extract_modality(sub_text),
                         entities=_extract_entities(sub_text),
                         constraints=_extract_constraints(sub_text),

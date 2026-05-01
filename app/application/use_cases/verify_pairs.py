@@ -35,6 +35,96 @@ _PROHIBITION_RE = re.compile(
 )
 
 
+# ── Same-aspect / negation-compatibility table (PR-G refactor) ──────────
+#
+# CONFLICT may be raised only when both sides talk about the SAME
+# aspect (same metric, same component, same operation). When the
+# requirement and the unit talk about different aspects but happen to
+# share lexical signals (e.g. both mention "не должно превышать" + a
+# number), CONFLICT is a false positive.
+#
+# `_SAME_OUTCOME_PAIRS` lists known semantic-equivalence pairs: a
+# prohibition phrase on one side and a positive affirmation on the
+# other that describes the same outcome. The audit-time symptom was
+# "система не должна аварийно завершаться" vs "система должна
+# продолжать корректно функционировать" — both express continued
+# operation under errors, so CONFLICT was wrong. The fix recognises
+# the pair and suppresses the negation contradiction rule.
+
+_SAME_OUTCOME_PAIRS: list[tuple[re.Pattern, re.Pattern]] = [
+    # Crash / continue working
+    (
+        re.compile(
+            r"не\s+должн\w+\s+(?:аварийн\w+\s+заверш|падат|крашит|"
+            r"прерыват\w*\s+работ)",
+            re.I,
+        ),
+        re.compile(
+            r"продолж\w+\s+(?:корректн\w+\s+)?(?:функционир|работ)|"
+            r"должн\w+\s+продолжат\w+\s+работ|"
+            r"должн\w+\s+(?:корректн\w+\s+)?функционир",
+            re.I,
+        ),
+    ),
+    # Lose data / save data
+    (
+        re.compile(
+            r"не\s+должн\w+\s+(?:терят|потерят|удалят\w*\s+безвозврат)\w*\s+дан",
+            re.I,
+        ),
+        re.compile(
+            r"должн\w+\s+(?:сохран|сберег|резервн)\w*\s+дан",
+            re.I,
+        ),
+    ),
+]
+
+
+def _same_outcome_negation_compatible(req_text: str, unit_text: str) -> bool:
+    """True when one side prohibits a bad outcome while the other
+    affirms the equivalent positive outcome — these are semantically
+    compatible, never CONFLICT."""
+    rt = (req_text or "").lower()
+    ut = (unit_text or "").lower()
+    for prohib_re, pos_re in _SAME_OUTCOME_PAIRS:
+        # Either ordering: requirement-prohibits + unit-affirms,
+        # or vice-versa.
+        if prohib_re.search(rt) and pos_re.search(ut):
+            return True
+        if prohib_re.search(ut) and pos_re.search(rt):
+            return True
+    return False
+
+
+def _types_can_conflict(
+    req: "RequirementUnit",
+    unit: "CoverageUnit",
+    judgment_text_overrides: tuple[str, str] | None = None,
+) -> bool:
+    """Whether the requirement and the coverage unit are about a
+    sufficiently-aligned aspect to allow CONFLICT.
+
+    Decision rules:
+      * Out-of-scope requirement types (DELIVERY, PROCESS, ECONOMIC)
+        never produce CONFLICT — coverage isn't the question for them.
+      * Documentation / environment requirements only conflict when both
+        sides talk about the same documentation aspect; numeric mismatches
+        on hardware specs ("16 ГБ" in PMI bench vs "32 ГБ" in TZ
+        recommendation) are not real conflicts.
+      * Otherwise default to True; the per-rule logic in PairVerifier
+        will refine.
+    """
+    from app.domain.c_quality_enums import RequirementType
+    rt = req.requirement_type
+    if rt in {
+        RequirementType.DELIVERY_REQUIREMENT,
+        RequirementType.PROCESS_REQUIREMENT,
+        RequirementType.ECONOMIC_OR_NEED,
+    }:
+        return False
+    return True
+
+
 _TIME_UNITS = {"days", "hours", "min", "sec", "ms"}
 _SIZE_UNITS = {"kb", "mb", "gb", "tb"}
 _RATE_UNITS = {"rps", "rpm"}
@@ -200,6 +290,41 @@ class PairVerifier:
             judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
             return judgment
 
+        # PR-G refactor: type-aware suppression of CONFLICT for
+        # requirement classes where coverage isn't the question.
+        # DELIVERY / PROCESS / ECONOMIC requirements never produce a
+        # CONFLICT row — the aggregator's applicability filter handles
+        # them downstream.
+        if not _types_can_conflict(req, unit):
+            if judgment.llm_label == LLMLabel.CONFLICT:
+                # Demote to PARTIAL so any matched aspects are still
+                # surfaced; aggregator will mark the row OUT_OF_SCOPE.
+                judgment.rule_adjusted_label = LLMLabel.PARTIAL
+                judgment.explanation += (
+                    " [rule] Type is delivery/process/economic — coverage "
+                    "CONFLICT is not meaningful for this requirement class."
+                )
+                return judgment
+            judgment.rule_adjusted_label = judgment.llm_label
+            return judgment
+
+        # PR-G refactor: same-outcome negation compatibility — phrases
+        # like "не должна аварийно завершаться" vs "должна продолжать
+        # корректно функционировать" are semantically equivalent, not
+        # contradictory. Suppress the LLM's CONFLICT verdict here BEFORE
+        # the rule-based negation rule below considers them.
+        if (
+            judgment.llm_label == LLMLabel.CONFLICT
+            and _same_outcome_negation_compatible(req.text, unit.text)
+        ):
+            judgment.rule_adjusted_label = LLMLabel.PARTIAL
+            judgment.explanation += (
+                " [rule] Same-outcome negation compatibility detected — "
+                "prohibition of bad outcome and affirmation of good outcome "
+                "are equivalent; demoted CONFLICT → PARTIAL."
+            )
+            return judgment
+
         conflict_details: List[str] = list(judgment.conflict_aspects)
 
         # Rule 1: numeric constraint conflict.
@@ -288,6 +413,18 @@ class PairVerifier:
         # are likely about *different* topics that happen to share a few tokens, so a
         # modality mismatch (one prohibits, the other permits) is not a real conflict.
         if _negation_contradiction(req, unit) and judgment.llm_confidence >= 0.25:
+            # PR-G refactor: same-outcome compatibility table catches the
+            # pre-classified semantic equivalences ("don't crash" ≡ "keep
+            # working"). When recognised, the modality mismatch is fake —
+            # demote to PARTIAL instead of raising CONFLICT.
+            if _same_outcome_negation_compatible(req.text, unit.text):
+                judgment.rule_adjusted_label = LLMLabel.PARTIAL
+                judgment.explanation += (
+                    " [rule] Negation contradiction suppressed — same-outcome "
+                    "phrasing detected (prohibition + positive affirmation "
+                    "describe the same outcome)."
+                )
+                return judgment
             judgment.rule_adjusted_label = LLMLabel.CONFLICT
             msg = "[rule] Negation contradiction between requirement and coverage unit"
             judgment.conflict_aspects = conflict_details + [msg]

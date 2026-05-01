@@ -1,7 +1,17 @@
 transformers
+# Pinned because litellm ≥ 1.40 pulls a newer `tokenizers` (0.22.x)
+# which fails the transformers compatibility check
+# (`tokenizers>=0.20,<0.21 is required`). Keeping the explicit upper
+# bound prevents that breakage from recurring on fresh installs.
+tokenizers>=0.20,<0.21
 numpy
 torch
 sentence-transformers
 fastapi
 uvicorn
 pydantic
+# PR-J: multi-model coverage judge through a single abstraction.
+# Lets us swap GPT/Claude/Groq/Gemini/Ollama through the same code path
+# for cross-model calibration.
+litellm>=1.40
+requests

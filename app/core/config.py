@@ -93,6 +93,14 @@ class ServiceConfig(BaseModel):
 class CoverageRetrievalConfig(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     min_retrieval_score: float = Field(default=0.05, ge=0.0, le=1.0)
+    # BUG-9: floor below which we never trust an LLM verdict. min_retrieval_score
+    # gates the retrieval shortlist (a noisy but generous filter); evidence_floor
+    # gates whether the resulting verdict is authoritative. If the highest
+    # retrieval score in the shortlist for a (req, target) pair is below this,
+    # the pipeline marks the result `low_confidence=True` regardless of what
+    # the LLM judge said — protects against CONFLICT/COVERED produced from
+    # weak retrieval (audit-time symptom: CONFLICT with max evidence score 0.37).
+    evidence_floor: float = Field(default=0.5, ge=0.0, le=1.0)
     lexical_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     semantic_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     constraint_weight: float = Field(default=0.20, ge=0.0, le=1.0)
@@ -110,6 +118,16 @@ class CoverageLLMConfig(BaseModel):
 
     enabled: bool = False
     # "ollama"        — local Ollama HTTP API (llama3 etc.)
+    # "litellm"       — unified multi-provider via LiteLLM. `model_name`
+    #                   becomes a LiteLLM routing string, e.g.
+    #                   "groq/llama-3.3-70b-versatile",
+    #                   "gemini/gemini-2.0-flash",
+    #                   "openai/gpt-4o-mini",
+    #                   "anthropic/claude-3-5-haiku-latest",
+    #                   "cerebras/llama-3.1-70b",
+    #                   "ollama/qwen2.5:7b". Each provider expects its
+    #                   API key in env (GROQ_API_KEY, GEMINI_API_KEY,
+    #                   OPENAI_API_KEY, ANTHROPIC_API_KEY, …).
     # "cross_encoder" — zero-shot BGE cross-encoder as judge (reuses the
     #                   reranker model; no training required)
     # "disabled"      — rule-based DisabledCoverageJudge fallback
@@ -191,9 +209,13 @@ class CoverageConfig(BaseModel):
                 config.llm.backend = "ollama"
         if "judge_backend" in options:
             backend = str(options["judge_backend"]).lower()
-            if backend in {"ollama", "cross_encoder", "disabled"}:
+            if backend in {"ollama", "cross_encoder", "disabled", "litellm"}:
                 config.llm.backend = backend
                 config.llm.enabled = backend != "disabled"
+        # PR-J: explicit LLM model name override (e.g. when backend is
+        # "litellm" we need the routing string "groq/llama-3.3-70b-versatile").
+        if "llm_model_name" in options:
+            config.llm.model_name = str(options["llm_model_name"])
         if "enable_rule_verification" in options:
             config.enable_rule_verification = bool(options["enable_rule_verification"])
         if "min_retrieval_score" in options:

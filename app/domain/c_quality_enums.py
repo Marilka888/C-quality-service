@@ -11,13 +11,50 @@ class CoverageStatus(str, Enum):
 
 
 class RequirementType(str, Enum):
+    """Functional class of a requirement.
+
+    Drives type-aware retrieval (which target document is the natural
+    home), CONFLICT validation (same-aspect check), applicability
+    (whether the requirement should be checked at all in target X) and
+    severity (how MISSING/CONFLICT contributes to criticalCount).
+
+    Legacy values (PERFORMANCE / SECURITY / LOGGING / STORAGE / INTERFACE
+    / FUNCTIONAL / OTHER) are preserved for backward compat with existing
+    artifacts. New values describe the broader taxonomy needed to stop
+    treating delivery / process / economic requirements as functional
+    coverage.
+    """
+    # ── Legacy / functional axes (kept) ─────────────────────────────
     PERFORMANCE = "performance"
     SECURITY = "security"
     LOGGING = "logging"
     STORAGE = "storage"
     INTERFACE = "interface"
     FUNCTIONAL = "functional"
+    # ── Extended taxonomy (PR-G+ refactor) ──────────────────────────
+    RELIABILITY = "reliability"
+    DATA_IO = "data_io"
+    ARCHITECTURE_IMPLEMENTATION = "architecture_implementation"
+    DOCUMENTATION_REQUIREMENT = "documentation_requirement"
+    DELIVERY_REQUIREMENT = "delivery_requirement"
+    PROCESS_REQUIREMENT = "process_requirement"
+    ENVIRONMENT_REQUIREMENT = "environment_requirement"
+    ECONOMIC_OR_NEED = "economic_or_need"
     OTHER = "other"
+
+
+class Applicability(str, Enum):
+    """Whether a requirement should be checked for coverage in a given
+    target document. APPLICABLE — yes, surface MISSING / CONFLICT
+    normally. NOT_APPLICABLE — the requirement type doesn't fit this
+    target (e.g. ARCHITECTURE in PMI). OUT_OF_SCOPE — the requirement
+    isn't a coverage requirement at all (delivery, process, …).
+
+    Non-APPLICABLE rows must NOT inflate criticalCount or pull the
+    package grade down; the orchestrator dims them in the UI."""
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    OUT_OF_SCOPE = "OUT_OF_SCOPE"
 
 
 class CoverageUnitType(str, Enum):

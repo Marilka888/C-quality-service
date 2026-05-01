@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from app.domain.c_quality_models import CoverageUnit, RequirementUnit
 
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v4"
 
 _SYSTEM_PROMPT_V2 = """Ты эксперт по анализу программной и проектной документации по ГОСТ 19/34.
 Работаешь с пакетом документов: ТЗ (техническое задание, источник требований),
@@ -55,15 +55,21 @@ _SYSTEM_PROMPT_V2 = """Ты эксперт по анализу программ�
   "matched_aspects": ["<аспект1>", ...],
   "missing_aspects": ["<аспект1>", ...],
   "conflict_aspects": ["<аспект1>", ...],
+  "cited_phrases": ["<точная цитата из ФРАГМЕНТА>", ...],
   "explanation": "<1–3 предложения на русском: почему выбран label, с опорой на аспекты>"
 }
 
 Правила:
 - Списки aspects могут быть пустыми, но должны присутствовать.
-- Для IRRELEVANT все три списка аспектов пусты.
+- Для IRRELEVANT все три списка аспектов и cited_phrases пусты.
 - Для CONFLICT conflict_aspects не пуст и содержит конкретное расхождение.
 - MISSING как label не используется — несуществующее покрытие агрегируется на уровне выше.
 - Не выдумывай аспекты, которых нет ни в требовании, ни во фрагменте.
+- cited_phrases — это grounding: для COVERED/PARTIAL/CONFLICT каждая запись
+  ДОЛЖНА быть точной подстрокой ФРАГМЕНТА (не требования). Копируй кусок
+  фрагмента дословно, без перефразирования. Если ни одна цитата не подходит
+  — выбирай label=IRRELEVANT, аспекты пусты. Сервер проверяет grounding и
+  отбрасывает любую вердикты без подтверждения цитатой.
 """
 
 _SYSTEM_PROMPT = _SYSTEM_PROMPT_V2
@@ -73,12 +79,81 @@ def build_judge_prompt(req: RequirementUnit, unit: CoverageUnit) -> tuple[str, s
     """Return (system_prompt, user_prompt) for the given pair."""
     system = _SYSTEM_PROMPT
 
+    # PR-G refactor: surface requirement_type explicitly + a one-liner
+    # hint about its expected coverage form. The hint helps small local
+    # LLMs avoid the systematic confusions: e.g. CONFLICT on PERFORMANCE
+    # vs RELIABILITY because both contain "не должно превышать", or
+    # COVERED on a documentation requirement against a functional
+    # fragment.
+    type_hint = _TYPE_HINTS.get(req.requirement_type.value, "")
+
     user = (
         f"[prompt_version={PROMPT_VERSION}]\n\n"
         f"Тип документа-источника фрагмента: {unit.target_doc_role.upper()}\n"
-        f"Тип требования: {req.requirement_type.value}\n\n"
-        f"=== ТРЕБОВАНИЕ (из ТЗ) ===\n{req.text}\n\n"
+        f"Тип требования: {req.requirement_type.value}\n"
+    )
+    if type_hint:
+        user += f"Подсказка по типу требования: {type_hint}\n"
+    user += (
+        f"\n=== ТРЕБОВАНИЕ (из ТЗ) ===\n{req.text}\n\n"
         f"=== ФРАГМЕНТ ({unit.target_doc_role.upper()}) ===\n{unit.text}\n\n"
         "Оцени покрытие и верни JSON."
     )
     return system, user
+
+
+# Short Russian hints by requirement type. Each line tells the judge
+# what aspect the requirement is fundamentally about, so that
+# superficial token overlap (e.g. "не должно превышать" appearing in
+# both PERFORMANCE and RELIABILITY) does not mislead the verdict.
+_TYPE_HINTS: dict[str, str] = {
+    "performance": (
+        "это требование к ПРОИЗВОДИТЕЛЬНОСТИ (время отклика, throughput). "
+        "Покрытие = методика измерения с указанием порога. "
+        "Не путай с надёжностью / временем восстановления."
+    ),
+    "reliability": (
+        "это требование к НАДЁЖНОСТИ (поведение при ошибках/отказах). "
+        "Покрытие = тесты ошибок и восстановления. Не путай с performance."
+    ),
+    "security": (
+        "это требование к БЕЗОПАСНОСТИ (доступ, инъекции, авторизация). "
+        "Обычная обработка ошибок ≠ покрытие защиты от инъекций."
+    ),
+    "functional": (
+        "это ФУНКЦИОНАЛЬНОЕ требование. Покрытие в ПМИ = тест-кейс; "
+        "в ПЗ = описание реализации/сценарий."
+    ),
+    "interface": (
+        "это требование к ИНТЕРФЕЙСУ (UI/UX, макеты). Если требование "
+        "называет конкретный инструмент (Figma) — он должен явно "
+        "встречаться в покрытии, иначе PARTIAL."
+    ),
+    "data_io": (
+        "это требование к ВВОДУ/ВЫВОДУ (REST/JSON/форматы). Покрытие в "
+        "ПЗ = описание API, в ПМИ = тесты ввода/вывода."
+    ),
+    "architecture_implementation": (
+        "это АРХИТЕКТУРНОЕ требование (стек, технологии). Покрытие "
+        "ищется в ПЗ; ПМИ обычно auxiliary."
+    ),
+    "documentation_requirement": (
+        "это требование к составу/оформлению ДОКУМЕНТАЦИИ. Не считай "
+        "покрытием функциональные тесты."
+    ),
+    "delivery_requirement": (
+        "это требование к СДАЧЕ материалов (LMS/Антиплагиат/подписи). "
+        "Это вне C-quality coverage — ставь IRRELEVANT."
+    ),
+    "process_requirement": (
+        "это ПРОЦЕССНОЕ требование (стадии и этапы). Это вне coverage."
+    ),
+    "environment_requirement": (
+        "это требование к СРЕДЕ испытаний (ОС, браузер, оборудование). "
+        "Не путай с функциональными требованиями."
+    ),
+    "economic_or_need": (
+        "это ТЕХНИКО-ЭКОНОМИЧЕСКОЕ обоснование. Покрытие — в "
+        "аналитических разделах ПЗ. В ПМИ — IRRELEVANT."
+    ),
+}

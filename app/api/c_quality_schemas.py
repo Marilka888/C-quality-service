@@ -6,9 +6,33 @@ required; any extra fields from prepare-service pass through as metadata.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+# ---------------------------------------------------------------------------
+# Document roles (B3): strictly enumerated at the API boundary so that any
+# unknown role from a misconfigured caller produces a clean 422 instead of
+# being silently ignored downstream. Internal code paths additionally treat
+# any unrecognised string as "unknown" with a warning, but that fallback
+# never fires when callers go through the FastAPI request schema below.
+# ---------------------------------------------------------------------------
+
+DocRole = Literal["tz", "pmi", "pz", "unknown"]
+ALLOWED_DOC_ROLES: tuple[str, ...] = ("tz", "pmi", "pz", "unknown")
+
+
+def _normalize_role(value: Any) -> Any:
+    """Lowercase / strip incoming role strings before Literal validation.
+
+    Pydantic Literal is case-sensitive, so callers that historically sent
+    "TZ" or " pmi " would otherwise be rejected. Lowercasing is a small
+    backward-compat concession; the allow-list itself is still strict.
+    """
+    if isinstance(value, str):
+        return value.strip().lower()
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -42,18 +66,28 @@ class RequirementCandidateArtifact(BaseModel):
 class PreparedArtifact(BaseModel):
     document_id: str
     package_id: Optional[str] = None
-    doc_role: str                        # "tz" | "pmi" | "pz" | …
+    doc_role: DocRole                    # B3: strict enum, was free-form str
     sections: List[SectionArtifact] = Field(default_factory=list)
     fragments: List[FragmentArtifact] = Field(default_factory=list)
     requirement_candidates: Optional[List[RequirementCandidateArtifact]] = None
     # TODO: use sentences[] for finer granularity when prepare-service exposes them
     sentences: Optional[List[Dict[str, Any]]] = None
 
+    @field_validator("doc_role", mode="before")
+    @classmethod
+    def _normalize_doc_role(cls, v: Any) -> Any:
+        return _normalize_role(v)
+
 
 class DocumentInput(BaseModel):
     document_id: str
-    doc_role: str
+    doc_role: DocRole                    # B3: strict enum, was free-form str
     prepared_artifact: PreparedArtifact
+
+    @field_validator("doc_role", mode="before")
+    @classmethod
+    def _normalize_doc_role(cls, v: Any) -> Any:
+        return _normalize_role(v)
 
 
 # ---------------------------------------------------------------------------
@@ -73,10 +107,24 @@ class CoverageOptions(BaseModel):
 class CoverageAnalysisRequest(BaseModel):
     job_id: Optional[str] = None
     package_id: str
-    source_doc_role: str = "tz"
-    target_doc_roles: List[str] = Field(default_factory=lambda: ["pmi", "pz"])
+    # B3: strict enum on source/target roles too. Both go through the same
+    # lowercase-trim normalisation as DocumentInput.doc_role.
+    source_doc_role: DocRole = "tz"
+    target_doc_roles: List[DocRole] = Field(default_factory=lambda: ["pmi", "pz"])
     documents: List[DocumentInput]
     options: CoverageOptions = Field(default_factory=CoverageOptions)
+
+    @field_validator("source_doc_role", mode="before")
+    @classmethod
+    def _normalize_source(cls, v: Any) -> Any:
+        return _normalize_role(v)
+
+    @field_validator("target_doc_roles", mode="before")
+    @classmethod
+    def _normalize_targets(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            return [_normalize_role(x) for x in v]
+        return v
 
 
 class CoverageAnalysisResponse(BaseModel):

@@ -1,0 +1,3 @@
+# PR-J: per-model partial result caches written by calibrate_multi_model.py.
+# Re-runs reuse them automatically; never check in (large, run-specific).
+scripts/_partial_*.json
