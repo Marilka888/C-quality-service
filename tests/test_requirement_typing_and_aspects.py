@@ -42,6 +42,13 @@ from app.domain.c_quality_models import (
     ("Система не должна аварийно завершаться при возникновении ошибки.", RequirementType.RELIABILITY),
     ("Исходные коды должны быть написаны на TypeScript с использованием Angular.",
      RequirementType.ARCHITECTURE_IMPLEMENTATION),
+    # PR-K follow-up: extended tech-stack regex (Python / FastAPI / backend / etc).
+    ("Backend-часть должна быть реализована на Python с использованием FastAPI.",
+     RequirementType.ARCHITECTURE_IMPLEMENTATION),
+    ("Серверная часть приложения построена на Go с фреймворком Gin.",
+     RequirementType.ARCHITECTURE_IMPLEMENTATION),
+    ("Развёртывание выполняется через Docker Compose и Kubernetes.",
+     RequirementType.ARCHITECTURE_IMPLEMENTATION),
     ("Документация должна быть загружена в SmartLMS за три дня до защиты.",
      RequirementType.DELIVERY_REQUIREMENT),
     ("Все входные данные отправляются через REST API в формате JSON.",

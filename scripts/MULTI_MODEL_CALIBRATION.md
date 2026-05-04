@@ -154,6 +154,26 @@ its partial JSON:
 Remove-Item scripts\_partial_cerebras-llama-3.1-8b.json
 ```
 
+## Reducing API calls
+
+The pipeline issues `len(requirements) × len(target_roles) × top_k` LLM
+calls. Free-tier providers (Groq 100K TPD, Cerebras throttled flagship
+models) often can't absorb the full 540-call package. Three knobs to
+trim, ordered by impact:
+
+* `MULTI_MODEL_TOP_K=1` (default) — one LLM call per pair. Setting
+  this to `5` quintuples calls; rarely changes verdicts because rank-1
+  retrieval is usually the same fragment as the eventual winner.
+* `MULTI_MODEL_TARGET_ROLES=pmi` — only TZ→PMI, skip TZ→PZ. Halves
+  calls and keeps the most interesting axis for thesis purposes
+  (PMI carries the test-coverage signal). Default `pmi,pz`.
+* For very tight budgets — manually trim the source TZ to fewer
+  requirements before calling prepare-service.
+
+Combined `top_k=1 + pmi-only` brings the package down from **540 →
+54 calls** per model. That fits comfortably in any free tier and lets
+you run all five models in a single afternoon.
+
 ## Subsetting the model list
 
 Two env knobs let you scope the run without editing the script:

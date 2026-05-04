@@ -137,22 +137,45 @@ def _to_prepared_artifact(role: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_request(parsed: Dict[str, Dict[str, Any]], model_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    # Optional env knobs to scope a single calibration run:
+    #   MULTI_MODEL_TOP_K           — top_k for retrieval shortlist
+    #                                 (default 1 — one LLM call per pair).
+    #                                 docback prod also uses 1; setting to
+    #                                 5 multiplies call count by 5 and rarely
+    #                                 changes verdicts. Raise only when you
+    #                                 specifically want to study how rank-2
+    #                                 evidence differs from rank-1.
+    #   MULTI_MODEL_TARGET_ROLES    — comma-separated subset of target roles.
+    #                                 Default "pmi,pz". "pmi" alone halves
+    #                                 the call count and keeps the most
+    #                                 interesting axis (test-coverage).
+    top_k = int(os.environ.get("MULTI_MODEL_TOP_K", "1"))
+    roles_env = os.environ.get("MULTI_MODEL_TARGET_ROLES", "pmi,pz")
+    target_roles = [r.strip().lower() for r in roles_env.split(",") if r.strip()]
+
+    documents = []
+    for r in ("tz", *target_roles):
+        if r not in parsed:
+            continue
+        documents.append({
+            "document_id": parsed[r]["document_id"],
+            "doc_role": r,
+            "prepared_artifact": _to_prepared_artifact(r, parsed[r]),
+        })
+
     return {
         "job_id": f"calibrate-{model_cfg['label']}",
         "package_id": "cherevuyhho",
         "source_doc_role": "tz",
-        "target_doc_roles": ["pmi", "pz"],
-        "documents": [
-            {"document_id": parsed[r]["document_id"], "doc_role": r,
-             "prepared_artifact": _to_prepared_artifact(r, parsed[r])}
-            for r in ("tz", "pmi", "pz") if r in parsed
-        ],
+        "target_doc_roles": target_roles,
+        "documents": documents,
         "options": {
             "enable_llm_judge": True,
             "judge_backend": model_cfg["backend"],
             "llm_model_name": model_cfg["model"],
             "min_retrieval_score": 0.0,
             "evidence_floor": 0.5,
+            "top_k": top_k,
         },
     }
 

@@ -100,7 +100,17 @@ class CoverageRetrievalConfig(BaseModel):
     # the pipeline marks the result `low_confidence=True` regardless of what
     # the LLM judge said — protects against CONFLICT/COVERED produced from
     # weak retrieval (audit-time symptom: CONFLICT with max evidence score 0.37).
-    evidence_floor: float = Field(default=0.5, ge=0.0, le=1.0)
+    #
+    # PR-K P0: lowered default from 0.5 to 0.30. Real packages with BoW +
+    # qwen2.5:3b consistently produce max retrieval 0.40-0.49 for valid
+    # coverage (Polyakov 0.20::sent1 max=0.4367 was a perfect coverage that
+    # the old floor=0.5 demoted to MISSING). 0.30 still rejects truly weak
+    # retrieval (≤0.30 means almost no shared signal) while admitting
+    # legitimate semantic-only matches. With the split low_confidence /
+    # grounding_failed semantics in PairJudgment, below-floor judgments
+    # no longer auto-demote COVERED — they only set low_confidence on the
+    # row for UI dimming.
+    evidence_floor: float = Field(default=0.30, ge=0.0, le=1.0)
     lexical_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     semantic_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     constraint_weight: float = Field(default=0.20, ge=0.0, le=1.0)
@@ -111,6 +121,50 @@ class CoverageRetrievalConfig(BaseModel):
     # best quality/time trade-off on our data; too small reduces the
     # rerank benefit, too large slows the pipeline without F1 gains.
     top_k_before_rerank: int = Field(default=20, ge=5, le=100)
+    # ── PR-K: AdaptiveCandidateSelector ─────────────────────────────
+    # Initial shortlist size BEFORE the adaptive selector trims to a
+    # judge-ready k. Decoupled from `top_k` so we can score generously,
+    # bin into evidence_strength, and let the selector pick how many
+    # to actually send to the LLM. 10-20 is a good range.
+    initial_top_n: int = Field(default=10, ge=1, le=50)
+    # EvidenceStrength bin thresholds on retrieval_score (0..1).
+    # See EvidenceStrength docstring.
+    evidence_strength_strong_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
+    evidence_strength_medium_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
+    evidence_strength_weak_threshold: float = Field(default=0.12, ge=0.0, le=1.0)
+    # Score-margin gap that lets the selector trust top-1 alone when
+    # top-1 is STRONG. Below this the pipeline broadens to top-3.
+    selector_strong_margin: float = Field(default=0.08, ge=0.0, le=1.0)
+    # Cap selected_k regardless of available candidates.
+    selector_max_k: int = Field(default=5, ge=1, le=20)
+
+
+class CoverageAggregatorConfig(BaseModel):
+    """Confidence / evidence-strength thresholds the
+    EvidenceBasedCoverageAggregator uses to decide a verdict."""
+    model_config = ConfigDict(protected_namespaces=())
+
+    # COVERED accepted only when this confidence is reached AND
+    # grounding_passed AND evidence is at least medium_threshold.
+    covered_confidence_threshold: float = Field(default=0.65, ge=0.0, le=1.0)
+    # CONFLICT accepted only when this confidence is reached AND
+    # grounding_passed AND retrieval_score >= medium_threshold.
+    conflict_confidence_threshold: float = Field(default=0.70, ge=0.0, le=1.0)
+    # Aggregator-side "medium" floor on retrieval_score for confident
+    # COVERED / CONFLICT. Distinct from the retrieval-side
+    # evidence_floor (which only stamps low_confidence).
+    medium_retrieval_threshold: float = Field(default=0.30, ge=0.0, le=1.0)
+
+
+class CoverageDebugConfig(BaseModel):
+    """Controls the size and verbosity of evidence_trace on each
+    RequirementCoverageResult. Disabled by default to keep the wire
+    payload small for the UI and the orchestrator's report DTO."""
+    model_config = ConfigDict(protected_namespaces=())
+
+    enabled: bool = False
+    max_candidates: int = Field(default=5, ge=1, le=50)
+    include_discarded: bool = False
 
 
 class CoverageLLMConfig(BaseModel):
@@ -161,6 +215,18 @@ class CoverageRerankerConfig(BaseModel):
     model_name: str = "BAAI/bge-reranker-v2-m3"
     max_len: int = Field(default=512, ge=64, le=1024)
     batch_size: int = Field(default=16, ge=1, le=128)
+    # PR-K: when reranker is enabled, choose between unconditional and
+    # signal-driven application:
+    #   "always"      — rerank every shortlist (legacy behaviour).
+    #   "conditional" — rerank only when first-stage signals are weak
+    #                   (top1 < strong threshold, top1-top2 < margin,
+    #                    requirement critical, paraphrase indicated by
+    #                    high semantic but low lexical, etc.).
+    # If reranker.enabled is False the mode is irrelevant.
+    mode: str = "conditional"
+    # Conditional-mode thresholds.
+    conditional_top1_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
+    conditional_min_margin: float = Field(default=0.08, ge=0.0, le=1.0)
 
 
 class RequirementModelConfig(BaseModel):
@@ -188,6 +254,9 @@ class CoverageConfig(BaseModel):
     requirement_model: RequirementModelConfig = Field(
         default_factory=RequirementModelConfig
     )
+    # PR-K: aggregator and explainability tuning.
+    aggregator: CoverageAggregatorConfig = Field(default_factory=CoverageAggregatorConfig)
+    debug: CoverageDebugConfig = Field(default_factory=CoverageDebugConfig)
     enable_rule_verification: bool = True
     # "auto"     — candidates → fragments → sections, first non-empty wins
     # "sections" — only trust sections hierarchy; re-segment text inside each
@@ -238,4 +307,25 @@ class CoverageConfig(BaseModel):
             config.reranker.enabled = bool(options["enable_reranker"])
         if "top_k_before_rerank" in options:
             config.retrieval.top_k_before_rerank = int(options["top_k_before_rerank"])
+        # PR-K options.
+        if "initial_top_n" in options:
+            config.retrieval.initial_top_n = int(options["initial_top_n"])
+        if "reranker_mode" in options:
+            mode = str(options["reranker_mode"]).lower()
+            if mode in {"always", "conditional"}:
+                config.reranker.mode = mode
+        if "debug" in options:
+            config.debug.enabled = bool(options["debug"])
+        if "debug_max_candidates" in options:
+            config.debug.max_candidates = int(options["debug_max_candidates"])
+        if "debug_include_discarded" in options:
+            config.debug.include_discarded = bool(options["debug_include_discarded"])
+        if "covered_confidence_threshold" in options:
+            config.aggregator.covered_confidence_threshold = float(
+                options["covered_confidence_threshold"]
+            )
+        if "conflict_confidence_threshold" in options:
+            config.aggregator.conflict_confidence_threshold = float(
+                options["conflict_confidence_threshold"]
+            )
         return config

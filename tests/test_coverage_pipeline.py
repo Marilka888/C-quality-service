@@ -322,21 +322,34 @@ class TestCoverageAggregator:
     def setup_method(self):
         self.agg = CoverageAggregator()
 
-    def _make_judgment(self, req, unit, label: LLMLabel) -> PairJudgment:
+    def _make_judgment(
+        self, req, unit, label: LLMLabel, conf: float = 0.85,
+        verifier_actions=None,
+    ) -> PairJudgment:
+        # PR-K: the EvidenceBasedCoverageAggregator gates COVERED/CONFLICT
+        # on llm_confidence + verifier_actions, so unit tests must populate
+        # both. Default conf=0.85 puts every fixture above the COVERED
+        # (0.65) and CONFLICT (0.70) thresholds. CONFLICT fixtures should
+        # also pass `verifier_actions=["conflict_confirmed_*"]`.
         return PairJudgment(
             req_id=req.req_id,
             unit_id=unit.unit_id,
             target_document_id=unit.target_document_id,
             llm_label=label,
             rule_adjusted_label=label,
+            llm_confidence=conf,
+            verifier_actions=list(verifier_actions or []),
         )
 
     def test_conflict_wins_over_covered(self):
         req = _make_req("Хранить журнал.")
         unit_conflict = _make_unit("Хранить 30 суток.")
         unit_covered = _make_unit("Хранить 90 суток.")
-        j1 = self._make_judgment(req, unit_conflict, LLMLabel.CONFLICT)
-        j2 = self._make_judgment(req, unit_covered, LLMLabel.COVERED)
+        j1 = self._make_judgment(
+            req, unit_conflict, LLMLabel.CONFLICT, conf=0.85,
+            verifier_actions=["conflict_confirmed_numeric"],
+        )
+        j2 = self._make_judgment(req, unit_covered, LLMLabel.COVERED, conf=0.80)
         result = self.agg.aggregate(
             req, [j1, j2],
             {unit_conflict.unit_id: _make_candidate(req, unit_conflict),
@@ -350,8 +363,8 @@ class TestCoverageAggregator:
         req = _make_req("Хранить журнал.")
         unit_partial = _make_unit("Проверяется хранение журнала.")
         unit_covered = _make_unit("Хранить журнал 90 суток.")
-        j1 = self._make_judgment(req, unit_partial, LLMLabel.PARTIAL)
-        j2 = self._make_judgment(req, unit_covered, LLMLabel.COVERED)
+        j1 = self._make_judgment(req, unit_partial, LLMLabel.PARTIAL, conf=0.6)
+        j2 = self._make_judgment(req, unit_covered, LLMLabel.COVERED, conf=0.85)
         result = self.agg.aggregate(
             req, [j1, j2],
             {u.unit_id: _make_candidate(req, u) for u in [unit_partial, unit_covered]},
@@ -414,6 +427,7 @@ class TestCoverageAggregator:
             req_id=req.req_id, unit_id=unit_conflict.unit_id,
             target_document_id="doc-pmi", llm_label=LLMLabel.CONFLICT,
             rule_adjusted_label=LLMLabel.CONFLICT, llm_confidence=0.85,
+            verifier_actions=["conflict_confirmed_numeric"],
         )
         result = self.agg.aggregate(
             req, [j_cov, j_con],

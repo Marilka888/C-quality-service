@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from typing import List
 
 import requests
@@ -17,12 +18,49 @@ from app.domain.c_quality_enums import LLMLabel
 from app.domain.c_quality_models import CoverageUnit, PairJudgment, RequirementUnit
 from app.infrastructure.llm.coverage_judge import CoverageJudge
 from app.infrastructure.llm.disabled_coverage_judge import DisabledCoverageJudge
-from app.infrastructure.llm.prompts import build_judge_prompt
+from app.infrastructure.llm.judgment_cache import JudgmentCache
+from app.infrastructure.llm.prompts import (
+    PROMPT_VERSION,
+    build_judge_prompt,
+    build_judge_prompt_compact,
+    should_use_compact_prompt,
+)
 
 logger = get_logger(__name__)
 
 _VALID_LABELS = {l.value for l in LLMLabel}
 _FALLBACK = DisabledCoverageJudge()
+
+# Retry parameters for transient JSON-parse failures (empty / garbled response
+# from small models like qwen2.5:3b). Only parse failures are retried —
+# timeouts and connection errors are NOT retried because they indicate a
+# systemic issue (Ollama overloaded / VRAM exhausted) where a fast retry
+# would just pile onto the problem.
+#
+# CQUALITY_JUDGE_RETRIES: total attempts (default 2 = 1 original + 1 retry).
+# Hard max 5 to avoid hanging the pipeline. Set to 1 to disable retries.
+_RETRY_BACKOFF_SECS: float = 1.0
+_RETRY_MAX_CAP: int = 5
+
+
+def _resolve_max_attempts() -> int:
+    """Read CQUALITY_JUDGE_RETRIES, clamp to [1, cap]. Default 2."""
+    raw = os.environ.get("CQUALITY_JUDGE_RETRIES", "2").strip()
+    try:
+        n = int(raw)
+    except ValueError:
+        logger.warning(
+            "CQUALITY_JUDGE_RETRIES=%r is not an int; using 2", raw,
+        )
+        return 2
+    if n < 1:
+        return 1
+    if n > _RETRY_MAX_CAP:
+        logger.warning(
+            "CQUALITY_JUDGE_RETRIES=%d > cap %d; clamping", n, _RETRY_MAX_CAP,
+        )
+        return _RETRY_MAX_CAP
+    return n
 
 
 def _extract_json(text: str) -> dict:
@@ -124,6 +162,13 @@ def _parse_response(
         conflict_aspects=conflict,
         cited_phrases=cited,
         low_confidence=low_confidence,
+        # PR-K P0: when the response-parser demoted the verdict to IRRELEVANT
+        # because cited_phrases weren't substring-matched, this is a true
+        # grounding failure (LLM hallucinated citations). The aggregator
+        # treats this as "ungrounded" and rejects COVERED. The pipeline-side
+        # below-evidence-floor flag (set in run_coverage_analysis) should
+        # NOT set this — that's a retrieval-quality issue, not a grounding bug.
+        grounding_failed=low_confidence,
         explanation=(
             "[ungrounded] LLM verdict not supported by any phrase substring "
             "of the evidence; demoted to IRRELEVANT. Original explanation: "
@@ -152,6 +197,21 @@ class OllamaCoverageJudge(CoverageJudge):
         # consumes these via `consume_unavailability()` after judging.
         self.unavailable_count: int = 0
         self.last_error: str = ""
+        # PR-K post-fix: optional persistent judgment cache. Enabled by
+        # CQUALITY_JUDGE_CACHE_DIR env var. None when disabled — the
+        # judge then behaves exactly as before. The cache key includes
+        # the model + prompt version + backend, so changing any of
+        # those auto-invalidates entries.
+        self._cache = JudgmentCache.from_env(
+            model=self._model,
+            prompt_version=PROMPT_VERSION,
+            backend="ollama",
+        )
+        if self._cache is not None:
+            logger.info(
+                "OllamaCoverageJudge: judgment cache enabled at %s",
+                self._cache.stats().get("db_path"),
+            )
 
     def _record_unavailable(self, reason: str) -> None:
         self.unavailable_count += 1
@@ -172,61 +232,150 @@ class OllamaCoverageJudge(CoverageJudge):
         return count, err
 
     def judge(self, req: RequirementUnit, unit: CoverageUnit) -> PairJudgment:
-        system_prompt, user_prompt = build_judge_prompt(req, unit)
+        # PR-K post-fix: cache lookup. Returned judgment has its
+        # req_id/unit_id/target_document_id rebound to the live pair
+        # by the cache itself, so the caller doesn't need to handle
+        # cross-package id collisions.
+        if self._cache is not None:
+            cached = self._cache.get(req, unit)
+            if cached is not None:
+                logger.debug(
+                    "Ollama judge: req=%s unit=%s → CACHE HIT (%s)",
+                    req.req_id[:8], unit.unit_id[:8], cached.llm_label.value,
+                )
+                return cached
+
+        # PR-K P1: small models (qwen2.5:3b etc) get a compact prompt that
+        # avoids prepended metadata fields (the smoke-time symptom: 3B
+        # echoed prompt-v5 field labels back into JSON, breaking the parse).
+        if should_use_compact_prompt(self._model):
+            system_prompt, user_prompt = build_judge_prompt_compact(req, unit)
+        else:
+            system_prompt, user_prompt = build_judge_prompt(req, unit)
         full_prompt = f"[SYSTEM]\n{system_prompt}\n\n[USER]\n{user_prompt}"
 
-        try:
-            resp = requests.post(
-                self._url,
-                json={
-                    "model": self._model,
-                    "prompt": full_prompt,
-                    "stream": False,
-                    # keep_alive prevents Ollama from unloading the model
-                    # between pair calls (model reload = +3-5s per call).
-                    "keep_alive": "30m",
-                    "options": {
-                        "temperature": 0.1,
-                        # Cap context to 2k tokens — judge prompts are short,
-                        # default 4k wastes prompt_eval time.
-                        "num_ctx": 2048,
-                        # PR-F BUG-3-followup: 256 was too tight for the v3
-                        # prompt that asks for cited_phrases. On real packages
-                        # with multi-phrase quotes the JSON tail got truncated
-                        # mid-array (saw `\"cited_phrases\": [\\n  \"...`)
-                        # and the parser fell back to DisabledCoverageJudge.
-                        # 512 absorbs the worst observed cases (≈430 tokens
-                        # for 5 long quotes in a CONFLICT verdict) without
-                        # noticeably slowing throughput.
-                        "num_predict": 512,
+        # ── Retry loop ────────────────────────────────────────────────────
+        # Only parse failures (empty / garbled JSON) are retried — they are
+        # transient (3B models occasionally produce malformed output on the
+        # first attempt but succeed on the second). Hard errors (timeout,
+        # connection refused, HTTP error) break out immediately: retrying
+        # into an overloaded Ollama instance makes things worse, not better.
+        max_attempts = _resolve_max_attempts()
+        last_parse_error: str = ""
+
+        for attempt in range(max_attempts):
+            if attempt > 0:
+                delay = _RETRY_BACKOFF_SECS * (2 ** (attempt - 1))  # 1 s, 2 s, …
+                logger.info(
+                    "Ollama judge: parse retry %d/%d for req=%s unit=%s "
+                    "(delay=%.1fs, reason: %s)",
+                    attempt, max_attempts - 1,
+                    req.req_id[:8], unit.unit_id[:8], delay, last_parse_error,
+                )
+                time.sleep(delay)
+
+            try:
+                resp = requests.post(
+                    self._url,
+                    json={
+                        "model": self._model,
+                        "prompt": full_prompt,
+                        "stream": False,
+                        # keep_alive prevents Ollama from unloading the model
+                        # between pair calls (model reload = +3-5s per call).
+                        "keep_alive": "30m",
+                        "options": {
+                            "temperature": 0.1,
+                            # Cap context to 2k tokens — judge prompts are
+                            # short, default 4k wastes prompt_eval time.
+                            "num_ctx": 2048,
+                            # PR-F BUG-3-followup: 256 was too tight for v3
+                            # prompt (cited_phrases JSON tail got truncated).
+                            # 512 absorbs ≈430-token worst case without
+                            # noticeably slowing throughput.
+                            "num_predict": 512,
+                        },
                     },
-                },
-                timeout=self._timeout,
-            )
-            resp.raise_for_status()
-            raw_text = (resp.json().get("response") or "").strip()
-            if not raw_text:
-                raise ValueError("Empty Ollama response")
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                raw_text = (resp.json().get("response") or "").strip()
+                if not raw_text:
+                    last_parse_error = "empty response"
+                    logger.debug(
+                        "Ollama judge: empty response (attempt %d) req=%s unit=%s",
+                        attempt + 1, req.req_id[:8], unit.unit_id[:8],
+                    )
+                    continue  # retry
 
-            parsed = _extract_json(raw_text)
-            if not parsed:
-                raise ValueError(f"Could not parse JSON from: {raw_text[:200]}")
+                parsed = _extract_json(raw_text)
+                if not parsed:
+                    last_parse_error = f"JSON parse failed: {raw_text[:120]!r}"
+                    logger.debug(
+                        "Ollama judge: JSON parse failed (attempt %d) req=%s unit=%s",
+                        attempt + 1, req.req_id[:8], unit.unit_id[:8],
+                    )
+                    continue  # retry
 
-            judgment = _parse_response(
-                parsed, req.req_id, unit.unit_id, unit.target_document_id,
-                evidence_text=unit.text,
-            )
-            logger.debug("Ollama judge: req=%s unit=%s → %s", req.req_id[:8], unit.unit_id[:8], judgment.llm_label)
-            return judgment
+                # ── Success path ─────────────────────────────────────────
+                judgment = _parse_response(
+                    parsed, req.req_id, unit.unit_id, unit.target_document_id,
+                    evidence_text=unit.text,
+                )
+                logger.debug(
+                    "Ollama judge: req=%s unit=%s → %s (attempt %d)",
+                    req.req_id[:8], unit.unit_id[:8], judgment.llm_label, attempt + 1,
+                )
+                # Persist on the success path only. Failures are deliberately
+                # NOT cached — we want a real LLM response on the next attempt.
+                if self._cache is not None:
+                    self._cache.put(req, unit, judgment)
+                return judgment
 
-        except requests.Timeout:
-            msg = f"timeout after {self._timeout}s"
-            logger.warning("Ollama timed out for req=%s unit=%s (%s)",
-                           req.req_id[:8], unit.unit_id[:8], msg)
-            self._record_unavailable(msg)
-        except Exception as exc:
-            msg = f"{type(exc).__name__}: {exc}"
-            logger.warning("Ollama judge error: %s", msg)
-            self._record_unavailable(msg)
+            except requests.Timeout:
+                msg = f"timeout after {self._timeout}s"
+                logger.warning(
+                    "Ollama timed out: req=%s unit=%s (%s)",
+                    req.req_id[:8], unit.unit_id[:8], msg,
+                )
+                self._record_unavailable(msg)
+                return _FALLBACK.judge(req, unit)  # no retry
 
+            except requests.ConnectionError as exc:
+                msg = f"ConnectionError: {exc}"
+                logger.warning(
+                    "Ollama connection error: req=%s unit=%s: %s",
+                    req.req_id[:8], unit.unit_id[:8], msg,
+                )
+                self._record_unavailable(msg)
+                return _FALLBACK.judge(req, unit)  # no retry
+
+            except requests.HTTPError as exc:
+                status = exc.response.status_code if exc.response is not None else "?"
+                msg = f"HTTP {status}: {exc}"
+                logger.warning(
+                    "Ollama HTTP error: req=%s unit=%s: %s",
+                    req.req_id[:8], unit.unit_id[:8], msg,
+                )
+                self._record_unavailable(msg)
+                return _FALLBACK.judge(req, unit)  # no retry
+
+            except Exception as exc:
+                msg = f"{type(exc).__name__}: {exc}"
+                logger.warning(
+                    "Ollama judge unexpected error: req=%s unit=%s: %s",
+                    req.req_id[:8], unit.unit_id[:8], msg,
+                )
+                self._record_unavailable(msg)
+                return _FALLBACK.judge(req, unit)  # no retry
+
+        # All attempts exhausted by parse failures — fall back gracefully.
+        msg = (
+            f"JSON parse failed after {max_attempts} attempt(s): {last_parse_error}"
+        )
+        logger.warning(
+            "Ollama judge parse exhausted: req=%s unit=%s: %s",
+            req.req_id[:8], unit.unit_id[:8], msg,
+        )
+        self._record_unavailable(msg)
         return _FALLBACK.judge(req, unit)

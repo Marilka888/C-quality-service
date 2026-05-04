@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field
 
 from app.domain.c_quality_enums import (
     Applicability,
+    CoverageRequirementLevel,
     CoverageStatus,
     CoverageUnitType,
+    EvidenceStrength,
     LLMLabel,
     Modality,
     RequirementType,
@@ -74,6 +76,25 @@ class RetrievedCandidate(BaseModel):
     constraint_overlap_score: float = 0.0
     section_prior_score: float = 0.0
     retrieval_score: float = 0.0
+    # ── PR-K explainability (additive) ──────────────────────────────
+    # Discrete bin of retrieval_score, see EvidenceStrength.
+    evidence_strength: EvidenceStrength = EvidenceStrength.NO_EVIDENCE
+    # Short human-readable reason for the score: which component drove
+    # the result. Filled by CandidateRetriever.
+    score_reason: Optional[str] = None
+    # Did AdaptiveCandidateSelector send this candidate to the LLM?
+    selected_for_llm: bool = False
+    # Reranker telemetry. reranker_used==True means the cross-encoder
+    # was applied to this shortlist (per ConditionalReranker rules);
+    # reranker_score is the raw reranker output before re-sorting.
+    reranker_used: bool = False
+    reranker_score: Optional[float] = None
+    # Filled after the LLM judge runs (so a single CandidateEvidence
+    # carries the full retrieval-and-judging trace).
+    judge_label: Optional[str] = None
+    judge_confidence: Optional[float] = None
+    grounding_passed: Optional[bool] = None
+    verifier_actions: List[str] = Field(default_factory=list)
 
 
 class PairJudgment(BaseModel):
@@ -99,6 +120,25 @@ class PairJudgment(BaseModel):
     # to the RequirementCoverageResult so the orchestrator / UI can dim
     # the row instead of rendering it as an authoritative verdict.
     low_confidence: bool = False
+    # PR-K P0: separate "grounding failed" (cited_phrases don't substring-match
+    # evidence — LLM hallucination) from "retrieval below floor" (retrieval
+    # score < evidence_floor — retrieval-quality issue, not a grounding bug).
+    # The aggregator only treats `grounding_failed=True` as ungrounded; a
+    # below-floor judgment with proper citations still counts as grounded
+    # and can produce COVERED — just with low_confidence flag set on the row.
+    # Real-package symptom (Polyakov 0.20::sent1): "Время восстановления..."
+    # got conf=1.0, fully grounded, but retrieval=0.44 < floor=0.5 → old
+    # code marked low_confidence which the aggregator interpreted as
+    # "ungrounded" → MISSING_LOW_GROUNDING. Real verdict: COVERED.
+    grounding_failed: bool = False
+    # PR-K: deterministic verifier audit trail. Each entry is a short
+    # tag describing what the rule-based PairVerifier did with this
+    # judgment (e.g. "conflict_confirmed_numeric",
+    # "demote_covered_constraints_missing", "no_op_kept_label"). The
+    # aggregator inspects these tags to decide whether a CONFLICT
+    # verdict was actually confirmed by a deterministic rule (gate
+    # against LLM-only conflicts that retrieval-quality couldn't justify).
+    verifier_actions: List[str] = Field(default_factory=list)
 
 
 class EvidenceItem(BaseModel):
@@ -143,6 +183,38 @@ class RequirementCoverageResult(BaseModel):
     # from per-judgment explanations means the UI never has to guess
     # which evidence's judgment to render.
     rationale: Optional[str] = None
+    # ── PR-K aggregation diagnostics (additive) ─────────────────────
+    # Sub-status code that refines `status` for UI rendering and
+    # downstream rollups. Examples:
+    #   "MISSING_NO_EVIDENCE"     — retrieval found nothing strong
+    #                               enough to even ask the LLM.
+    #   "MISSING_LOW_GROUNDING"   — LLM said COVERED but cited phrases
+    #                               weren't substring-grounded.
+    #   "MISSING_LOW_CONFIDENCE"  — judge confidence below threshold.
+    #   "OPTIONAL_NOT_FOUND"      — REQUIRED-equivalent missing but
+    #                               applicability is OPTIONAL.
+    #   "COVERED"                 — clean grounded covered.
+    #   "PARTIAL"                 — partial aspects covered.
+    #   "CONFLICT_VERIFIED"       — explicit numeric/aspect contradiction.
+    # Old readers see the canonical CoverageStatus on the wire; new
+    # readers can use `status_subcode` to render finer-grained badges.
+    status_subcode: Optional[str] = None
+    # The unit that drove the final verdict (winning judgment).
+    winning_candidate_id: Optional[str] = None
+    # Final confidence for the row (post-aggregation), in [0, 1].
+    final_confidence: float = 0.0
+    # Plain-English aggregator reason. Filled even on COVERED ("strong
+    # evidence + grounded + LLM confident") so the UI can show a
+    # tooltip with the decision logic.
+    aggregation_reason: Optional[str] = None
+    # PR-K: tighter applicability signal — REQUIRED / OPTIONAL /
+    # NOT_APPLICABLE. Distinct from `applicability` (which is binary).
+    coverage_requirement_level: CoverageRequirementLevel = CoverageRequirementLevel.REQUIRED
+    # PR-K full evidence/retrieval/judge/verifier trace. Top-level
+    # presence is gated by CoverageConfig.debug.enabled — when
+    # disabled, this is None to keep the wire compact. UI uses this
+    # to render the "why" panel.
+    evidence_trace: Optional[Dict[str, Any]] = None
     # ── Type-aware refactor ─────────────────────────────────────────
     # Functional class of the requirement (FUNCTIONAL / SECURITY /
     # PERFORMANCE / DELIVERY_REQUIREMENT / …). Drives applicability

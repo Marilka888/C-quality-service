@@ -4,9 +4,17 @@ PROMPT_VERSION is embedded in each prompt for traceability.
 """
 from __future__ import annotations
 
+from app.application.use_cases.applicability import (
+    applicability_for,
+    coverage_requirement_level_for,
+)
+from app.domain.c_quality_enums import (
+    Applicability,
+    CoverageRequirementLevel,
+)
 from app.domain.c_quality_models import CoverageUnit, RequirementUnit
 
-PROMPT_VERSION = "v4"
+PROMPT_VERSION = "v5"
 
 _SYSTEM_PROMPT_V2 = """Ты эксперт по анализу программной и проектной документации по ГОСТ 19/34.
 Работаешь с пакетом документов: ТЗ (техническое задание, источник требований),
@@ -76,7 +84,17 @@ _SYSTEM_PROMPT = _SYSTEM_PROMPT_V2
 
 
 def build_judge_prompt(req: RequirementUnit, unit: CoverageUnit) -> tuple[str, str]:
-    """Return (system_prompt, user_prompt) for the given pair."""
+    """Return (system_prompt, user_prompt) for the given pair.
+
+    PR-K: the user prompt now states the requirement's
+    APPLICABLE / NOT_APPLICABLE / OUT_OF_SCOPE flag, the REQUIRED /
+    OPTIONAL coverage level, and any extracted numeric constraints.
+    Helps the LLM avoid two systematic mistakes:
+      * Treating an OUT_OF_SCOPE delivery requirement as functional;
+      * Marking COVERED on a numeric requirement when the fragment
+        carries no measurable threshold (it must be PARTIAL or
+        CONFLICT depending on direction).
+    """
     system = _SYSTEM_PROMPT
 
     # PR-G refactor: surface requirement_type explicitly + a one-liner
@@ -87,19 +105,170 @@ def build_judge_prompt(req: RequirementUnit, unit: CoverageUnit) -> tuple[str, s
     # fragment.
     type_hint = _TYPE_HINTS.get(req.requirement_type.value, "")
 
+    target_role = unit.target_doc_role
+    applicability = applicability_for(req.requirement_type, target_role)
+    cov_level = coverage_requirement_level_for(req.requirement_type, target_role)
+
     user = (
         f"[prompt_version={PROMPT_VERSION}]\n\n"
-        f"Тип документа-источника фрагмента: {unit.target_doc_role.upper()}\n"
+        f"Тип документа-источника фрагмента: {target_role.upper()}\n"
         f"Тип требования: {req.requirement_type.value}\n"
+        f"Применимость к этому документу: {applicability.value}\n"
+        f"Уровень покрытия: {cov_level.value}\n"
     )
     if type_hint:
         user += f"Подсказка по типу требования: {type_hint}\n"
+    if applicability != Applicability.APPLICABLE:
+        user += (
+            "ВНИМАНИЕ: для данного типа требования покрытие в этом документе "
+            "не проверяется (NOT_APPLICABLE / OUT_OF_SCOPE). "
+            "Если фрагмент не относится к делу — ставь IRRELEVANT.\n"
+        )
+    if cov_level == CoverageRequirementLevel.OPTIONAL:
+        user += (
+            "Это OPTIONAL-требование: отсутствие покрытия допустимо, не "
+            "выдумывай покрытие в спорных случаях — лучше IRRELEVANT.\n"
+        )
+
+    # Surface numeric constraints explicitly so the judge cannot ignore
+    # them when deciding COVERED vs PARTIAL vs CONFLICT.
+    if req.constraints:
+        constraint_lines = []
+        for c in req.constraints:
+            unit_str = c.unit or ""
+            constraint_lines.append(
+                f"  • {c.kind}: {c.operator} {c.value} {unit_str}".rstrip()
+            )
+        user += (
+            "\nЧисловые ограничения требования (должны быть подтверждены "
+            "во фрагменте для COVERED):\n"
+            + "\n".join(constraint_lines)
+            + "\n"
+        )
+
     user += (
         f"\n=== ТРЕБОВАНИЕ (из ТЗ) ===\n{req.text}\n\n"
-        f"=== ФРАГМЕНТ ({unit.target_doc_role.upper()}) ===\n{unit.text}\n\n"
+        f"=== ФРАГМЕНТ ({target_role.upper()}) ===\n{unit.text}\n\n"
         "Оцени покрытие и верни JSON."
     )
     return system, user
+
+
+# ── Compact prompt for small models (PR-K P1) ────────────────────────────
+#
+# Smoke-time symptom (Polyakov package, qwen2.5:3b):
+#   3 pairs fell back to DisabledCoverageJudge with JSON parse errors.
+#   The model echoed the prompt-v5 metadata field names back verbatim:
+#     {"prompt_version": "v5",
+#      "type_of_source_document_fragment": "PZ",
+#      "type_of_requirement": "documentation_requirement",
+#      "applicability_of_the_requirement_to_this_document": "APPLICABLE",
+#      "le[truncated]
+#   i.e. instead of returning a verdict it copied the field labels.
+#
+# Root cause: prompt v5 prepends 4-7 metadata lines before the actual
+# requirement text. A 3B-parameter model can confuse those lines with
+# the schema it should produce. Smaller models do better with
+# requirement+fragment first, minimal type-hint, no separate metadata
+# section.
+#
+# Compact-prompt strategy:
+#   * single short system prompt focused on the 4 labels and the
+#     grounding contract;
+#   * user prompt = TZ text + fragment text + at most one type-hint line;
+#   * NO labelled metadata fields ("Применимость:", "Уровень покрытия:")
+#     — they confuse small LMs;
+#   * numeric constraints surfaced as a one-liner only.
+
+_SYSTEM_PROMPT_COMPACT = """Ты эксперт по проверке соответствия требований ТЗ и целевых документов (ПМИ — методики проверки, ПЗ — описания реализации).
+
+Возможные label:
+  COVERED    — требование полностью покрыто фрагментом
+  PARTIAL    — частичное соответствие, часть аспектов не отражена
+  CONFLICT   — фрагмент явно противоречит требованию (другое числовое значение, инвертированная модальность)
+  IRRELEVANT — фрагмент о другом
+
+Верни ТОЛЬКО JSON без преамбулы:
+{
+  "label": "<COVERED|PARTIAL|CONFLICT|IRRELEVANT>",
+  "confidence": <0.0-1.0>,
+  "matched_aspects": ["<аспект1>", ...],
+  "missing_aspects": ["<аспект1>", ...],
+  "conflict_aspects": ["<аспект1>", ...],
+  "cited_phrases": ["<точная подстрока ФРАГМЕНТА>", ...],
+  "explanation": "<1-2 предложения>"
+}
+
+Правила:
+- cited_phrases — точная подстрока ФРАГМЕНТА (не требования). Без перефразирования.
+- Для IRRELEVANT все списки пусты.
+- Для CONFLICT conflict_aspects не пуст.
+"""
+
+
+def build_judge_prompt_compact(
+    req: RequirementUnit, unit: CoverageUnit,
+) -> tuple[str, str]:
+    """Compact prompt variant for small (≤4B) models. Same JSON schema as
+    the full prompt but with metadata fields collapsed into a single
+    type-hint line at the bottom of the user prompt — small models can't
+    reliably distinguish prompt-metadata fields from response-schema
+    fields, leading to JSON parse failures."""
+    type_hint = _TYPE_HINTS.get(req.requirement_type.value, "")
+    target_role = unit.target_doc_role.upper()
+
+    user = (
+        f"=== ТРЕБОВАНИЕ (из ТЗ) ===\n{req.text}\n\n"
+        f"=== ФРАГМЕНТ ({target_role}) ===\n{unit.text}\n"
+    )
+
+    # Ultra-compact numeric constraint line — no nested bullets.
+    if req.constraints:
+        cs = ", ".join(
+            f"{c.kind} {c.operator} {c.value}{(' ' + c.unit) if c.unit else ''}"
+            for c in req.constraints
+        )
+        user += f"\nЧисловые ограничения ТЗ: {cs}\n"
+
+    if type_hint:
+        # One short hint, with a clear "Подсказка:" prefix the model can
+        # easily skip when generating its own JSON.
+        user += f"\nПодсказка: {type_hint}\n"
+
+    user += "\nОцени покрытие и верни JSON по схеме выше."
+    return _SYSTEM_PROMPT_COMPACT, user
+
+
+# ── Compact-prompt model heuristic (PR-K P1) ──────────────────────────────
+#
+# Models known to struggle with the full v5 prompt. Match on substring of
+# the resolved Ollama model name. Small models (≤4B params) and aggressive
+# quants are the typical offenders. Override via env var
+# CQUALITY_PROMPT_VARIANT=compact|full to force a single variant.
+
+_COMPACT_PROMPT_MODEL_PATTERNS = (
+    # Generic size heuristic — covers qwen2.5:1.5b / qwen2.5:3b / mistral:3b /
+    # llama3.2:1b / llama3.2:3b / phi3:3.8b / tinyllama / gemma:2b ...
+    ":1.5b", ":2b", ":3b", ":1b", ":3.8b",
+    "tinyllama",
+)
+
+
+def should_use_compact_prompt(model_name: str | None) -> bool:
+    """True if `model_name` is a small (≤4B) model that should get the
+    compact prompt to avoid prompt-echo JSON-parse failures.
+    Env override: `CQUALITY_PROMPT_VARIANT=compact|full`."""
+    import os
+
+    override = (os.environ.get("CQUALITY_PROMPT_VARIANT") or "").strip().lower()
+    if override == "compact":
+        return True
+    if override == "full":
+        return False
+    if not model_name:
+        return False
+    name = model_name.lower()
+    return any(pat in name for pat in _COMPACT_PROMPT_MODEL_PATTERNS)
 
 
 # Short Russian hints by requirement type. Each line tells the judge

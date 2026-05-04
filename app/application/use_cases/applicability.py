@@ -27,7 +27,9 @@ from __future__ import annotations
 
 from app.domain.c_quality_enums import (
     Applicability,
+    CoverageRequirementLevel,
     CoverageStatus,
+    EvidenceStrength,
     RequirementType,
 )
 
@@ -94,6 +96,76 @@ def should_affect_grade(
     the package grade. Out-of-scope / non-applicable rows are excluded
     so the grade reflects only checks that were actually meaningful."""
     return applicability == Applicability.APPLICABLE
+
+
+# ── PR-K: REQUIRED / OPTIONAL / NOT_APPLICABLE routing ───────────────
+#
+# `applicability_for` already returns OUT_OF_SCOPE / NOT_APPLICABLE /
+# APPLICABLE. PR-K adds a finer split: an APPLICABLE row may be
+# REQUIRED (must find coverage; missing = critical) or OPTIONAL
+# (nice to find but missing is acceptable). The aggregator uses this
+# to choose between MISSING (REQUIRED) and OPTIONAL_NOT_FOUND
+# (OPTIONAL) sub-statuses.
+
+# REQUIRED requirement-types: any APPLICABLE pair must find coverage.
+_REQUIRED_TYPES = frozenset({
+    RequirementType.FUNCTIONAL,
+    RequirementType.SECURITY,
+    RequirementType.PERFORMANCE,
+    RequirementType.RELIABILITY,
+    RequirementType.DATA_IO,
+    RequirementType.ARCHITECTURE_IMPLEMENTATION,
+    RequirementType.STORAGE,
+    RequirementType.LOGGING,
+})
+
+# OPTIONAL requirement-types: APPLICABLE but missing is not critical.
+_OPTIONAL_TYPES = frozenset({
+    RequirementType.INTERFACE,
+    RequirementType.DOCUMENTATION_REQUIREMENT,
+    RequirementType.ENVIRONMENT_REQUIREMENT,
+    RequirementType.OTHER,
+})
+
+
+def coverage_requirement_level_for(
+    req_type: RequirementType,
+    target_role: str,
+) -> CoverageRequirementLevel:
+    """REQUIRED / OPTIONAL / NOT_APPLICABLE for a (type, target) pair.
+
+    REQUIRED — coverage must be found; missing = critical.
+    OPTIONAL — coverage is nice-to-have; missing = warning, not critical.
+    NOT_APPLICABLE — should not check at all (delivery, process, …).
+    """
+    appl = applicability_for(req_type, target_role)
+    if appl != Applicability.APPLICABLE:
+        return CoverageRequirementLevel.NOT_APPLICABLE
+    if req_type in _REQUIRED_TYPES:
+        return CoverageRequirementLevel.REQUIRED
+    return CoverageRequirementLevel.OPTIONAL
+
+
+def evidence_strength_from_score(
+    retrieval_score: float,
+    strong: float = 0.45,
+    medium: float = 0.25,
+    weak: float = 0.12,
+) -> EvidenceStrength:
+    """Discretise a retrieval_score into one of four bins.
+
+    Defaults match `CoverageRetrievalConfig.evidence_strength_*`. Pass
+    config-derived values when calling from the pipeline so a researcher
+    can retune without touching code.
+    """
+    s = float(retrieval_score or 0.0)
+    if s >= strong:
+        return EvidenceStrength.STRONG
+    if s >= medium:
+        return EvidenceStrength.MEDIUM
+    if s >= weak:
+        return EvidenceStrength.WEAK
+    return EvidenceStrength.NO_EVIDENCE
 
 
 def severity_for(

@@ -15,7 +15,18 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from app.application.use_cases.adaptive_candidate_selector import (
+    SelectionResult,
+    select_candidates,
+)
 from app.application.use_cases.aggregate_coverage import CoverageAggregator
+from app.application.use_cases.applicability import (
+    applicability_for,
+    coverage_requirement_level_for,
+    severity_for,
+    should_affect_critical,
+    should_affect_grade,
+)
 from app.application.use_cases.build_coverage_report import CoverageReportBuilder
 from app.application.use_cases.build_coverage_units import CoverageUnitBuilder
 from app.application.use_cases.build_requirements import RequirementBuilder
@@ -24,6 +35,12 @@ from app.application.use_cases.retrieve_candidates import CandidateRetriever
 from app.application.use_cases.verify_pairs import PairVerifier
 from app.core.config import CoverageConfig
 from app.core.logging import get_logger
+from app.domain.c_quality_enums import (
+    Applicability,
+    CoverageRequirementLevel,
+    CoverageStatus,
+    RequirementType,
+)
 from app.domain.c_quality_models import (
     CoverageAnalysisResult,
     CoverageUnit,
@@ -235,7 +252,10 @@ class CoverageAnalysisPipeline:
         self._embedding_backend = _build_embedding_backend(self._config)
         self._reranker = _build_reranker(self._config)
         self._retriever = CandidateRetriever(
-            self._config.retrieval, self._embedding_backend, self._reranker,
+            self._config.retrieval,
+            self._embedding_backend,
+            self._reranker,
+            reranker_config=self._config.reranker,
         )
         self._judge_service = PairJudgeService(
             _build_judge(self._config, reranker=self._reranker)
@@ -452,20 +472,73 @@ class CoverageAnalysisPipeline:
                 shortlist = doc_candidates.get(doc_id, [])
                 _total_shortlisted += len(shortlist)
 
+                # PR-K: applicability-aware skip. NOT_APPLICABLE / OUT_OF_SCOPE
+                # rows do not get an LLM call at all — the aggregator emits a
+                # NOT_APPLICABLE-style row directly. Saves bandwidth and
+                # produces a cleaner trace.
+                req_type = req.requirement_type or RequirementType.OTHER
+                applicability = applicability_for(req_type, doc_role)
+                cov_level = coverage_requirement_level_for(req_type, doc_role)
+
+                if applicability != Applicability.APPLICABLE:
+                    # Build a NOT_APPLICABLE / OUT_OF_SCOPE row. Aggregator
+                    # produces the same shape on the empty-judgments path.
+                    result = self._aggregator.aggregate(
+                        requirement=req,
+                        judgments=[],
+                        candidates_by_unit_id={c.unit_id: c for c in shortlist},
+                        units_by_id=units_by_id,
+                        target_document_id=doc_id,
+                        target_doc_role=doc_role,
+                        selection_result=SelectionResult(
+                            selected=[], discarded=list(shortlist),
+                            selection_reason=(
+                                f"applicability={applicability.value}; "
+                                f"requirement_type={req_type.value} not "
+                                f"checked in target role '{doc_role}'."
+                            ),
+                            skip_llm=True,
+                            skip_reason=f"applicability={applicability.value}",
+                        ),
+                        coverage_requirement_level=cov_level,
+                        debug_cfg=config.debug,
+                        aggregator_cfg=config.aggregator,
+                    )
+                    all_results.append(result)
+                    continue
+
                 if not shortlist:
                     logger.debug(
                         "[%s] No candidates for req=%s target=%s (all below threshold or no units)",
                         job_id, req.req_id[:12], doc_id,
                     )
-                    all_results.append(
-                        RequirementCoverageResult(
-                            req_id=req.req_id,
-                            source_document_id=req.source_document_id,
-                            target_document_id=doc_id,
-                            target_doc_role=doc_role,
-                        )
+                    result = self._aggregator.aggregate(
+                        requirement=req,
+                        judgments=[],
+                        candidates_by_unit_id={},
+                        units_by_id=units_by_id,
+                        target_document_id=doc_id,
+                        target_doc_role=doc_role,
+                        selection_result=SelectionResult(
+                            selection_reason="no candidates above min_retrieval_score",
+                            skip_llm=True,
+                            skip_reason="empty shortlist after retrieval",
+                        ),
+                        coverage_requirement_level=cov_level,
+                        debug_cfg=config.debug,
+                        aggregator_cfg=config.aggregator,
                     )
+                    all_results.append(result)
                     continue
+
+                # PR-K: AdaptiveCandidateSelector decides how many of the
+                # retrieved shortlist actually go to the LLM. NO_EVIDENCE
+                # top-1 → skip the LLM altogether; STRONG + wide margin →
+                # k=1; everything else broadens to k=3 (or up to selector_max_k
+                # for critical / numeric-constraint requirements).
+                selection: SelectionResult = select_candidates(
+                    req, shortlist, config.retrieval,
+                )
 
                 # BUG-9: evidence floor. If the strongest retrieval score in
                 # the shortlist is below the configured floor, we don't trust
@@ -478,25 +551,56 @@ class CoverageAnalysisPipeline:
                 max_score = max((c.retrieval_score for c in shortlist), default=0.0)
                 low_conf_floor = max_score < config.retrieval.evidence_floor
 
-                # Judge
-                judgments = judge_service.judge_shortlist(req, shortlist, units_by_id)
+                if selection.skip_llm or not selection.selected:
+                    # Skip LLM but still call the aggregator so the row is
+                    # populated (status_subcode, level-aware, evidence_trace).
+                    judgments: List[PairJudgment] = []
+                else:
+                    # Judge — only the selected slice
+                    judgments = judge_service.judge_shortlist(
+                        req, selection.selected, units_by_id,
+                    )
 
-                # Verify
-                if config.enable_rule_verification:
-                    judgments = [
-                        self._verifier.verify(j, req, units_by_id[j.unit_id])
-                        for j in judgments
-                        if j.unit_id in units_by_id
-                    ]
+                    # Verify
+                    if config.enable_rule_verification:
+                        judgments = [
+                            self._verifier.verify(j, req, units_by_id[j.unit_id])
+                            for j in judgments
+                            if j.unit_id in units_by_id
+                        ]
 
-                # BUG-9: stamp low_confidence on every judgment from a
-                # below-floor shortlist. Aggregator OR-merges the flag into
-                # the result.
-                if low_conf_floor:
+                    # Mirror the judge label / confidence / grounding onto the
+                    # candidate so downstream and the trace can render the
+                    # full retrieval-and-judging story per candidate.
+                    cand_by_unit = {c.unit_id: c for c in selection.selected}
                     for j in judgments:
-                        j.low_confidence = True
+                        c = cand_by_unit.get(j.unit_id)
+                        if c is None:
+                            continue
+                        c.judge_label = j.rule_adjusted_label.value
+                        c.judge_confidence = float(j.llm_confidence or 0.0)
+                        # PR-K P0: grounding_passed reflects ONLY actual
+                        # citation grounding (grounding_failed flag), not
+                        # below-floor retrieval.
+                        c.grounding_passed = not bool(getattr(j, "grounding_failed", False))
 
-                all_judgments.extend(judgments)
+                    # BUG-9: stamp low_confidence on every judgment from a
+                    # below-floor shortlist. Aggregator OR-merges the flag
+                    # into the result for UI dimming. PR-K P0: this NO LONGER
+                    # auto-sets grounding_failed — below-floor is a retrieval
+                    # quality flag, not a grounding violation. Real-package
+                    # symptom (Polyakov 0.20::sent1): grounded COVERED
+                    # conf=1.0 with retrieval=0.44 was demoted to MISSING
+                    # by old code; with the split flag the row keeps
+                    # COVERED + low_confidence=True (UI dim).
+                    if low_conf_floor:
+                        for j in judgments:
+                            j.low_confidence = True
+                            # NB: `grounding_failed` deliberately NOT set —
+                            # the LLM's citation may be perfectly grounded
+                            # in the (low-retrieval) evidence text.
+
+                    all_judgments.extend(judgments)
 
                 # Aggregate
                 candidates_by_unit_id = {c.unit_id: c for c in shortlist}
@@ -507,6 +611,10 @@ class CoverageAnalysisPipeline:
                     units_by_id=units_by_id,
                     target_document_id=doc_id,
                     target_doc_role=doc_role,
+                    selection_result=selection,
+                    coverage_requirement_level=cov_level,
+                    debug_cfg=config.debug,
+                    aggregator_cfg=config.aggregator,
                 )
                 all_results.append(result)
 

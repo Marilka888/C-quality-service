@@ -573,12 +573,44 @@ class DisabledCoverageJudge(CoverageJudge):
                         f"({signal_str}) → IRRELEVANT"
                     )
 
+        # PR-K: the EvidenceBasedCoverageAggregator gates COVERED at
+        # `covered_confidence_threshold` (default 0.65), so a disabled
+        # judge whose deterministic rules just fired a COVERED path
+        # MUST report confidence at or above that floor. Otherwise the
+        # aggregator silently demotes confident structural matches
+        # (constraint-kind, exact text, near-exact lex, verb+object)
+        # to MISSING_LOW_CONFIDENCE — defeating the purpose of running
+        # the judge at all.
+        if label == LLMLabel.COVERED:
+            # Strong signals (exact match, verbatim containment) get
+            # near-1.0 confidence; the verb+object paths get 0.75; the
+            # constraint-kind path gets 0.7.
+            if "normalized_text_exact_match" in matched_aspects:
+                conf = 0.95
+            elif "text_containment" in matched_aspects:
+                conf = 0.90
+            elif "near_exact_lex" in matched_aspects:
+                conf = 0.85
+            elif ck_match:
+                conf = max(lex, 0.7)
+            elif "artifact_match" in " ".join(matched_aspects):
+                conf = 0.7
+            else:
+                # verb + object phrase paths
+                conf = max(lex, 0.75)
+        elif label == LLMLabel.PARTIAL:
+            # PARTIAL doesn't have a hard aggregator gate but should
+            # still reflect signal strength; lex is a fine proxy.
+            conf = max(lex, 0.5)
+        else:
+            conf = round(max(lex, 0.6 if ck_match else 0.0), 3)
+
         return PairJudgment(
             req_id=req.req_id,
             unit_id=unit.unit_id,
             target_document_id=unit.target_document_id,
             llm_label=label,
-            llm_confidence=round(max(lex, 0.6 if ck_match else 0.0), 3),
+            llm_confidence=round(conf, 3),
             rule_adjusted_label=label,
             matched_aspects=matched_aspects,
             missing_aspects=missing_aspects if label != LLMLabel.COVERED else [],

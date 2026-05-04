@@ -185,6 +185,13 @@ def test_empty_cited_phrases_with_non_irrelevant_label_is_demoted():
 
 
 def test_aggregator_propagates_low_confidence_from_judgment():
+    """PR-K contract: when the judgment carries low_confidence=True
+    (grounding failed), the EvidenceBasedCoverageAggregator does NOT
+    accept the COVERED verdict — the row is downgraded to MISSING with
+    `status_subcode=MISSING_LOW_GROUNDING` so the orchestrator and UI
+    treat it as missing-equivalent for grade / criticalCount, while the
+    `low_confidence` flag remains set on the wire for legacy readers.
+    """
     req = _req()
     unit = _unit()
     j = PairJudgment(
@@ -207,9 +214,12 @@ def test_aggregator_propagates_low_confidence_from_judgment():
         target_document_id=unit.target_document_id, target_doc_role="pz",
     )
     assert res.low_confidence is True
-    # Status itself still reflects the (possibly-untrustworthy) verdict —
-    # downstream consumers decide how to render low-confidence rows.
-    assert res.status == CoverageStatus.COVERED
+    # PR-K: ungrounded COVERED is rejected — row collapses to MISSING.
+    assert res.status == CoverageStatus.MISSING
+    # And the subcode tells the UI WHY.
+    assert res.status_subcode in {
+        "MISSING_LOW_GROUNDING", "MISSING_LOW_CONFIDENCE",
+    }, f"unexpected subcode {res.status_subcode!r}"
 
 
 def test_aggregator_low_confidence_false_when_all_judgments_grounded():
@@ -607,10 +617,11 @@ def test_pipeline_marks_low_confidence_when_below_evidence_floor(monkeypatch):
                 req_id=req.req_id,
                 unit_id=u.unit_id,
                 target_document_id=u.target_document_id,
-                # Below default evidence_floor=0.5
-                retrieval_score=0.3,
-                lexical_score=0.3,
-                semantic_score=0.3,
+                # PR-K P0: default evidence_floor lowered from 0.5 to 0.30,
+                # so we use 0.20 here to stay strictly below the new floor.
+                retrieval_score=0.2,
+                lexical_score=0.2,
+                semantic_score=0.2,
             )
         ]
     monkeypatch.setattr(CandidateRetriever, "retrieve", _fake_retrieve)

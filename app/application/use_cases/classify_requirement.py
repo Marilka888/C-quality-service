@@ -206,9 +206,26 @@ _TEXT_TYPE_RULES: List[Tuple[re.Pattern, RequirementType]] = [
 
     # Architecture — concrete tech stack.
     (re.compile(
-        r"\b(?:typescript|angular|react|vue|svelte|spring|django|flask|"
-        r"node\.?js|express|docker|github|gitlab|spa|"
-        r"keycloak|postgresql|mysql|mongodb|redis|kafka|rabbitmq)\b",
+        # Web/UI frameworks
+        r"\b(?:typescript|javascript|angular|react|vue\.?js|vue|svelte|next\.?js|nuxt|spa)\b|"
+        # Backend frameworks
+        r"\b(?:spring|django|flask|fastapi|fast-api|laravel|express|nestjs|gin|fiber)\b|"
+        # Programming languages (in tech-stack context — bare "python" needs the word boundary)
+        r"\b(?:python|golang|kotlin|scala|rust|ruby on rails|rails)\b|"
+        # Runtimes / build / CI
+        r"\b(?:node\.?js|deno|bun|github(?:\s+actions)?|gitlab(?:\s+ci)?|jenkins|circleci)\b|"
+        # Containers / orchestration / infra
+        r"\b(?:docker|docker-?compose|kubernetes|k8s|helm|terraform|ansible|nginx)\b|"
+        # Auth / identity
+        r"\bkeycloak\b|\bauth0\b|\boauth2?\b|"
+        # Databases / queues
+        r"\b(?:postgresql|postgres|mysql|mariadb|mongodb|redis|kafka|rabbitmq|elasticsearch)\b|"
+        # Generic role markers + tech: "backend на X", "frontend на Y",
+        # "реализован[ао] на|с использованием X" — strong architecture signal.
+        r"\b(?:backend|back-?end|frontend|front-?end|серверн\w+\s+часть|"
+        r"клиентск\w+\s+часть)\b|"
+        r"реализован\w+\s+(?:на|с\s+использованием|при\s+помощи)\s+\w+|"
+        r"использован\w+\s+(?:фреймворк|библиотек|стек\w+\s+технологий)",
         re.I,
     ), RequirementType.ARCHITECTURE_IMPLEMENTATION),
 

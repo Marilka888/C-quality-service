@@ -7,6 +7,7 @@ Priority:
 """
 from __future__ import annotations
 
+import os
 import re
 import uuid
 from typing import Dict, List, Optional, Tuple
@@ -462,6 +463,47 @@ def _norm_unit(raw: str) -> Optional[str]:
     return _UNIT_NORM.get(raw.strip(), raw.strip().lower())
 
 
+# PR-K P2: regex patterns that, when found near a numeric match, mark it as
+# a document/standard reference rather than a measurable constraint.
+# Examples ловятся:
+#   "ГОСТ 19.301-79"             → numbers 19.301, 79 pulled in as constraints
+#   "согласно ГОСТ 34.601-90"    → 34.601, 90
+#   "[18]"                       → 18 (markdown footnote ref)
+#   "пункт 4.1.1"                → 4.1, 1
+#   "п. 5.1"                     → 5.1
+#   "статья 153 УК РФ"           → 153
+# Без фильтра эти числа летят в Constraint(kind="generic", unit=None) и
+# мусорят `_find_numeric_conflict` + `uncoveredAspects` в UI.
+_REFERENCE_CONTEXT_RES: list[re.Pattern] = [
+    # ГОСТ + (опц. латиница R/ИСО) + цифры (с точкой/дефисом)
+    re.compile(r"\bГОСТ\b(?:\s*[РR])?\s*\d", re.I | re.UNICODE),
+    re.compile(r"\bГОСТ\s*ИСО\b", re.I | re.UNICODE),
+    # ИСО / ISO + цифры
+    re.compile(r"\b(?:ИСО|ISO|МЭК|IEC)\s*\d", re.I | re.UNICODE),
+    # Markdown / academic footnote refs: [12], [18, c.5]
+    re.compile(r"\[\s*\d+(?:\s*[,;]\s*[^\]]*)?\s*\]"),
+    # пункт / п. / подпункт / подп. + цифры
+    re.compile(r"\b(?:пункт\w*|п\.|подпункт\w*|подп\.|раздел\w*)\s*\d", re.I | re.UNICODE),
+    # статья / статьёй / статьи / ст. (statutes — all morphological cases)
+    re.compile(r"\b(?:стать[яёеию]\w*|ст\.)\s*\d", re.I | re.UNICODE),
+    # таблица / рисунок / приложение N
+    re.compile(r"\b(?:таблиц\w+|рисун\w+|приложен\w+)\s*\d", re.I | re.UNICODE),
+]
+
+
+def _is_reference_number(text: str, match_start: int, match_end: int) -> bool:
+    """Return True when the numeric match at [match_start, match_end] in
+    `text` is a document / section / standard reference rather than a
+    measurable constraint. Uses a 30-char window before and 5 after."""
+    win_start = max(0, match_start - 30)
+    win_end = min(len(text), match_end + 5)
+    window = text[win_start:win_end]
+    for pat in _REFERENCE_CONTEXT_RES:
+        if pat.search(window):
+            return True
+    return False
+
+
 def _extract_constraints(text: str) -> List[Constraint]:
     constraints: List[Constraint] = []
     text_lower = text.lower()
@@ -482,6 +524,14 @@ def _extract_constraints(text: str) -> List[Constraint]:
         raw_unit = m.group("unit") or ""
         norm_unit = _norm_unit(raw_unit) if raw_unit else None
         op_sym = m.group("op_sym") or op_override or "="
+
+        # PR-K P2: skip GOST / standard / section / footnote numbers — they
+        # are document references, not measurable constraints. Only applied
+        # to unit-less matches because a measurement like "5 секунд" can
+        # never be a section ref. Real-package symptom (Polyakov 0.41::sent4):
+        # extracted seven bogus constraints from "ГОСТ 19.301-79 [18] п.4.1.1".
+        if norm_unit is None and _is_reference_number(text, m.start("value"), m.end("value")):
+            continue
 
         # Use surrounding 60 chars as kind context
         start = max(0, m.start() - 60)
@@ -741,25 +791,183 @@ class RequirementBuilder:
 
         # auto
         candidates = artifact.get("requirement_candidates") or []
+        primary_units: List[RequirementUnit] = []
+        primary_source = "(none)"
         if candidates:
             logger.info("Building requirements from %d candidates in %s", len(candidates), doc_id)
-            units = self._from_candidates(artifact, candidates)
-            if units:
-                return units
+            primary_units = self._from_candidates(artifact, candidates)
+            primary_source = "candidates"
 
         fragments = artifact.get("fragments") or []
-        if fragments:
+        if not primary_units and fragments:
             logger.info(
                 "No usable candidates in %s; falling back to %d fragments",
-                doc_id,
-                len(fragments),
+                doc_id, len(fragments),
             )
-            units = self._from_fragments(artifact, fragments)
-            if units:
-                return units
+            primary_units = self._from_fragments(artifact, fragments)
+            primary_source = "fragments"
 
-        logger.info("Fragments yielded nothing in %s; falling back to section-driven extraction", doc_id)
-        return self._from_sections(artifact)
+        if not primary_units:
+            logger.info(
+                "Fragments yielded nothing in %s; falling back to section-driven extraction",
+                doc_id,
+            )
+            return self._from_sections(artifact)
+
+        # PR-K post-fix (c): section-aware boost.
+        #
+        # Real-package symptoms:
+        #   * Cherevuyhho (78 reqs from candidates) — almost all glued
+        #     to the heading-less `preamble` section because the .docx
+        #     headings were not Word-styled. Section-level type-aware
+        #     applicability cannot work without per-requirement
+        #     section_id, so the C-quality grade is too lenient.
+        #   * Polyakov (52 reqs from candidates) — cleaner structure,
+        #     but the BERT classifier still drops the occasional
+        #     sentence inside an EXPLICITLY requirement-bearing section
+        #     ("Требования к ..."). Section-driven extraction picks
+        #     them up.
+        #
+        # Strategy: after the primary path produces some units, run a
+        # second pass over sections classified as `True` by
+        # `_classify_section` (definitely requirement-bearing) and
+        # admit any sentence with a modality / trigger that the primary
+        # path missed. Dedup against primary_units by normalised text.
+        #
+        # Off-switch: env var CQUALITY_SECTION_BOOST=false disables it.
+        # Default = on for `auto` mode only (other modes are explicit
+        # and should not be silently augmented).
+        boost_enabled = (
+            os.environ.get("CQUALITY_SECTION_BOOST", "true").strip().lower()
+            not in ("false", "0", "no", "off")
+        )
+        if not boost_enabled:
+            return primary_units
+
+        boost_units = self._section_boost(artifact, primary_units)
+        if boost_units:
+            logger.info(
+                "[%s] section-boost: primary=%d (%s) + boost=%d = %d total",
+                doc_id, len(primary_units), primary_source,
+                len(boost_units), len(primary_units) + len(boost_units),
+            )
+            return primary_units + boost_units
+
+        return primary_units
+
+    def _section_boost(
+        self,
+        artifact: dict,
+        primary_units: List[RequirementUnit],
+    ) -> List[RequirementUnit]:
+        """Section-aware merge-pass over sections classified as True
+        ("definitely a requirement section"). Returns ONLY the units that
+        primary extraction missed (dedup-by-normalised-text).
+
+        Conservative: only fires on sections where `_classify_section`
+        returns True (numbering 4.x or title contains explicit keyword
+        like 'требования к ...'). Skips ambiguous sections (relevance
+        is None) — those need stricter modality gate which the primary
+        path already implements.
+        """
+        doc_id = artifact.get("document_id", "unknown")
+        sections = artifact.get("sections") or []
+        fragments = artifact.get("fragments") or []
+        if not sections or not fragments:
+            return []
+
+        # Build a set of normalised texts already accepted by primary
+        # extraction. Used for dedup.
+        primary_norms = {u.normalized_text for u in primary_units}
+
+        # Group fragment text by section_id (preserve order).
+        frags_by_section: Dict[str, List[str]] = {}
+        titles_by_id: Dict[str, str] = {}
+        for s in sections:
+            sid = s.get("section_id")
+            if sid:
+                titles_by_id[sid] = s.get("title") or ""
+        for frag in fragments:
+            sid = frag.get("section_id")
+            text = (frag.get("text") or "").strip()
+            if sid and text:
+                frags_by_section.setdefault(sid, []).append(text)
+
+        boosted: List[RequirementUnit] = []
+        seen_req_ids = {u.req_id for u in primary_units}
+
+        for section in sections:
+            sid = section.get("section_id")
+            title = section.get("title") or ""
+            if not sid:
+                continue
+            relevance = _classify_section(sid, title)
+            # Strict: only sections with relevance=True (definitely
+            # requirement-bearing). Ambiguous (None) is skipped to
+            # avoid false-positives on Введение / Цель / Аналоги.
+            if relevance is not True:
+                continue
+
+            section_text = "\n".join(frags_by_section.get(sid, []))
+            if not section_text:
+                continue
+
+            sentences = _split_sentences_ru(section_text)
+            if not sentences:
+                continue
+
+            for idx, sent in enumerate(sentences):
+                sent = sent.strip()
+                if len(sent.split()) < 5:
+                    continue
+                if _is_document_boilerplate(sent):
+                    continue
+                modality = _extract_modality(sent)
+                has_trigger = bool(_TRIGGER_RE.search(sent))
+                # Strict gate inside this boost pass — must have either
+                # explicit modality OR a trigger word. The primary path
+                # may have skipped this sentence because the BERT model
+                # was uncertain; we admit it ONLY if it looks like a
+                # requirement at the modality / trigger level.
+                if not (has_trigger or modality != Modality.UNKNOWN):
+                    continue
+                # Skip if normalised form duplicates a primary unit
+                # (case where ML candidate text and section-extracted
+                # sentence are the same content with different
+                # whitespace / punctuation).
+                norm = _normalize_text(sent)
+                if norm in primary_norms:
+                    continue
+                primary_norms.add(norm)
+
+                base_id = f"{doc_id}::{sid}::boost::s{idx}"
+                req_id = base_id
+                dedup = 0
+                while req_id in seen_req_ids:
+                    dedup += 1
+                    req_id = f"{base_id}::{dedup}"
+                seen_req_ids.add(req_id)
+
+                boosted.append(
+                    RequirementUnit(
+                        req_id=req_id,
+                        source_document_id=doc_id,
+                        source_section_id=sid,
+                        source_fragment_id=None,
+                        text=sent,
+                        normalized_text=norm,
+                        requirement_type=_extract_requirement_type(sent, title),
+                        modality=modality,
+                        entities=_extract_entities(sent),
+                        constraints=_extract_constraints(sent),
+                        metadata={
+                            "section_title": title,
+                            "boost": True,
+                        } if title else {"boost": True},
+                    )
+                )
+
+        return boosted
 
     # ------------------------------------------------------------------
 

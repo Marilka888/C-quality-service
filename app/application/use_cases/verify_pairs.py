@@ -27,10 +27,31 @@ logger = get_logger(__name__)
 
 _VALUE_TOLERANCE = 1e-6
 
-# Strict prohibition markers only — excludes quantifiers like "не более / не менее"
+# Strict prohibition markers only — excludes quantifiers like "не более / не менее".
+#
+# PR-K follow-up (sweep TZ#2): the old regex missed neuter "не должно",
+# verb form "запрещается", and gender variants of "запрещён/недопустим",
+# producing a false-positive CONFLICT in the smoke run on
+# "Время отклика не должно превышать 2 секунд" vs the same PMI fragment
+# (which uses masc "не должен"). All gender/number forms now recognised.
 _PROHIBITION_RE = re.compile(
-    r"\b(не должен|не должна|не должны|запрещено|недопустимо|не допускается|не разрешается|"
-    r"not allowed|forbidden|prohibited)\b",
+    r"\b(?:"
+    # Russian "не должен / не должна / не должно / не должны"
+    # (all four gender/number forms — "не должно" was the missing one).
+    r"не\s+долж(?:ен|на|но|ны)|"
+    # "запрещено / запрещена / запрещены" + verb forms "запрещается / запрещаются".
+    r"запрещен(?:о|а|ы)?|запрещается|запрещаются|"
+    # "недопустимо / недопустима / недопустимы".
+    r"недопустим(?:о|а|ы)?|"
+    # "не допускается / не допускаются / не разрешается / не разрешаются".
+    r"не\s+допускается|не\s+допускаются|"
+    r"не\s+разрешается|не\s+разрешаются|"
+    # "без возможности (изменения|отката|…)" — preposition-class prohibition
+    # ("без возможности" + dependent noun in genitive).
+    r"без\s+возможност[ьи]|"
+    # English variants.
+    r"not\s+allowed|forbidden|prohibited"
+    r")\b",
     re.I,
 )
 
@@ -93,6 +114,21 @@ def _same_outcome_negation_compatible(req_text: str, unit_text: str) -> bool:
             return True
         if prohib_re.search(ut) and pos_re.search(rt):
             return True
+
+    # PR-K P4: when BOTH sides use the same upper-bound prohibition
+    # phrasing ("не должно превышать X" on TZ side, "не должно превышать
+    # Y" on the unit side), this is a same-modality / same-direction
+    # constraint — the verifier's mismatch detector wrongly fires
+    # because of regex-level differences between gender forms. They
+    # are compatible (both upper-bound; numeric values are checked
+    # separately by the numeric rule). Real-package symptom (Polyakov
+    # 0.20::sent1).
+    same_upper_bound = re.compile(
+        r"не\s+долж(?:ен|на|но|ны)\s+превышат",
+        re.I | re.UNICODE,
+    )
+    if same_upper_bound.search(rt) and same_upper_bound.search(ut):
+        return True
     return False
 
 
@@ -277,6 +313,24 @@ def _entity_overlap(req: RequirementUnit, unit: CoverageUnit) -> float:
     return len(req_set & unit_set) / len(req_set | unit_set)
 
 
+def _append_action(judgment: PairJudgment, action: str) -> None:
+    """Append a verifier action tag onto the judgment.
+
+    Conventions (so the aggregator can recognise rule outcomes):
+      * `conflict_*`   — verifier explicitly confirmed a CONFLICT
+                         (numeric, negation, …). Aggregator promotes
+                         CONFLICT to a verified verdict.
+      * `demote_*`     — a positive label was demoted (CONFLICT → PARTIAL,
+                         COVERED → PARTIAL, …).
+      * `suppress_*`   — a rule was about to fire but a guard suppressed
+                         it (false-positive guard).
+      * `no_op_*`      — verifier ran but no rule applied; label preserved.
+    """
+    actions = list(getattr(judgment, "verifier_actions", []) or [])
+    actions.append(action)
+    judgment.verifier_actions = actions
+
+
 class PairVerifier:
     """Applies rule-based adjustments to a PairJudgment."""
 
@@ -286,15 +340,13 @@ class PairVerifier:
         req: RequirementUnit,
         unit: CoverageUnit,
     ) -> PairJudgment:
-        if judgment.llm_label == LLMLabel.IRRELEVANT:
-            judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
-            return judgment
-
         # PR-G refactor: type-aware suppression of CONFLICT for
         # requirement classes where coverage isn't the question.
         # DELIVERY / PROCESS / ECONOMIC requirements never produce a
         # CONFLICT row — the aggregator's applicability filter handles
-        # them downstream.
+        # them downstream. Runs before the IRRELEVANT shortcut so that
+        # the no_op_type_excluded action is always recorded for these
+        # type classes.
         if not _types_can_conflict(req, unit):
             if judgment.llm_label == LLMLabel.CONFLICT:
                 # Demote to PARTIAL so any matched aspects are still
@@ -304,9 +356,23 @@ class PairVerifier:
                     " [rule] Type is delivery/process/economic — coverage "
                     "CONFLICT is not meaningful for this requirement class."
                 )
+                _append_action(judgment, "demote_conflict_type_excluded")
                 return judgment
             judgment.rule_adjusted_label = judgment.llm_label
+            _append_action(judgment, "no_op_type_excluded")
             return judgment
+
+        # PR-K P0 fix: when the LLM said IRRELEVANT, we still let the
+        # deterministic numeric-conflict check run below — small local
+        # models (qwen2.5:3b in smoke tests) sometimes label "журнал 90
+        # дней" vs "журнал 30 суток" as IRRELEVANT, missing the obvious
+        # numeric mismatch. The numeric-rule has its own strict
+        # topical-link guard (shared constraint kind / entity overlap /
+        # ≥2 shared tokens / LLM confidence) so we don't false-positive
+        # on truly unrelated pairs that happen to share a number.
+        # Negation / COVERED-demotion rules still skip on IRRELEVANT
+        # below, because their guards are weaker than the numeric one.
+        is_irrelevant = judgment.llm_label == LLMLabel.IRRELEVANT
 
         # PR-G refactor: same-outcome negation compatibility — phrases
         # like "не должна аварийно завершаться" vs "должна продолжать
@@ -323,6 +389,7 @@ class PairVerifier:
                 "prohibition of bad outcome and affirmation of good outcome "
                 "are equivalent; demoted CONFLICT → PARTIAL."
             )
+            _append_action(judgment, "demote_conflict_same_outcome")
             return judgment
 
         conflict_details: List[str] = list(judgment.conflict_aspects)
@@ -366,9 +433,16 @@ class PairVerifier:
             # semantic picture — if it is confidently COVERED, trust it and
             # suppress the rule override. 4/4 false CONFLICTs in manual
             # review came from this path.
+            #
+            # PR-K: bump the threshold from 0.70 to 0.80 so that the
+            # DisabledCoverageJudge's structural ck_match path (conf=0.70,
+            # which only confirms same constraint kind, NOT same value)
+            # cannot suppress a real numeric conflict between 30 and 90.
+            # Real LLMs aggregating semantic picture should comfortably
+            # report ≥0.80 on a confident COVERED.
             judge_strongly_says_covered = (
                 judgment.llm_label == LLMLabel.COVERED
-                and (judgment.llm_confidence or 0) >= 0.7
+                and (judgment.llm_confidence or 0) >= 0.80
             )
             if judge_strongly_says_covered:
                 judgment.explanation += (
@@ -381,6 +455,7 @@ class PairVerifier:
                     "for req=%s unit=%s",
                     req.req_id[:8], unit.unit_id[:8],
                 )
+                _append_action(judgment, "suppress_numeric_judge_strong_covered")
                 # fall through to subsequent rules — skip the CONFLICT branch
                 has_topic_link = False
             if has_topic_link:
@@ -395,6 +470,18 @@ class PairVerifier:
                     "Rule: numeric conflict for req=%s unit=%s (ent=%.2f, shared=%d)",
                     req.req_id[:8], unit.unit_id[:8], ent_overlap, len(shared_tokens),
                 )
+                _append_action(judgment, "conflict_confirmed_numeric")
+                # PR-K P0 fix: when verifier deterministically promotes
+                # IRRELEVANT/PARTIAL/COVERED → CONFLICT, the original
+                # llm_confidence reflects the LLM's confidence in a
+                # DIFFERENT label and is no longer meaningful for the
+                # aggregator's CONFLICT-confidence gate. Bump to 0.95 so
+                # the rule-confirmed CONFLICT survives the gate. The
+                # `verifier_actions` tag preserves provenance — the
+                # aggregator and the trace can still see this came from
+                # a deterministic rule, not from a confident LLM verdict.
+                if is_irrelevant or judgment.llm_confidence < 0.85:
+                    judgment.llm_confidence = 0.95
                 return judgment
             else:
                 judgment.explanation += (
@@ -406,6 +493,18 @@ class PairVerifier:
                     "Rule: numeric mismatch SUPPRESSED for req=%s unit=%s (no topic)",
                     req.req_id[:8], unit.unit_id[:8],
                 )
+                _append_action(judgment, "suppress_numeric_no_topic")
+
+        # PR-K P0 fix: at this point the numeric rule has had its chance.
+        # If the LLM said IRRELEVANT and no numeric conflict promoted us to
+        # CONFLICT, return IRRELEVANT now. The remaining rules (negation,
+        # COVERED→PARTIAL demotions) have weaker topical guards and would
+        # produce false-positive CONFLICTs on truly unrelated pairs whose
+        # vocabularies happen to share a prohibition word.
+        if is_irrelevant:
+            judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
+            _append_action(judgment, "no_op_irrelevant")
+            return judgment
 
         # Rule 2: negation/modality contradiction
         # Guard: only fire when llm_confidence >= 0.25.
@@ -424,12 +523,104 @@ class PairVerifier:
                     "phrasing detected (prohibition + positive affirmation "
                     "describe the same outcome)."
                 )
+                _append_action(judgment, "suppress_negation_same_outcome")
                 return judgment
-            judgment.rule_adjusted_label = LLMLabel.CONFLICT
-            msg = "[rule] Negation contradiction between requirement and coverage unit"
-            judgment.conflict_aspects = conflict_details + [msg]
-            judgment.explanation += f" {msg}"
-            return judgment
+
+            # PR-K P4: topical-link guard — same logic the numeric rule has,
+            # because the extended _PROHIBITION_RE (P2 covered "не должно"
+            # neuter form etc.) now matches more pairs and false-fires on
+            # unrelated ones. Real-package symptom (Polyakov 0.14::sent1):
+            # TZ "время отклика не должно превышать 3 секунд" was paired
+            # with PMI evidence "Windows 10 Pro [10] / Intel i5-7500 / 16 GB"
+            # because the selector took only top-1 retrieval and that one
+            # had highest BoW score by accident. Negation-rule fired since
+            # req has prohibition + unit doesn't.
+            from app.core.text import tokenize_content
+
+            ent_overlap_neg = _entity_overlap(req, unit)
+            req_tokens_neg = tokenize_content(req.normalized_text)
+            unit_tokens_neg = tokenize_content(unit.normalized_text)
+            shared_tokens_neg = req_tokens_neg & unit_tokens_neg
+            # Negation contradiction is a softer signal than numeric
+            # mismatch, so the topical-link bar is HIGHER (≥3 shared
+            # content tokens vs 2 for numeric, ent_overlap ≥0.20 vs 0.15).
+            #
+            # PR-K post-fix (F): when the negation rule is CONFIRMING an
+            # LLM-native CONFLICT (not upgrading PARTIAL/COVERED), the
+            # LLM's confidence is NOT a reliable topical-link proxy —
+            # the LLM may have been confidently wrong on off-topic
+            # evidence. Real-package symptom: Polyakov run-4/5
+            # req 0.17::sent3 vs PZ admin fragment (and vs PMI access-
+            # control unit): LLM said CONFLICT conf=0.85 on completely
+            # unrelated evidence; the confidence proxy caused the negation
+            # rule to confirm → two false CONFLICT rows in every run.
+            # For UPGRADES (PARTIAL/COVERED → CONFLICT), LLM confidence
+            # IS informative — the LLM saw something relevant and was
+            # sure of it; the proxy is appropriate there.
+            if judgment.llm_label == LLMLabel.CONFLICT:
+                has_topic_link_neg = (
+                    ent_overlap_neg >= 0.20
+                    or len(shared_tokens_neg) >= 3
+                )
+            else:
+                has_topic_link_neg = (
+                    ent_overlap_neg >= 0.20
+                    or len(shared_tokens_neg) >= 3
+                    or (judgment.llm_confidence or 0) >= 0.50
+                )
+            if not has_topic_link_neg:
+                judgment.explanation += (
+                    f" [rule] Negation contradiction suppressed — no topical "
+                    f"link (ent_ov={ent_overlap_neg:.2f}, "
+                    f"shared_tokens={len(shared_tokens_neg)}, "
+                    f"conf={judgment.llm_confidence:.2f})."
+                )
+                logger.debug(
+                    "Rule: negation contradiction SUPPRESSED for req=%s unit=%s "
+                    "(no topic, ent=%.2f, shared=%d)",
+                    req.req_id[:8], unit.unit_id[:8],
+                    ent_overlap_neg, len(shared_tokens_neg),
+                )
+                _append_action(judgment, "suppress_negation_no_topic")
+                # fall through — leave rule_adjusted_label unchanged
+            else:
+                # PR-K P4: when LLM is confidently positive (PARTIAL/COVERED
+                # with conf ≥0.70), the verifier should NOT override its
+                # verdict via negation-rule. Mirrors the
+                # `judge_strongly_says_covered` guard on the numeric rule.
+                # Real-package symptom (Polyakov 0.20::sent1): LLM said
+                # COVERED conf≈1.0 on "не должно превышать общее время"
+                # vs "не должно превышать времени" — exact same prohibition
+                # phrasing on both sides — but the negation rule fired
+                # anyway and demoted to false-CONFLICT.
+                judge_strongly_positive = (
+                    judgment.llm_label in (LLMLabel.COVERED, LLMLabel.PARTIAL)
+                    and (judgment.llm_confidence or 0) >= 0.70
+                )
+                if judge_strongly_positive:
+                    judgment.explanation += (
+                        f" [rule] Negation contradiction suppressed — judge "
+                        f"is confidently {judgment.llm_label.value} "
+                        f"(conf={judgment.llm_confidence:.2f})."
+                    )
+                    logger.debug(
+                        "Rule: negation contradiction SUPPRESSED for req=%s "
+                        "unit=%s (judge confident %s, conf=%.2f)",
+                        req.req_id[:8], unit.unit_id[:8],
+                        judgment.llm_label.value, judgment.llm_confidence,
+                    )
+                    _append_action(judgment, "suppress_negation_judge_positive")
+                    # fall through — leave rule_adjusted_label as LLM said
+                else:
+                    judgment.rule_adjusted_label = LLMLabel.CONFLICT
+                    msg = "[rule] Negation contradiction between requirement and coverage unit"
+                    judgment.conflict_aspects = conflict_details + [msg]
+                    judgment.explanation += f" {msg}"
+                    _append_action(judgment, "conflict_confirmed_negation")
+                    # PR-K P0: same confidence-bump as the numeric path.
+                    if judgment.llm_confidence < 0.85:
+                        judgment.llm_confidence = 0.95
+                    return judgment
 
         # Rule 3: COVERED but req has constraints and unit has none → PARTIAL
         if (
@@ -443,6 +634,7 @@ class PairVerifier:
                 for c in req.constraints
             ]
             judgment.explanation += " [rule] Required numeric constraints absent in coverage unit → PARTIAL"
+            _append_action(judgment, "demote_covered_constraints_missing")
             return judgment
 
         # Rule 4: COVERED but very low entity overlap when both have many entities → PARTIAL
@@ -456,8 +648,19 @@ class PairVerifier:
             if overlap < 0.1:
                 judgment.rule_adjusted_label = LLMLabel.PARTIAL
                 judgment.explanation += f" [rule] Low entity overlap ({overlap:.2f}) with many entities → PARTIAL"
+                _append_action(judgment, "demote_covered_low_entity_overlap")
                 return judgment
 
-        # No adjustment needed — carry the LLM label forward
+        # No adjustment needed — carry the LLM label forward.
+        # PR-K: when an LLM-flagged CONFLICT survives all guards without
+        # the verifier finding a concrete numeric/negation/aspect
+        # contradiction, tag it explicitly so the aggregator can decide
+        # whether to trust an unverified CONFLICT (current default: no —
+        # downgraded to PARTIAL by the aggregator's verifier-confirmation
+        # gate).
         judgment.rule_adjusted_label = judgment.llm_label
+        if judgment.llm_label == LLMLabel.CONFLICT:
+            _append_action(judgment, "no_op_llm_conflict_unverified")
+        else:
+            _append_action(judgment, "no_op_kept_label")
         return judgment
