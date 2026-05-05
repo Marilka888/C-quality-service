@@ -1,9 +1,14 @@
-transformers
-# Pinned because litellm ≥ 1.40 pulls a newer `tokenizers` (0.22.x)
-# which fails the transformers compatibility check
-# (`tokenizers>=0.20,<0.21 is required`). Keeping the explicit upper
-# bound prevents that breakage from recurring on fresh installs.
-tokenizers>=0.20,<0.21
+# Old comment said tokenizers 0.20.x was required for transformers 4.45.
+# That pin is now obsolete — transformers >= 4.50 supports tokenizers
+# 0.22 (which is what litellm pulls). Keeping the floor ensures we
+# never regress to the broken combination.
+#
+# Upper bound (<5) keeps us on the 4.x line until sentence-transformers
+# and BGEReranker are validated against the transformers 5.x major
+# release. transformers 5.x also pulls click 8.3+ which conflicts with
+# litellm's strict click==8.1.8 pin.
+transformers>=4.50,<5
+tokenizers>=0.20,<0.23
 numpy
 torch
 sentence-transformers
@@ -15,3 +20,6 @@ pydantic
 # for cross-model calibration.
 litellm>=1.40
 requests
+# spaCy entity extractor (commit 28f5be0). Russian model is downloaded
+# separately: `python -m spacy download ru_core_news_md`.
+spacy>=3.7

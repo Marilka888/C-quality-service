@@ -127,6 +127,54 @@ def test_ungrounded_covered_is_demoted():
     assert j.low_confidence is True
 
 
+def test_fuzzy_grounding_accepts_paraphrased_citation():
+    """Audit (Polyakov: every "[ungrounded]" demotion in the report):
+    LLMs frequently paraphrase their citations slightly — different word
+    order, dropped punctuation, synonyms. The strict substring gate then
+    demotes verdicts whose evidence is genuinely on-topic. Token-overlap
+    fallback: ≥ 3 distinct content tokens (≥ 4 chars) shared between
+    cited_phrases and evidence is sufficient grounding."""
+    raw = {
+        "label": "COVERED",
+        "confidence": 0.9,
+        "matched_aspects": ["авторизация"],
+        "missing_aspects": [],
+        "conflict_aspects": [],
+        # Citation reorders + drops words from evidence — substring fails,
+        # but content tokens (авторизации, логин, пароль) all appear.
+        "cited_phrases": ["авторизации логин пароль существующего пользователя"],
+        "explanation": "Полное соответствие.",
+    }
+    evidence = (
+        "Авторизация. Для проверки авторизации необходимы логин и пароль "
+        "существующего в системе пользователя."
+    )
+    j = _parse_response(raw, "r1", "u1", "doc-pmi", evidence_text=evidence)
+    assert j.llm_label == LLMLabel.COVERED, (
+        "paraphrased citation with ≥3 shared content tokens must pass grounding"
+    )
+    assert j.low_confidence is False
+
+
+def test_fuzzy_grounding_rejects_hallucinated_citation():
+    """The fuzzy fallback must NOT save genuinely hallucinated citations.
+    Citation shares ≤ 2 content tokens with evidence → still demote."""
+    raw = {
+        "label": "COVERED",
+        "confidence": 0.9,
+        "matched_aspects": ["x"],
+        "missing_aspects": [],
+        "conflict_aspects": [],
+        # Only "система" might overlap; rest invented.
+        "cited_phrases": ["система биометрический сканер сетчатки"],
+        "explanation": "x",
+    }
+    evidence = "Система авторизации работает через логин и пароль."
+    j = _parse_response(raw, "r1", "u1", "doc-pmi", evidence_text=evidence)
+    assert j.llm_label == LLMLabel.IRRELEVANT
+    assert j.low_confidence is True
+
+
 def test_irrelevant_skips_grounding_check():
     """IRRELEVANT verdicts pass through without grounding — they don't claim
     coverage so there's nothing to ground."""
@@ -582,6 +630,7 @@ def test_pipeline_dedup_collapses_duplicate_pairs(monkeypatch):
         "options": {
             "enable_llm_judge": False,
             "min_retrieval_score": 0.0,
+            "skip_llm_below_floor": False,
         },
     }
 
@@ -662,6 +711,7 @@ def test_pipeline_marks_low_confidence_when_below_evidence_floor(monkeypatch):
         "options": {
             "enable_llm_judge": False,
             "min_retrieval_score": 0.0,
+            "skip_llm_below_floor": False,
         },
     }
 

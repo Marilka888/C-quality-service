@@ -174,13 +174,20 @@ class TestBoostIsConservative:
             _frag("X", "f1",
                   "Команда должна провести регрессионное тестирование."),
         ]
+        # Place the anchor candidate in GOST section 4.x so it passes the
+        # _section_allows_candidate gate (section 4.x always allows). The
+        # text intentionally has no modality — we rely on the section number,
+        # not on the linguistic signal, to keep it. Section 5.1 without
+        # metadata now requires modality (tightened gate), which would drop
+        # this candidate and trigger a fragments fallback that would wrongly
+        # include the section-X fragment.
         candidates = [
             {"text": "Какое-то существующее требование.",
-             "section_id": "5.1", "fragment_id": "x1"},
+             "section_id": "4.1", "fragment_id": "x1"},
         ]
         out = self.builder.build(_artifact(
-            sections=sections + [_section("5.1", "Cписок требований")],
-            fragments=fragments + [_frag("5.1", "x1", "Какое-то существующее требование.")],
+            sections=sections + [_section("4.1", "Требования к функциональным характеристикам")],
+            fragments=fragments + [_frag("4.1", "x1", "Какое-то существующее требование.")],
             requirement_candidates=candidates,
         ))
         for u in out:

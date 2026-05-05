@@ -29,7 +29,7 @@ from typing import List, Tuple
 
 from app.application.use_cases.applicability import evidence_strength_from_score
 from app.core.config import CoverageRetrievalConfig
-from app.domain.c_quality_enums import EvidenceStrength
+from app.domain.c_quality_enums import CoverageUnitType, EvidenceStrength
 from app.domain.c_quality_models import RequirementUnit, RetrievedCandidate
 
 
@@ -92,27 +92,62 @@ def select_candidates(
             skip_reason="no candidates in shortlist",
         )
 
+    # SECTION_WINDOW units are retrieval helpers: they aggregate several
+    # adjacent paragraphs to help BoW find the right section. Prefer atomic
+    # evidence, but keep very strong windows near the top: in real PZ docs
+    # a requirement is often covered across neighboring paragraphs
+    # ("REST API" in one, "JSON" in the next).
+    primary = [
+        c for c in candidates
+        if c.unit_type != CoverageUnitType.SECTION_WINDOW
+    ]
+    window_only = [
+        c for c in candidates
+        if c.unit_type == CoverageUnitType.SECTION_WINDOW
+    ]
+    effective_candidates = primary if primary else list(candidates)
+    window_discarded: List[RetrievedCandidate] = []
+    if primary and window_only:
+        best_primary = primary[0].retrieval_score
+        promoted_windows = [
+            c for c in window_only
+            if c.retrieval_score >= max(
+                config.evidence_strength_strong_threshold,
+                best_primary - config.selector_strong_margin,
+            )
+        ]
+        if promoted_windows:
+            effective_candidates = sorted(
+                primary + promoted_windows,
+                key=lambda c: c.retrieval_score,
+                reverse=True,
+            )
+            promoted_ids = {c.unit_id for c in promoted_windows}
+            window_discarded = [c for c in window_only if c.unit_id not in promoted_ids]
+        else:
+            window_discarded = window_only
+
     # Compute evidence_strength for each candidate using config-driven
     # thresholds (so re-tuning doesn't require code changes).
     strong = config.evidence_strength_strong_threshold
     medium = config.evidence_strength_medium_threshold
     weak = config.evidence_strength_weak_threshold
-    for c in candidates:
+    for c in effective_candidates:
         c.evidence_strength = evidence_strength_from_score(
             c.retrieval_score, strong=strong, medium=medium, weak=weak
         )
 
-    top1 = candidates[0]
-    top2 = candidates[1] if len(candidates) > 1 else None
+    top1 = effective_candidates[0]
+    top2 = effective_candidates[1] if len(effective_candidates) > 1 else None
     margin = (top1.retrieval_score - top2.retrieval_score) if top2 is not None else top1.retrieval_score
 
-    max_k = min(config.selector_max_k, len(candidates))
+    max_k = min(config.selector_max_k, len(effective_candidates))
 
     # Rule 1: NO_EVIDENCE — skip LLM entirely.
     if top1.evidence_strength == EvidenceStrength.NO_EVIDENCE:
         return SelectionResult(
             selected=[],
-            discarded=list(candidates),
+            discarded=list(effective_candidates) + window_discarded,
             selection_reason=(
                 f"top1 retrieval_score={top1.retrieval_score:.3f} below "
                 f"weak threshold ({weak:.2f}); skipping LLM."
@@ -122,14 +157,41 @@ def select_candidates(
             skip_reason="all candidates NO_EVIDENCE",
         )
 
+    # Rule 1b: skip_llm_below_floor — when top-1 retrieval is in the
+    # [weak_threshold, evidence_floor) band for a non-critical requirement,
+    # the aggregator's medium_retrieval_threshold would reject any positive
+    # verdict the LLM produces. The LLM call is pure waste. Critical
+    # requirements (SECURITY / PERFORMANCE / RELIABILITY / numeric
+    # constraints) still go to the LLM — paraphrase risk justifies the call.
+    if (
+        getattr(config, "skip_llm_below_floor", False)
+        and top1.retrieval_score < config.evidence_floor
+        and not _is_critical(requirement)
+    ):
+        return SelectionResult(
+            selected=[],
+            discarded=list(effective_candidates) + window_discarded,
+            selection_reason=(
+                f"top1 retrieval_score={top1.retrieval_score:.3f} below "
+                f"evidence_floor ({config.evidence_floor:.2f}); "
+                f"skip_llm_below_floor enabled and requirement is non-critical."
+            ),
+            selected_k=0,
+            skip_llm=True,
+            skip_reason=(
+                f"top1 retrieval below evidence_floor "
+                f"({config.evidence_floor:.2f}); non-critical requirement"
+            ),
+        )
+
     # Rule 2: critical / has-numeric-constraints — broad sweep.
     if _is_critical(requirement):
-        selected = candidates[:max_k]
+        selected = effective_candidates[:max_k]
         for c in selected:
             c.selected_for_llm = True
         return SelectionResult(
             selected=selected,
-            discarded=list(candidates[max_k:]),
+            discarded=list(effective_candidates[max_k:]) + window_discarded,
             selection_reason=(
                 f"critical requirement ({requirement.requirement_type.value} or "
                 f"has_numeric_constraints={bool(requirement.constraints)}); "
@@ -146,7 +208,7 @@ def select_candidates(
         top1.selected_for_llm = True
         return SelectionResult(
             selected=[top1],
-            discarded=list(candidates[1:]),
+            discarded=list(effective_candidates[1:]) + window_discarded,
             selection_reason=(
                 f"top1 STRONG (score={top1.retrieval_score:.3f}) and margin "
                 f"{margin:.3f} ≥ {config.selector_strong_margin:.2f}; one LLM "
@@ -157,7 +219,7 @@ def select_candidates(
 
     # Rule 4-5: MEDIUM, narrow margin, or WEAK top-1 — broaden to 3.
     k = min(3, max_k)
-    selected = candidates[:k]
+    selected = effective_candidates[:k]
     for c in selected:
         c.selected_for_llm = True
     if top1.evidence_strength == EvidenceStrength.WEAK:
@@ -178,7 +240,7 @@ def select_candidates(
         )
     return SelectionResult(
         selected=selected,
-        discarded=list(candidates[k:]),
+        discarded=list(effective_candidates[k:]) + window_discarded,
         selection_reason=reason,
         selected_k=k,
     )

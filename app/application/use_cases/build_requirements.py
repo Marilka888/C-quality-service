@@ -148,7 +148,7 @@ _MUST_NOT_RE = re.compile(
     r"\b(не должен|не должна|не должны|запрещено|недопустимо|не допускается)\b", re.I
 )
 _MUST_RE = re.compile(
-    r"\b(должен|должна|должны|необходимо|обязан|обязана|обязаны)\b", re.I
+    r"\b(должен|должна|должны|должно|необходимо|обязан|обязана|обязаны)\b", re.I
 )
 _SHOULD_RE = re.compile(
     r"\b(следует|рекомендуется|желательно|рекомендован)\b", re.I
@@ -258,6 +258,12 @@ _NON_REQUIREMENT_TITLE_KEYWORDS = (
     "содержани",
     "оглавлени",
     "приложени",          # ГОСТ: приложения как правило — справочные
+    # Documentation-deliverable sections: "Требования к программной
+    # документации", "Требования к документации программы", etc.
+    # These describe WHAT DOCUMENTS to produce, not WHAT THE PROGRAM must
+    # do — they are project-management obligations, not program requirements.
+    "программной документаци",   # Требования к программной документации
+    "к документации",            # Требования к документации (any form)
 )
 
 
@@ -595,13 +601,67 @@ def _lemma(word: str) -> str:
     return _lemma_impl(word)
 
 
-def _extract_entities(text: str) -> List[str]:
-    # Keyword/noun-phrase extraction (MVP: title-cased words + domain nouns)
+# spaCy noun-chunk extractor: lazy-loaded so the regex fallback path
+# stays clean when spaCy / ru_core_news_md isn't installed. Loading is
+# expensive (~500ms once), so we cache the pipeline at module level.
+# `_SPACY_NLP` ∈ { None (not yet probed), False (probed, unavailable),
+# spacy.Language (loaded) }.
+_SPACY_NLP = None
+
+
+def _get_spacy_nlp():
+    """Return loaded spaCy pipeline or False if unavailable.
+
+    Resolution order:
+      1. CQUALITY_DISABLE_SPACY=1 in env → forced fallback (tests / CI).
+      2. import spacy → spacy.load("ru_core_news_md") → cached.
+      3. ImportError / OSError on missing model → cached False, regex
+         fallback used forever after for this process.
+    """
+    global _SPACY_NLP
+    if _SPACY_NLP is not None:
+        return _SPACY_NLP
+    if os.environ.get("CQUALITY_DISABLE_SPACY", "").strip() in ("1", "true", "yes"):
+        _SPACY_NLP = False
+        return False
+    try:
+        import spacy
+
+        nlp = spacy.load(
+            "ru_core_news_md",
+            # Tagger is needed for noun_chunks; disable parser/NER to keep
+            # the pipeline fast — we only consume noun_chunks + lemma_.
+            disable=["parser", "ner", "attribute_ruler"],
+        )
+        _SPACY_NLP = nlp
+        logger.info("entity extractor: spaCy ru_core_news_md loaded")
+        return nlp
+    except Exception as exc:
+        # Broad except: spaCy can raise ImportError / OSError / RuntimeError /
+        # ValueError depending on what's broken (missing core, missing model,
+        # numpy/torch version mismatch, model file corruption). In any of
+        # those cases we want the regex fallback, never a 500 for the API.
+        logger.info(
+            "entity extractor: spaCy unavailable (%s: %s); using regex "
+            "fallback. Install with: pip install spacy && python -m spacy "
+            "download ru_core_news_md",
+            type(exc).__name__, exc,
+        )
+        _SPACY_NLP = False
+        return False
+
+
+def _extract_entities_regex(text: str) -> List[str]:
+    """Legacy regex extractor — Title-Case + acronyms only.
+
+    Misses lower-case domain phrases ("методы испытаний", "входные данные",
+    "пользовательский интерфейс") because Russian doesn't capitalize them.
+    Used as fallback when spaCy isn't available.
+    """
     domain_terms = re.findall(
         r"\b([А-ЯЁ][а-яё]+(?:\s+[а-яёА-ЯЁ]+){0,2}|[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,1})\b",
         text,
     )
-    # Also extract acronyms
     acronyms = re.findall(r"\b([А-ЯЁ]{2,}|[A-Z]{2,})\b", text)
     seen: set = set()
     result: List[str] = []
@@ -616,7 +676,110 @@ def _extract_entities(text: str) -> List[str]:
             continue
         seen.add(key)
         result.append(t)
-    return result[:15]  # cap to avoid noise
+    return result[:15]
+
+
+def _spacy_noun_chunks_ru(doc) -> List[Tuple[str, str]]:
+    """POS-tag-based noun-phrase extraction for Russian.
+
+    spaCy's built-in `doc.noun_chunks` is **not implemented for ru**
+    (raises NotImplementedError E894 — known spaCy limitation: only
+    en/de/fr/es/pt/el/sv/nb/zh ship with a noun-chunk syntax iterator).
+    Workaround: walk tokens, group consecutive ADJ/NOUN/PROPN spans
+    into chunks. The Russian tagger works fine — only the chunk
+    iterator is missing.
+
+    Returns a list of (surface_form, lemma_key) tuples. Lemma key uses
+    space-joined lowercase lemmas of non-stop tokens — same key shape
+    spaCy noun_chunks produced, so downstream dedup is unchanged.
+    """
+    chunks: List[Tuple[str, str]] = []
+    current_tokens = []  # spaCy Token objects
+
+    def _flush():
+        if not current_tokens:
+            return
+        # Build surface form preserving spacing, lemma key for dedup.
+        surface = "".join(t.text_with_ws for t in current_tokens).strip()
+        lemma_parts = [
+            t.lemma_.lower() for t in current_tokens
+            if not t.is_stop and not t.is_punct and t.lemma_.strip()
+        ]
+        if surface and lemma_parts:
+            chunks.append((surface, " ".join(lemma_parts)))
+        current_tokens.clear()
+
+    for token in doc:
+        # Allow ADJ/NOUN/PROPN as chunk content. ADP (предлог) breaks
+        # the chunk: "перечень функций программы" — three NOUNs in a row,
+        # no preposition between them, all stay in one chunk; "защита от
+        # инъекций" — ADP "от" cuts; we get "защита" + "инъекций" as
+        # separate chunks (acceptable — both still useful for dedup).
+        if token.pos_ in {"NOUN", "PROPN", "ADJ"}:
+            current_tokens.append(token)
+        else:
+            _flush()
+    _flush()
+    return chunks
+
+
+def _extract_entities(text: str) -> List[str]:
+    """Extract domain entities from a requirement / coverage-unit text.
+
+    Audit (Polyakov: every false `Near-zero entity overlap` demotion):
+    Russian technical text doesn't capitalize domain nouns, so the old
+    Title-Case regex returned ~0-2 entities for typical reqs and Rule 5
+    (verify_pairs) demoted genuine PARTIAL pairs as off-topic. spaCy's
+    POS tagger groups consecutive NOUN/PROPN/ADJ tokens, so "перечень
+    функций программы", "методы испытаний", "входные данные" all extract
+    correctly. Lemmas let the same phrase match across morphological variants.
+
+    Resolution order:
+      1. spaCy POS-tag noun-phrase scan (lemmatised) — preferred path.
+      2. Acronym sweep (spaCy may not surface short ALL-CAPS as nouns).
+      3. Regex fallback when spaCy isn't installed / model isn't downloaded.
+    """
+    if not text or not text.strip():
+        return []
+
+    nlp = _get_spacy_nlp()
+    if not nlp:
+        return _extract_entities_regex(text)
+
+    seen: set = set()
+    result: List[str] = []
+    try:
+        doc = nlp(text)
+        chunks = _spacy_noun_chunks_ru(doc)
+    except Exception as exc:
+        # Defensive: any spaCy/tagger failure → regex fallback rather
+        # than losing the whole requirement / failing the API request.
+        logger.warning(
+            "entity extractor: spaCy crashed on text (%s: %s); regex fallback",
+            type(exc).__name__, exc,
+        )
+        return _extract_entities_regex(text)
+
+    for surface, key in chunks:
+        # Skip 1-letter / overly long chunks; cap len at 5 words.
+        words_in_chunk = len(surface.split())
+        if not key or len(key) <= 2 or words_in_chunk > 5:
+            continue
+        if key in seen:
+            continue
+        if _is_stop_entity(key):
+            continue
+        seen.add(key)
+        result.append(surface)
+
+    # Acronym sweep — spaCy may treat "REST" / "JSON" inconsistently.
+    for acronym in re.findall(r"\b([А-ЯЁ]{2,}|[A-Z]{2,})\b", text):
+        key = acronym.lower()
+        if key not in seen and len(acronym) > 2:
+            seen.add(key)
+            result.append(acronym)
+
+    return result[:15]
 
 
 def _is_requirement_fragment(text: str) -> bool:
@@ -726,26 +889,50 @@ def _split_compound_requirement(text: str) -> List[str]:
     return [stripped]
 
 
-def _section_allows_candidate(section_id: Optional[str], modality: Modality) -> bool:
+def _section_allows_candidate(
+    section_id: Optional[str],
+    modality: Modality,
+    metadata: Optional[dict] = None,
+) -> bool:
     """
     Gate for whether a candidate/fragment from a given section should be included
-    in the RequirementUnit set for C-quality MVP coverage analysis.
+    in the RequirementUnit set for C-quality coverage analysis.
 
-    Rules:
-    - Requirement sections (4.x): always allowed
-    - Non-requirement sections (1, 2, 3): only when explicit modality present
-      (MUST / MUST_NOT / SHOULD) — rules out descriptive text with incidental triggers
-    - Unknown section (no section_id or sections 5+): permissive — cannot filter
-      without section information, so include the candidate as before
+    Priority:
+    1. prepare-service sectionCategory (gold signal from docback metadata):
+       - "requirements"  → always allow (explicit requirements chapter).
+       - any other value → require MUST / MUST_NOT / SHOULD modality.
+         Prevents false positives from "other" / "metadata" / "environment"
+         sections in unstructured TZs (Череухо-class documents where every
+         section is tagged "other" and heuristic-only extraction inflates
+         the requirement list).
+    2. GOST TZ section numbering (fallback when sectionCategory absent):
+       - Section 4.x → always allow.
+       - Sections 1–3 → require explicit modality.
+       - Unknown numbering (None) → require explicit modality.
+         Tightened from previous "be permissive" to avoid admitting noise
+         from non-GOST structured TZs via section_id alone.
     """
+    _MODALITY_REQUIRED = (Modality.MUST, Modality.MUST_NOT, Modality.SHOULD)
+
+    # ── 1. Gold signal: sectionCategory from prepare-service ─────────────
+    section_category = (metadata or {}).get("sectionCategory", "")
+    if section_category:
+        if section_category == "requirements":
+            return True
+        # Any other tagged category (other / metadata / environment /
+        # test_steps) is explicitly NOT the requirements chapter.
+        return modality in _MODALITY_REQUIRED
+
+    # ── 2. GOST numbering heuristic (legacy / test data without metadata) ─
     relevance = _is_requirement_section(section_id)
     if relevance is True:
         return True
-    if relevance is None:
-        # No section info available — cannot apply section filter; be permissive
-        return True
-    # Definitively non-requirement section (1, 2, 3): require explicit modality
-    return modality in (Modality.MUST, Modality.MUST_NOT, Modality.SHOULD)
+    # Both the definitive-no (sections 1–3) and the ambiguous (None) cases
+    # require explicit modality.  "Unknown" no longer means "permissive" —
+    # a section we cannot classify is more likely unrelated prose than a
+    # requirements chapter.
+    return modality in _MODALITY_REQUIRED
 
 
 # ---------------------------------------------------------------------------
@@ -1035,10 +1222,25 @@ class RequirementBuilder:
             cand_meta = cand.get("metadata") or {}
             section_title = cand_meta.get("sectionTitle") or cand_meta.get("section_title") or ""
 
-            if not _section_allows_candidate(section_id, modality):
+            if not _section_allows_candidate(section_id, modality, cand_meta):
                 logger.debug(
-                    "Skipping candidate in non-requirement section %r (modality=%s) in %s",
-                    section_id, modality, doc_id,
+                    "Skipping candidate in non-requirement section %r "
+                    "(sectionCategory=%r modality=%s) in %s",
+                    section_id, cand_meta.get("sectionCategory"), modality, doc_id,
+                )
+                continue
+
+            # FIX-C4: exclude documentation-deliverable requirements.
+            # prepare-service tags candidates that describe WHAT DOCUMENTS to
+            # produce (not what the program must do) as "documentation_requirement".
+            # docback maps them to ctRequirement so they reach C-quality, but they
+            # must not count as program requirements in coverage analysis.
+            # The original prepare-service type is preserved in metadata["prepareType"].
+            prepare_type = cand_meta.get("prepareType", "")
+            if prepare_type == "documentation_requirement":
+                logger.debug(
+                    "Skipping documentation_requirement candidate in %s (section %r): %r",
+                    doc_id, section_id, text[:100],
                 )
                 continue
 
@@ -1086,10 +1288,11 @@ class RequirementBuilder:
             modality = _extract_modality(text)
             frag_meta = frag.get("metadata") or {}
             section_title = frag_meta.get("sectionTitle") or frag_meta.get("section_title") or ""
-            if not _section_allows_candidate(section_id, modality):
+            if not _section_allows_candidate(section_id, modality, frag_meta):
                 logger.debug(
-                    "Skipping fragment in non-requirement section %r (modality=%s) in %s",
-                    section_id, modality, doc_id,
+                    "Skipping fragment in non-requirement section %r "
+                    "(sectionCategory=%r modality=%s) in %s",
+                    section_id, frag_meta.get("sectionCategory"), modality, doc_id,
                 )
                 continue
             units.append(

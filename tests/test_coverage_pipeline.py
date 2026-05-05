@@ -457,7 +457,10 @@ def _make_package(tz_req_text: str, pmi_text: str) -> dict:
                     "document_id": "doc-tz",
                     "doc_role": "tz",
                     "fragments": [
-                        {"fragment_id": "f1", "text": tz_req_text, "kind": "paragraph"}
+                        # section_id="4.1": GOST TZ §4.x is always a requirements section;
+                        # the section gate admits the fragment regardless of modality.
+                        {"fragment_id": "f1", "section_id": "4.1",
+                         "text": tz_req_text, "kind": "paragraph"}
                     ],
                 },
             },

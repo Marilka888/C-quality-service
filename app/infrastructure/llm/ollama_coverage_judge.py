@@ -139,6 +139,25 @@ def _parse_response(
             p for p in cited
             if p and _normalize_for_grounding(p) and _normalize_for_grounding(p) in evidence_norm
         ]
+        # Audit (Polyakov: every "[ungrounded]" demotion): the strict substring
+        # gate kills legitimate verdicts whose evidence is on-topic but whose
+        # citations the LLM paraphrases (synonym, word reorder, dropped
+        # punctuation). Token-overlap fallback: count distinct content tokens
+        # (≥ 4 chars) shared between cited_phrases and evidence. ≥ 3 is the
+        # minimum bar where the citation is genuinely supported even if not
+        # a verbatim substring; below that the LLM most likely hallucinated.
+        if not grounded and cited:
+            cited_tokens = set()
+            for p in cited:
+                for tok in _normalize_for_grounding(p).split():
+                    if len(tok) >= 4:
+                        cited_tokens.add(tok)
+            evidence_tokens = set(
+                tok for tok in evidence_norm.split() if len(tok) >= 4
+            )
+            shared = cited_tokens & evidence_tokens
+            if len(shared) >= 3:
+                grounded = [f"<fuzzy:{len(shared)}_tokens>"]
         if not grounded:
             label = LLMLabel.IRRELEVANT
             low_confidence = True

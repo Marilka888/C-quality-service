@@ -137,6 +137,16 @@ class CoverageRetrievalConfig(BaseModel):
     selector_strong_margin: float = Field(default=0.08, ge=0.0, le=1.0)
     # Cap selected_k regardless of available candidates.
     selector_max_k: int = Field(default=5, ge=1, le=20)
+    # PR-K post-fix (B): when True AND debug.enabled is False, the judge
+    # call is skipped entirely for shortlists whose max retrieval_score is
+    # below evidence_floor — saves ~15-20% of LLM calls on packages where
+    # some requirements have no strong retrieval signal. The resulting row
+    # is MISSING_NO_EVIDENCE (same as if the shortlist were empty). When
+    # debug is enabled the judge IS still called so the rationale appears
+    # in evidence_trace for investigation. Default False preserves the
+    # pre-B behaviour (call judge + stamp low_confidence, useful for
+    # debugging false-COVERED/PARTIAL rows from weak retrieval).
+    skip_llm_below_floor: bool = True
 
 
 class CoverageAggregatorConfig(BaseModel):
@@ -150,6 +160,17 @@ class CoverageAggregatorConfig(BaseModel):
     # CONFLICT accepted only when this confidence is reached AND
     # grounding_passed AND retrieval_score >= medium_threshold.
     conflict_confidence_threshold: float = Field(default=0.70, ge=0.0, le=1.0)
+    # PARTIAL accepted only when LLM confidence is at least this value.
+    # PR-K post-fix (B): raised from 0.50 to 0.65 (symmetric with
+    # covered_confidence_threshold) to eliminate false PARTIALs from
+    # small models (qwen2.5:3b, llama3.2:3b) that output PARTIAL with
+    # conf=0.50–0.64 on off-topic evidence. Real-package symptom:
+    # Поляков package had 4 false PARTIALs in PZ driven by sticky
+    # generic units scored ≈0.44; all had conf ≤ 0.64. Genuine PARTIALs
+    # from well-evidenced partial coverage consistently show conf ≥ 0.70
+    # in manual review. Override via CoverageConfig.from_options() or
+    # env-driven config if a higher recall of weak PARTIALs is needed.
+    partial_confidence_threshold: float = Field(default=0.65, ge=0.0, le=1.0)
     # Aggregator-side "medium" floor on retrieval_score for confident
     # COVERED / CONFLICT. Distinct from the retrieval-side
     # evidence_floor (which only stamps low_confidence).
@@ -174,19 +195,43 @@ class CoverageLLMConfig(BaseModel):
     # "ollama"        — local Ollama HTTP API (llama3 etc.)
     # "litellm"       — unified multi-provider via LiteLLM. `model_name`
     #                   becomes a LiteLLM routing string, e.g.
+    #                   "xai/grok-2-latest",
     #                   "groq/llama-3.3-70b-versatile",
     #                   "gemini/gemini-2.0-flash",
     #                   "openai/gpt-4o-mini",
     #                   "anthropic/claude-3-5-haiku-latest",
     #                   "cerebras/llama-3.1-70b",
     #                   "ollama/qwen2.5:7b". Each provider expects its
-    #                   API key in env (GROQ_API_KEY, GEMINI_API_KEY,
-    #                   OPENAI_API_KEY, ANTHROPIC_API_KEY, …).
+    #                   API key in env (XAI_API_KEY, GROQ_API_KEY,
+    #                   GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, …).
     # "cross_encoder" — zero-shot BGE cross-encoder as judge (reuses the
     #                   reranker model; no training required)
     # "disabled"      — rule-based DisabledCoverageJudge fallback
-    backend: str = "ollama"
-    model_name: str = "qwen2.5:3b"
+    #
+    # Default: litellm + Groq Cloud Llama-3.1-8B-Instant.
+    #
+    # Why 8B and not 70B: Groq free tier TPM limits.
+    #   * llama-3.3-70b-versatile: 12K TPM — too tight; bursting 41
+    #     pair-judgments at ~1500 tokens each saturates it instantly
+    #     and 38/41 calls fail with RateLimitError (Polyakov re-run).
+    #   * llama-3.1-8b-instant:    30K TPM — fits a 60K-token burst
+    #     comfortably over 2 minutes.
+    #
+    # Quality trade-off: 8B is weaker than 70B on Russian paraphrase
+    # but still much stronger than qwen2.5:3b (and an order of
+    # magnitude faster, at ~750 tok/sec on Groq).
+    #
+    # If you need 70B quality, set:
+    #   model_name = "groq/llama-3.3-70b-versatile"
+    # AND wait for the rate-limit-aware retry (see LiteLLMCoverageJudge
+    # which now parses the 'try again in Xs' hint from RateLimitError).
+    # 70B will run slower (~5 min per package on free tier) but produce
+    # richer verdicts.
+    #
+    # Operators can override per-request via options.judge_backend or
+    # options.llm_model_name.
+    backend: str = "litellm"
+    model_name: str = "groq/llama-3.1-8b-instant"
     prompt_version: str = "v1"
     timeout: int = 120
     # Thresholds for cross_encoder backend. Calibrated for BAAI/bge-reranker-v2-m3
@@ -210,7 +255,12 @@ class CoverageEmbeddingConfig(BaseModel):
 class CoverageRerankerConfig(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
-    enabled: bool = False
+    # Default ON: BGE reranker in conditional mode is a strict quality
+    # win on real packages (Polyakov + others). When BGE isn't available
+    # at startup the pipeline silently falls back (NoopReranker), so this
+    # default is safe even on dev machines without sentence-transformers.
+    # Override per-request via options.enable_reranker = false.
+    enabled: bool = True
     backend: str = "bge"  # "bge" | "disabled"
     model_name: str = "BAAI/bge-reranker-v2-m3"
     max_len: int = Field(default=512, ge=64, le=1024)
@@ -274,7 +324,13 @@ class CoverageConfig(BaseModel):
             config.retrieval.top_k = int(options["top_k"])
         if "enable_llm_judge" in options:
             config.llm.enabled = bool(options["enable_llm_judge"])
-            if config.llm.enabled:
+            # Legacy compat: when an orchestrator says "enable LLM" without
+            # specifying a backend AND the service default is the special
+            # "disabled" backend, fall back to ollama (the original
+            # behaviour). When the service default is already a real
+            # backend (litellm, ollama, cross_encoder), preserve it so
+            # the operator's choice in config.py wins.
+            if config.llm.enabled and config.llm.backend == "disabled":
                 config.llm.backend = "ollama"
         if "judge_backend" in options:
             backend = str(options["judge_backend"]).lower()
@@ -289,6 +345,12 @@ class CoverageConfig(BaseModel):
             config.enable_rule_verification = bool(options["enable_rule_verification"])
         if "min_retrieval_score" in options:
             config.retrieval.min_retrieval_score = float(options["min_retrieval_score"])
+        if "evidence_floor" in options:
+            config.retrieval.evidence_floor = float(options["evidence_floor"])
+        if "skip_llm_below_floor" in options:
+            config.retrieval.skip_llm_below_floor = bool(
+                options["skip_llm_below_floor"]
+            )
         if "requirement_extraction" in options:
             mode = str(options["requirement_extraction"]).lower()
             if mode in {"auto", "sections", "candidates", "fragments", "model"}:
@@ -327,5 +389,9 @@ class CoverageConfig(BaseModel):
         if "conflict_confidence_threshold" in options:
             config.aggregator.conflict_confidence_threshold = float(
                 options["conflict_confidence_threshold"]
+            )
+        if "partial_confidence_threshold" in options:
+            config.aggregator.partial_confidence_threshold = float(
+                options["partial_confidence_threshold"]
             )
         return config

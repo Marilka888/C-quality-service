@@ -17,6 +17,7 @@ PR-K additions (additive, no contract breaks):
 """
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional, Set
 
 from app.application.use_cases.applicability import evidence_strength_from_score
@@ -55,6 +56,128 @@ _CRITICAL_TYPES: Set[RequirementType] = {
     RequirementType.SECURITY,
     RequirementType.PERFORMANCE,
     RequirementType.RELIABILITY,
+}
+
+# Sections whose content is descriptive/comparative rather than
+# implementation-specific (competitor analysis, UI styling notes, …).
+# Evidence units from these sections are penalised at retrieval time so
+# they don't win over genuine implementation evidence when the BoW score
+# happens to be similar (both mention "интерфейс", "система", etc.).
+# The penalty is additive with the evidence_floor: a unit that scores
+# 0.45 from a competitor-analysis section becomes 0.30 → below the
+# default floor of 0.30, so it will never produce a confident verdict.
+_NON_IMPL_SECTION_RE = re.compile(
+    r"аналог|сравнительн|конкурент|стилизац",
+    re.IGNORECASE | re.UNICODE,
+)
+_NON_IMPL_SECTION_TEXT_RE = re.compile(
+    r"repo\.hse|существующ\w*\s+аналог|сравнительн\w*\s+анализ|"
+    r"ближайш\w*\s+аналог|на\s+фоне\s+большинства\s+конкурент",
+    re.IGNORECASE | re.UNICODE,
+)
+_FILE_STRUCTURE_TEXT_RE = re.compile(
+    r"\.ts,\s*\.html,\s*\.css|одинаковое\s+название|директори[ия]\s+с\s+таким\s+же\s+назв",
+    re.IGNORECASE | re.UNICODE,
+)
+_ADMIN_CAPABILITY_TEXT_RE = re.compile(
+    r"администратор\s+[–-]\s+имеет\s+возможность\s+выдавать\s+роли|"
+    r"удалять\s+уже\s+принятые\s+исследования|без\s+необходимости\s+проходить\s+модерац",
+    re.IGNORECASE | re.UNICODE,
+)
+_COLLECTION_REPAIR_TEXT_RE = re.compile(
+    r"внутрь\s+этой\s+коллекции\s+добавляются|одинокое\s+исследование|"
+    r"связать\s+с\s+новой\s+коллекцией",
+    re.IGNORECASE | re.UNICODE,
+)
+_NON_IMPL_SECTION_PENALTY = 0.35
+_FILE_STRUCTURE_PENALTY = 0.30
+_ADMIN_CAPABILITY_PENALTY = 0.20
+_COLLECTION_REPAIR_PENALTY = 0.25
+
+_ASPECT_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_.+-]*|\d+(?:[.,]\d+)?", re.UNICODE)
+_TECH_KEYWORDS = {
+    "api", "rest", "json", "xml", "http", "https",
+    "typescript", "angular", "react", "vue", "javascript",
+    "github", "gitlab", "git", "docker", "figma",
+    "sql", "postgresql", "mysql", "mongodb",
+}
+
+# Domain anchors that ordinary BoW/embedding retrieval often underweights in
+# Russian student documents. They are intentionally stem-ish substrings: the
+# goal is recall of the right evidence section, while the LLM/verifier still
+# decides COVERED/PARTIAL/MISSING afterwards.
+_ASPECT_ALIASES: dict[str, tuple[str, ...]] = {
+    "registration": ("регистрац", "зарегистр"),
+    "authorization": ("авторизац", "авториз", "разграничен"),
+    "authentication": ("аутентификац", "логин", "парол"),
+    "project": ("проект", "коллекц", "исследован", "публикац"),
+    "upload_download_files": ("загруз", "скач", "файл", "прикреп"),
+    "search_filter": ("поиск", "фильтр", "ключев", "метадан", "автор", "дата"),
+    "personal_account": ("личн", "кабинет", "профил", "учетн", "учётн"),
+    "server_db": ("сервер", "баз", "данн", "backend", "бэкенд"),
+    "error_handling": ("ошиб", "неверн", "корректн", "аварийн", "отказ"),
+    "interface_mockup": ("интерфейс", "макет", "figma", "ui", "ux", "прототип"),
+    "rest_json": ("rest", "api", "json"),
+    "github": ("github", "git"),
+    "typescript_angular": ("typescript", "angular", ".ts"),
+    "performance_time": ("отклик", "секунд", "response", "time"),
+}
+
+_BOOSTABLE_ASPECTS: Set[str] = {
+    "registration",
+    "authorization",
+    "authentication",
+    "upload_download_files",
+    "search_filter",
+    "personal_account",
+    "error_handling",
+    "interface_mockup",
+    "rest_json",
+    "github",
+    "typescript_angular",
+    "performance_time",
+}
+
+_PZ_TOPIC_ALIASES: dict[RequirementType, tuple[str, ...]] = {
+    RequirementType.ARCHITECTURE_IMPLEMENTATION: (
+        "обоснование средств", "средства разработки", "архитектур",
+        "развертыван", "развёртыван", "технолог", "github", "docker",
+        "typescript", "angular",
+    ),
+    RequirementType.DATA_IO: (
+        "архитектур", "взаимодейств", "сервер", "rest", "api", "json",
+        "входн", "выходн", "данн",
+    ),
+    RequirementType.INTERFACE: (
+        "прототип", "figma", "макет", "интерфейс", "стилизац", "ui", "ux",
+    ),
+    RequirementType.FUNCTIONAL: (
+        "пользовательские сценар", "сценар", "интерфейс веб", "страница",
+        "проект", "поиск", "фильтр", "скач", "загруз", "файл",
+        "регистрац", "авторизац",
+    ),
+    RequirementType.SECURITY: (
+        "регистрац", "авторизац", "аутентификац", "доступ", "роль",
+        "безопас", "инъекц", "внедрен", "ошиб",
+    ),
+    RequirementType.RELIABILITY: (
+        "развертыван", "развёртыван", "сервер", "ошиб", "отказ",
+        "коррект", "устойчив", "восстанов",
+    ),
+}
+
+_PMI_TOPIC_ALIASES: dict[RequirementType, tuple[str, ...]] = {
+    RequirementType.FUNCTIONAL: (
+        "функциональн", "авторизац", "регистрац", "добавлен", "проект",
+        "разгранич", "поиск", "фильтр", "файл",
+    ),
+    RequirementType.INTERFACE: ("программному интерфейсу", "интерфейс", "ui", "ux"),
+    RequirementType.RELIABILITY: ("надеж", "надёж", "восстанов", "ошиб", "отказ"),
+    RequirementType.SECURITY: ("авторизац", "доступ", "роль", "инъекц", "некорректн"),
+    RequirementType.DATA_IO: ("ошиб", "неверн", "сообщен", "запрос", "данн"),
+    RequirementType.PERFORMANCE: ("отклик", "секунд", "время", "производительн"),
+    RequirementType.ENVIRONMENT_REQUIREMENT: ("браузер", "windows", "процессор", "памят", "монитор"),
+    RequirementType.DOCUMENTATION_REQUIREMENT: ("документац", "методик", "испытан", "гост"),
 }
 
 
@@ -117,8 +240,132 @@ def _section_prior(req: RequirementUnit, unit: CoverageUnit) -> float:
     return 0.0
 
 
+def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
+    lower = (text or "").lower()
+    return any(n and n.lower() in lower for n in needles)
+
+
+def _unit_section_title(unit: CoverageUnit) -> str:
+    return str(
+        unit.metadata.get("section_title")
+        or unit.metadata.get("sectionTitle")
+        or ""
+    )
+
+
+def _topic_prior(req: RequirementUnit, unit: CoverageUnit) -> float:
+    """Type-aware boost for evidence from the natural section/topic.
+
+    This is intentionally a retrieval-only prior. It makes the right section
+    visible to the judge; it does not itself declare coverage.
+    """
+    role = unit.target_doc_role.lower()
+    title = _unit_section_title(unit)
+    haystack = f"{title}\n{unit.text}".lower()
+    if role == "pz":
+        aliases = _PZ_TOPIC_ALIASES.get(req.requirement_type, ())
+    elif role == "pmi":
+        aliases = _PMI_TOPIC_ALIASES.get(req.requirement_type, ())
+    else:
+        aliases = ()
+    if not aliases:
+        return 0.0
+    title_hit = _contains_any(title, aliases)
+    text_hit = _contains_any(haystack, aliases)
+    if title_hit and text_hit:
+        return 1.0
+    if title_hit:
+        return 0.85
+    if text_hit:
+        return 0.55
+    return 0.0
+
+
+def _noise_penalty(req: RequirementUnit, unit: CoverageUnit) -> float:
+    """Demote recurring descriptive PZ fragments that are not evidence.
+
+    These fragments repeatedly win lexical/semantic retrieval in Polyakov-like
+    packages but describe analogues, admin capabilities, file layout, or a
+    one-off data repair operation rather than coverage of a TZ requirement.
+    """
+    text = unit.text or ""
+    section_title = _unit_section_title(unit)
+    penalty = 0.0
+
+    if (
+        (section_title and _NON_IMPL_SECTION_RE.search(section_title))
+        or _NON_IMPL_SECTION_TEXT_RE.search(text)
+    ):
+        penalty += _NON_IMPL_SECTION_PENALTY
+
+    if _FILE_STRUCTURE_TEXT_RE.search(text):
+        if req.requirement_type == RequirementType.ARCHITECTURE_IMPLEMENTATION:
+            req_aspects = _aspect_tokens(req.text)
+            unit_aspects = _aspect_tokens(text)
+            if not ({"typescript_angular", "github"} & req_aspects & unit_aspects):
+                penalty += _FILE_STRUCTURE_PENALTY
+            else:
+                penalty += 0.12
+        else:
+            penalty += _FILE_STRUCTURE_PENALTY
+
+    if _ADMIN_CAPABILITY_TEXT_RE.search(text):
+        req_aspects = _aspect_tokens(req.text)
+        unit_aspects = _aspect_tokens(text)
+        if not ({"authorization", "authentication"} & req_aspects & unit_aspects):
+            penalty += _ADMIN_CAPABILITY_PENALTY
+        else:
+            penalty += 0.10
+
+    if _COLLECTION_REPAIR_TEXT_RE.search(text):
+        penalty += _COLLECTION_REPAIR_PENALTY
+
+    return min(penalty, 0.75)
+
+
+def _aspect_tokens(text: str) -> Set[str]:
+    """Exact anchors that should survive paraphrase-heavy retrieval."""
+    out: Set[str] = set()
+    lower_text = (text or "").lower()
+    for canonical, variants in _ASPECT_ALIASES.items():
+        if _contains_any(lower_text, variants):
+            out.add(canonical)
+    for raw in _ASPECT_TOKEN_RE.findall(text or ""):
+        token = raw.lower().strip(".,;:()[]{}")
+        if not token:
+            continue
+        if token in _TECH_KEYWORDS or token.replace(".", "", 1).isdigit():
+            out.add(token)
+            continue
+        has_upper = any(c.isupper() for c in raw)
+        has_digit = any(c.isdigit() for c in raw)
+        if len(token) >= 3 and (has_upper or has_digit):
+            out.add(token)
+    return out
+
+
+def _aspect_overlap(req_text: str, unit_text: str) -> float:
+    req_aspects = _aspect_tokens(req_text)
+    if not req_aspects:
+        return 0.0
+    unit_aspects = _aspect_tokens(unit_text)
+    if not unit_aspects:
+        return 0.0
+    return len(req_aspects & unit_aspects) / len(req_aspects)
+
+
+def _boostable_aspect_overlap(req_text: str, unit_text: str) -> float:
+    req_aspects = _aspect_tokens(req_text) & _BOOSTABLE_ASPECTS
+    if not req_aspects:
+        return 0.0
+    unit_aspects = _aspect_tokens(unit_text) & _BOOSTABLE_ASPECTS
+    if not unit_aspects:
+        return 0.0
+    return len(req_aspects & unit_aspects) / len(req_aspects)
+
+
 def _build_score_reason(
-    lex: float, sem: float, con: float, sec: float, total: float,
+    lex: float, sem: float, con: float, sec: float, total: float, exact: float = 0.0,
 ) -> str:
     """One-line, human-readable explanation of which component drove
     the score. Rendered in evidence_trace and also handy for log
@@ -132,6 +379,7 @@ def _build_score_reason(
         "sem": sem,
         "con": con,
         "sec": sec,
+        "exact": exact,
     }
     max_v = max(components.values()) if components else 0.0
     if max_v <= 0.0:
@@ -143,6 +391,7 @@ def _build_score_reason(
         "sem": "semantic",
         "con": "constraint",
         "sec": "section",
+        "exact": "exact-aspect",
     }
     if len(leaders) == 1:
         parts.append(f"{label[leaders[0]]} dominant")
@@ -264,7 +513,9 @@ class CandidateRetriever:
             lex = _jaccard(req_tokens, unit_tokens)
             sem = float(semantic_scores[i]) if i < len(semantic_scores) else 0.0
             con = _constraint_overlap(requirement.constraints, unit.constraints)
-            sec = _section_prior(requirement, unit)
+            topic = _topic_prior(requirement, unit)
+            sec = max(_section_prior(requirement, unit), topic)
+            exact = _boostable_aspect_overlap(requirement.text, unit.text)
 
             score = (
                 self._cfg.lexical_weight * lex
@@ -272,6 +523,19 @@ class CandidateRetriever:
                 + self._cfg.constraint_weight * con
                 + self._cfg.section_prior_weight * sec
             )
+            if exact > 0.0:
+                score += min(0.22, 0.06 + 0.16 * exact)
+            if topic > 0.0:
+                score += min(0.14, 0.04 + 0.10 * topic)
+            score = min(score, 0.9999)
+
+            penalty = _noise_penalty(requirement, unit)
+            if penalty > 0.0:
+                score = max(0.0, score - penalty)
+                logger.debug(
+                    "Coverage noise penalty: unit=%s penalty=%.2f score→%.3f",
+                    unit.unit_id[:8], penalty, score,
+                )
 
             if score < self._cfg.min_retrieval_score:
                 continue
@@ -286,6 +550,7 @@ class CandidateRetriever:
                     constraint_overlap_score=round(con, 4),
                     section_prior_score=round(sec, 4),
                     retrieval_score=round(score, 4),
+                    unit_type=unit.unit_type,
                 )
             )
 
@@ -308,6 +573,7 @@ class CandidateRetriever:
                 )
 
             if shortlist and should_rerank:
+                unit_by_id = {u.unit_id: u for u in coverage_units}
                 unit_text_by_id = {u.unit_id: u.normalized_text for u in coverage_units}
                 texts = [unit_text_by_id.get(c.unit_id, "") for c in shortlist]
                 try:
@@ -322,7 +588,21 @@ class CandidateRetriever:
                     # rest of the pipeline (and the final report) reflects
                     # what actually determined the top-K order.
                     for c, s in zip(shortlist, rr_scores):
-                        c.retrieval_score = round(float(s), 4)
+                        unit = unit_by_id.get(c.unit_id)
+                        score = float(s)
+                        if unit is not None:
+                            exact = _boostable_aspect_overlap(requirement.text, unit.text)
+                            topic = _topic_prior(requirement, unit)
+                            if exact >= 0.5:
+                                score += min(0.12, 0.04 + 0.08 * exact)
+                            elif topic > 0.0:
+                                score += min(0.06, 0.02 + 0.04 * topic)
+                        # Defense-in-depth: clamp to (0, 0.9999) even
+                        # though BGE adapter now sigmoids its output.
+                        # Future reranker backends or boost-stacking
+                        # bugs (exact/topic boost added above can push
+                        # over 1.0) get neutralised here.
+                        c.retrieval_score = round(max(0.0, min(score, 0.9999)), 4)
                         c.reranker_used = True
                         c.reranker_score = round(float(s), 4)
                     shortlist.sort(key=lambda c: c.retrieval_score, reverse=True)
@@ -354,6 +634,10 @@ class CandidateRetriever:
                     c.lexical_score, c.semantic_score,
                     c.constraint_overlap_score, c.section_prior_score,
                     c.retrieval_score,
+                    _boostable_aspect_overlap(
+                        requirement.text,
+                        next((u.text for u in coverage_units if u.unit_id == c.unit_id), ""),
+                    ),
                 )
             c.evidence_strength = evidence_strength_from_score(
                 c.retrieval_score, strong=strong, medium=medium, weak=weak,

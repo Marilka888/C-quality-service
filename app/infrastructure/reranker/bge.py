@@ -107,7 +107,17 @@ class BGEReranker(Reranker):
                     max_length=self._max_len,
                     return_tensors="pt",
                 ).to(self._device)
-                # BGE reranker emits a single logit per pair
+                # BGE reranker emits a single relevance logit per pair.
+                # Apply sigmoid so the returned score lands in (0, 1) —
+                # the rest of the pipeline (AdaptiveCandidateSelector,
+                # evidence_strength binning, evidence_floor gate) all
+                # assume this range. Without sigmoid, raw logits like
+                # -3.0 / -5.0 for irrelevant pairs propagate downstream
+                # and trigger over-aggressive skip_llm_below_floor on
+                # every non-trivial requirement (Polyakov re-run with
+                # raw-logit output: 29 pair(s) skipped vs an expected
+                # 5-10).
                 logits = model(**enc).logits.view(-1)
-                scores.extend(logits.cpu().tolist())
+                probs = torch.sigmoid(logits)
+                scores.extend(probs.cpu().tolist())
         return scores

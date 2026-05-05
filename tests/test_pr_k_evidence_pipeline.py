@@ -23,6 +23,7 @@ from app.application.use_cases.adaptive_candidate_selector import (
 )
 from app.application.use_cases.aggregate_coverage import (
     SUBCODE_COVERED,
+    SUBCODE_CONFLICT_UNVERIFIED,
     SUBCODE_CONFLICT_VERIFIED,
     SUBCODE_MISSING_LOW_CONFIDENCE,
     SUBCODE_MISSING_LOW_GROUNDING,
@@ -42,6 +43,7 @@ from app.application.use_cases.retrieve_candidates import (
     _conditional_should_rerank,
 )
 from app.core.config import (
+    CoverageConfig,
     CoverageAggregatorConfig,
     CoverageDebugConfig,
     CoverageRerankerConfig,
@@ -63,6 +65,43 @@ from app.domain.c_quality_models import (
     RetrievedCandidate,
 )
 from app.infrastructure.embeddings.simple import BagOfWordsEmbeddingBackend
+
+
+class TestCoverageConfigOptions:
+    def test_from_options_exposes_evidence_and_partial_thresholds(self):
+        cfg = CoverageConfig.from_options(
+            {
+                "evidence_floor": 0.42,
+                "skip_llm_below_floor": False,
+                "partial_confidence_threshold": 0.72,
+            }
+        )
+
+        assert cfg.retrieval.evidence_floor == pytest.approx(0.42)
+        assert cfg.retrieval.skip_llm_below_floor is False
+        assert cfg.aggregator.partial_confidence_threshold == pytest.approx(0.72)
+
+    def test_skip_llm_below_floor_default_enabled(self):
+        cfg = CoverageRetrievalConfig()
+        assert cfg.skip_llm_below_floor is True
+
+    def test_floor_skip_keeps_critical_and_numeric_on_llm_path(self):
+        from app.application.use_cases.run_coverage_analysis import (
+            _can_skip_llm_below_floor,
+        )
+
+        assert _can_skip_llm_below_floor(
+            _req(req_type=RequirementType.FUNCTIONAL)
+        )
+        assert not _can_skip_llm_below_floor(
+            _req(req_type=RequirementType.SECURITY)
+        )
+        assert not _can_skip_llm_below_floor(
+            _req(
+                req_type=RequirementType.FUNCTIONAL,
+                constraints=[Constraint(kind="time", operator="<=", value=3, unit="seconds")],
+            )
+        )
 
 
 # ── fixtures ────────────────────────────────────────────────────────────
@@ -171,11 +210,49 @@ class TestAdaptiveCandidateSelector:
         assert result.selected_k == 3
 
     def test_weak_top1_broadens_to_three(self):
-        # Top-1 WEAK (>=0.12, <0.25)
+        # Top-1 WEAK (>=0.12, <0.25). With skip_llm_below_floor=True
+        # (default) the selector skips the LLM here for non-critical reqs;
+        # disable the flag so this test continues exercising the WEAK
+        # broadening branch it was written for.
+        cfg = CoverageRetrievalConfig(skip_llm_below_floor=False)
         cands = [_candidate("u1", 0.20), _candidate("u2", 0.18), _candidate("u3", 0.15)]
-        result = select_candidates(_req(), cands, self.cfg)
+        result = select_candidates(_req(), cands, cfg)
         assert result.selected_k == 3
         assert "WEAK" in result.selection_reason or "weak" in result.selection_reason.lower()
+
+    def test_skip_llm_below_floor_skips_non_critical(self):
+        """Audit fix: top-1 in [weak_threshold, evidence_floor) for a
+        non-critical requirement should skip the LLM. The aggregator
+        would have rejected any positive verdict via
+        medium_retrieval_threshold anyway — saves a call per pair."""
+        cfg = CoverageRetrievalConfig()  # skip_llm_below_floor=True default
+        cands = [_candidate("u1", 0.20), _candidate("u2", 0.18)]
+        req = _req(req_type=RequirementType.FUNCTIONAL)
+        result = select_candidates(req, cands, cfg)
+        assert result.skip_llm is True
+        assert result.selected == []
+        assert "evidence_floor" in result.selection_reason
+
+    def test_skip_llm_below_floor_keeps_critical(self):
+        """Critical requirements still go to the LLM at low retrieval —
+        paraphrase risk justifies the call."""
+        cfg = CoverageRetrievalConfig()
+        cands = [_candidate("u1", 0.20), _candidate("u2", 0.18), _candidate("u3", 0.15)]
+        req = _req(req_type=RequirementType.SECURITY)
+        result = select_candidates(req, cands, cfg)
+        assert result.skip_llm is False
+        assert result.selected_k > 0
+
+    def test_skip_llm_below_floor_keeps_numeric_constraints(self):
+        cfg = CoverageRetrievalConfig()
+        cands = [_candidate("u1", 0.20), _candidate("u2", 0.18)]
+        req = _req(
+            req_type=RequirementType.FUNCTIONAL,
+            constraints=[Constraint(kind="timeout", operator="<=", value=2, unit="seconds")],
+        )
+        result = select_candidates(req, cands, cfg)
+        assert result.skip_llm is False
+        assert result.selected_k > 0
 
     def test_critical_type_uses_max_k(self):
         # SECURITY → critical → broad sweep
@@ -331,16 +408,58 @@ class TestEvidenceBasedAggregator:
         assert res.status == CoverageStatus.MISSING
         assert res.status_subcode == SUBCODE_MISSING_LOW_CONFIDENCE
 
-    def test_unverified_conflict_demoted_to_partial(self):
-        # CONFLICT with no verifier_actions starting with "conflict_"
+    def test_unverified_conflict_produces_missing_not_partial(self):
+        # Regression: unconfirmed CONFLICT used to produce PARTIAL, which
+        # inflated the PARTIAL count with off-topic pairs (Поляков runs).
+        # Now it must produce MISSING with subcode CONFLICT_UNVERIFIED.
         j = _judgment(
             "u1", LLMLabel.CONFLICT, conf=0.85,
             verifier_actions=["no_op_llm_conflict_unverified"],
         )
         cands = {"u1": _candidate("u1", score=0.5)}
         res = self._aggregate([j], cands)
-        assert res.status == CoverageStatus.PARTIAL
-        assert res.status_subcode == SUBCODE_PARTIAL
+        assert res.status == CoverageStatus.MISSING, (
+            f"unconfirmed CONFLICT must produce MISSING, not {res.status}"
+        )
+        assert res.status_subcode == SUBCODE_CONFLICT_UNVERIFIED, (
+            f"unconfirmed CONFLICT must use CONFLICT_UNVERIFIED subcode, "
+            f"got {res.status_subcode!r}"
+        )
+
+    def test_unverified_conflict_yields_to_genuine_partial(self):
+        # When an unconfirmed CONFLICT exists alongside a genuine PARTIAL
+        # judgment from a different candidate, the PARTIAL must win.
+        j_conflict = _judgment(
+            "u1", LLMLabel.CONFLICT, conf=0.85,
+            verifier_actions=["no_op_llm_conflict_unverified"],
+        )
+        j_partial = _judgment(
+            "u2", LLMLabel.PARTIAL, conf=0.75,
+        )
+        cands = {
+            "u1": _candidate("u1", score=0.5),
+            "u2": _candidate("u2", score=0.4),
+        }
+        res = self._aggregate([j_conflict, j_partial], cands)
+        assert res.status == CoverageStatus.PARTIAL, (
+            f"genuine PARTIAL candidate must win over unconfirmed CONFLICT; "
+            f"got {res.status}"
+        )
+
+    def test_unverified_conflict_suppressed_no_topical_link(self):
+        # Specific Поляков regression: verifier fires
+        # suppress_negation_no_topical_link → judgment stays CONFLICT with
+        # unverified tag → must produce MISSING, not PARTIAL.
+        j = _judgment(
+            "u1", LLMLabel.CONFLICT, conf=1.0,
+            verifier_actions=["suppress_negation_no_topical_link",
+                              "no_op_llm_conflict_unverified"],
+        )
+        cands = {"u1": _candidate("u1", score=0.47)}
+        res = self._aggregate([j], cands)
+        assert res.status == CoverageStatus.MISSING, (
+            f"off-topic unconfirmed CONFLICT must be MISSING; got {res.status}"
+        )
 
     def test_verified_conflict_accepted(self):
         j = _judgment(
@@ -421,6 +540,58 @@ class TestEvidenceBasedAggregator:
         cands = {"u1": _candidate("u1", score=0.5)}
         res = self._aggregate([j], cands)
         assert res.evidence_trace is None
+
+    # ── Fix B: partial_confidence_threshold ──────────────────────────────
+
+    def test_partial_below_confidence_threshold_becomes_missing(self):
+        """PARTIAL with conf below partial_confidence_threshold must be
+        rejected and reported as MISSING_LOW_CONFIDENCE."""
+        self.aggcfg = CoverageAggregatorConfig(partial_confidence_threshold=0.60)
+        j = _judgment("u1", LLMLabel.PARTIAL, conf=0.45)
+        cands = {"u1": _candidate("u1", score=0.5)}
+        res = self._aggregate([j], cands)
+        assert res.status == CoverageStatus.MISSING, (
+            f"PARTIAL conf=0.45 below threshold=0.60 must become MISSING; "
+            f"got {res.status}"
+        )
+        assert res.status_subcode == SUBCODE_MISSING_LOW_CONFIDENCE
+
+    def test_partial_at_or_above_confidence_threshold_accepted(self):
+        """PARTIAL with conf at partial_confidence_threshold must be accepted."""
+        self.aggcfg = CoverageAggregatorConfig(partial_confidence_threshold=0.60)
+        j = _judgment("u1", LLMLabel.PARTIAL, conf=0.60)
+        cands = {"u1": _candidate("u1", score=0.5)}
+        res = self._aggregate([j], cands)
+        assert res.status == CoverageStatus.PARTIAL, (
+            f"PARTIAL conf=0.60 at threshold=0.60 must be accepted; "
+            f"got {res.status}"
+        )
+        assert res.status_subcode == SUBCODE_PARTIAL
+
+    def test_partial_threshold_zero_accepts_any_conf(self):
+        """partial_confidence_threshold=0.0 disables the gate entirely."""
+        self.aggcfg = CoverageAggregatorConfig(partial_confidence_threshold=0.0)
+        j = _judgment("u1", LLMLabel.PARTIAL, conf=0.10)
+        cands = {"u1": _candidate("u1", score=0.5)}
+        res = self._aggregate([j], cands)
+        assert res.status == CoverageStatus.PARTIAL, (
+            f"threshold=0.0 must accept any conf; got {res.status}"
+        )
+
+    def test_partial_threshold_default_is_conservative(self):
+        """Default partial_confidence_threshold (0.65) should accept
+        conf=0.66 (above) and reject conf=0.55 (below)."""
+        # Above default
+        self.aggcfg = CoverageAggregatorConfig()
+        j_above = _judgment("u1", LLMLabel.PARTIAL, conf=0.66)
+        cands = {"u1": _candidate("u1", score=0.5)}
+        res = self._aggregate([j_above], cands)
+        assert res.status == CoverageStatus.PARTIAL
+
+        # Below default
+        j_below = _judgment("u1", LLMLabel.PARTIAL, conf=0.55)
+        res2 = self._aggregate([j_below], cands)
+        assert res2.status == CoverageStatus.MISSING
 
 
 # ── score_reason / evidence_strength on candidates ──────────────────────

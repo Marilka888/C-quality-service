@@ -33,6 +33,7 @@ Why a separate class (not replacing OllamaCoverageJudge):
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any, Optional
 
@@ -42,6 +43,34 @@ from app.infrastructure.llm.coverage_judge import CoverageJudge
 from app.infrastructure.llm.disabled_coverage_judge import DisabledCoverageJudge
 from app.infrastructure.llm.ollama_coverage_judge import _extract_json, _parse_response
 from app.infrastructure.llm.prompts import build_judge_prompt
+
+# Audit (Polyakov re-run with Groq free tier llama-3.3-70b): the API
+# error message includes a "try again in 3.07s" hint that tells us
+# exactly when the next call will succeed. The previous fixed-backoff
+# retry (4/8/16s) ignored this hint, often retrying inside the same
+# saturated minute window and burning all retries before the TPM
+# resets. This regex extracts the hinted seconds so we can honor it.
+_RETRY_AFTER_HINT_RE = re.compile(
+    r"(?:try\s+again\s+in|retry\s+after|please\s+wait)\s+"
+    r"(\d+(?:\.\d+)?)\s*(?:seconds?|sec|s)\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_retry_after_hint(msg: str) -> Optional[float]:
+    """Extract a 'retry after X seconds' hint from a rate-limit error
+    message. Groq, OpenAI and most LiteLLM-routed providers include
+    such a hint in the body. Returns the suggested wait in seconds, or
+    None when no hint is present."""
+    if not msg:
+        return None
+    m = _RETRY_AFTER_HINT_RE.search(msg)
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except (TypeError, ValueError):
+        return None
 
 logger = get_logger(__name__)
 _FALLBACK = DisabledCoverageJudge()
@@ -75,7 +104,7 @@ class LiteLLMCoverageJudge(CoverageJudge):
         model_name: str,
         timeout: int = 120,
         max_tokens: int = 512,
-        max_retries: int = 3,
+        max_retries: int = 5,
         retry_backoff_seconds: float = 4.0,
     ) -> None:
         self._model = model_name
@@ -160,10 +189,28 @@ class LiteLLMCoverageJudge(CoverageJudge):
                     or "429" in msg
                 )
                 if is_rate_limit and attempt < self._max_retries:
-                    wait = self._retry_backoff * (2 ** attempt)
+                    # Honor the API's 'try again in Xs' hint when present
+                    # — that's the authoritative number, not our guess.
+                    # Add a 0.5s buffer so we don't race the reset window.
+                    # Cap at 65s so a malicious / weird hint can't stall
+                    # the pipeline for a whole package.
+                    hinted = _parse_retry_after_hint(msg)
+                    if hinted is not None:
+                        wait = min(hinted + 0.5, 65.0)
+                        wait = max(wait, self._retry_backoff)
+                        why = f"hint={hinted:.2f}s"
+                    else:
+                        # Linear-ish backoff (4/8/16/32/64) capped at 65s
+                        # — gives the TPM window time to drain across
+                        # multiple retries without exponentially diverging.
+                        wait = min(
+                            self._retry_backoff * (2 ** min(attempt, 4)),
+                            65.0,
+                        )
+                        why = "no hint, exp backoff"
                     logger.warning(
-                        "LiteLLM rate-limited (%s); sleeping %.1fs before retry %d/%d",
-                        msg[:120], wait, attempt + 1, self._max_retries,
+                        "LiteLLM rate-limited (%s); sleeping %.1fs (%s) before retry %d/%d",
+                        msg[:120], wait, why, attempt + 1, self._max_retries,
                     )
                     time.sleep(wait)
                     attempt += 1

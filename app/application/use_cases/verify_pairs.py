@@ -101,10 +101,37 @@ _SAME_OUTCOME_PAIRS: list[tuple[re.Pattern, re.Pattern]] = [
 ]
 
 
-def _same_outcome_negation_compatible(req_text: str, unit_text: str) -> bool:
+def _same_outcome_negation_compatible(
+    req_text: str,
+    unit_text: str,
+    *,
+    check_upper_bound: bool = True,
+) -> bool:
     """True when one side prohibits a bad outcome while the other
     affirms the equivalent positive outcome — these are semantically
-    compatible, never CONFLICT."""
+    compatible, never CONFLICT.
+
+    Args:
+        req_text: requirement text.
+        unit_text: coverage unit text.
+        check_upper_bound: when True (default), also recognises the
+            structural pattern where BOTH sides use the same upper-bound
+            prohibition phrasing ("не должно превышать X / Y") — a
+            same-modality / same-direction constraint that is NOT a
+            negation contradiction. This guard is appropriate for Rule 2
+            (negation-contradiction check), where it prevents the rule
+            from firing on structurally identical but topically related
+            texts.
+
+            Set to False when calling from the LLM-native CONFLICT
+            pre-check (before the numeric rule runs). In that context
+            the structural `same_upper_bound` pattern is insufficient:
+            "не должно превышать" on DIFFERENT metrics (e.g., "время
+            отклика" vs "время восстановления") would incorrectly
+            suppress a correct LLM CONFLICT verdict. The numeric rule
+            and the aggregator's unverified-CONFLICT gate are better
+            positioned to handle such cases.
+    """
     rt = (req_text or "").lower()
     ut = (unit_text or "").lower()
     for prohib_re, pos_re in _SAME_OUTCOME_PAIRS:
@@ -115,6 +142,9 @@ def _same_outcome_negation_compatible(req_text: str, unit_text: str) -> bool:
         if prohib_re.search(ut) and pos_re.search(rt):
             return True
 
+    if not check_upper_bound:
+        return False
+
     # PR-K P4: when BOTH sides use the same upper-bound prohibition
     # phrasing ("не должно превышать X" on TZ side, "не должно превышать
     # Y" on the unit side), this is a same-modality / same-direction
@@ -123,6 +153,10 @@ def _same_outcome_negation_compatible(req_text: str, unit_text: str) -> bool:
     # are compatible (both upper-bound; numeric values are checked
     # separately by the numeric rule). Real-package symptom (Polyakov
     # 0.20::sent1).
+    #
+    # NOTE: this branch is only reached from Rule 2 (negation-
+    # contradiction check), not from the LLM-CONFLICT pre-check —
+    # see the check_upper_bound parameter.
     same_upper_bound = re.compile(
         r"не\s+долж(?:ен|на|но|ны)\s+превышат",
         re.I | re.UNICODE,
@@ -292,6 +326,22 @@ def _negation_contradiction(req: RequirementUnit, unit: CoverageUnit) -> bool:
     return req_prohibited != unit_prohibited
 
 
+def _same_upper_bound_same_aspect(req: RequirementUnit, unit: CoverageUnit) -> bool:
+    if not _same_outcome_negation_compatible(req.text, unit.text, check_upper_bound=True):
+        return False
+
+    from app.core.text import tokenize_content
+
+    req_tokens = tokenize_content(req.normalized_text)
+    unit_tokens = tokenize_content(unit.normalized_text)
+    shared_tokens = req_tokens & unit_tokens
+    shared_constraint_kinds = (
+        {c.kind for c in req.constraints if c.kind and c.kind != "generic"}
+        & {c.kind for c in unit.constraints if c.kind and c.kind != "generic"}
+    )
+    return bool(shared_constraint_kinds) or len(shared_tokens) >= 4 or _entity_overlap(req, unit) >= 0.20
+
+
 def _entity_overlap(req: RequirementUnit, unit: CoverageUnit) -> float:
     if not req.entities or not unit.entities:
         return 0.0
@@ -381,15 +431,26 @@ class PairVerifier:
         # the rule-based negation rule below considers them.
         if (
             judgment.llm_label == LLMLabel.CONFLICT
-            and _same_outcome_negation_compatible(req.text, unit.text)
+            and (
+                _same_outcome_negation_compatible(req.text, unit.text, check_upper_bound=False)
+                or _same_upper_bound_same_aspect(req, unit)
+            )
         ):
-            judgment.rule_adjusted_label = LLMLabel.PARTIAL
+            # Audit (Polyakov 0.17::sent3): "Система не должна аварийно
+            # завершать свою работу" vs "система должна продолжать корректно
+            # функционировать" describe the SAME outcome — the requirement is
+            # satisfied. Old behaviour demoted the LLM CONFLICT to PARTIAL,
+            # so the row stayed in the "warnings" pile. The semantics are
+            # equivalent → upgrade to COVERED so the row is reported as such.
+            # We keep `verifier_actions` provenance ("upgrade_..._same_outcome")
+            # so the trace and aggregator can see the override.
+            judgment.rule_adjusted_label = LLMLabel.COVERED
             judgment.explanation += (
                 " [rule] Same-outcome negation compatibility detected — "
                 "prohibition of bad outcome and affirmation of good outcome "
-                "are equivalent; demoted CONFLICT → PARTIAL."
+                "are equivalent; upgraded CONFLICT → COVERED."
             )
-            _append_action(judgment, "demote_conflict_same_outcome")
+            _append_action(judgment, "upgrade_conflict_same_outcome_covered")
             return judgment
 
         conflict_details: List[str] = list(judgment.conflict_aspects)
@@ -557,15 +618,28 @@ class PairVerifier:
             # For UPGRADES (PARTIAL/COVERED → CONFLICT), LLM confidence
             # IS informative — the LLM saw something relevant and was
             # sure of it; the proxy is appropriate there.
+            # Post-fix F: when confirming an LLM-native CONFLICT we strip the
+            # LLM confidence proxy (it was circular — high conf on a wrong
+            # verdict was treated as topical evidence). For UPGRADES
+            # (PARTIAL/COVERED → CONFLICT) the proxy is still allowed because
+            # the LLM had genuine reason to be confident about relatedness.
+            #
+            # Threshold ≥ 2 (was ≥ 3) for shared content tokens: the
+            # ≥ 3 figure was calibrated with pymorphy3 lemmatisation where
+            # "сохранять"/"сохраняет", "логах"/"логе" collapse to the same
+            # lemma. Without pymorphy3 (lowercase-only fallback) genuinely
+            # related pairs share 2 exact-form tokens, so ≥ 2 is the
+            # correct minimum that keeps off-topic pairs (0 shared) filtered
+            # while preserving genuine contradictions.
             if judgment.llm_label == LLMLabel.CONFLICT:
                 has_topic_link_neg = (
                     ent_overlap_neg >= 0.20
-                    or len(shared_tokens_neg) >= 3
+                    or len(shared_tokens_neg) >= 2
                 )
             else:
                 has_topic_link_neg = (
                     ent_overlap_neg >= 0.20
-                    or len(shared_tokens_neg) >= 3
+                    or len(shared_tokens_neg) >= 2
                     or (judgment.llm_confidence or 0) >= 0.50
                 )
             if not has_topic_link_neg:
@@ -582,7 +656,27 @@ class PairVerifier:
                     ent_overlap_neg, len(shared_tokens_neg),
                 )
                 _append_action(judgment, "suppress_negation_no_topic")
-                # fall through — leave rule_adjusted_label unchanged
+                # Post-fix F: an LLM-native CONFLICT that was suppressed
+                # because of no topical link is a hallucination — demote to
+                # PARTIAL so it does not end up as a contradiction row.
+                # For non-CONFLICT labels fall through; they are already
+                # non-contradictory and subsequent rules may still adjust.
+                if judgment.llm_label == LLMLabel.CONFLICT:
+                    # No topical link means the pair is off-topic. An LLM that
+                    # hallucinated CONFLICT on unrelated text provides zero
+                    # coverage evidence — the pair is effectively IRRELEVANT.
+                    # Setting PARTIAL here was the source of false-PARTIAL rows
+                    # in Polyakov runs where negation-suppression fired on
+                    # admin-fragment evidence completely unrelated to the req.
+                    judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
+                    judgment.explanation += (
+                        " [rule] LLM-CONFLICT demoted to IRRELEVANT — "
+                        "negation suppressed with no topical link; "
+                        "pair treated as off-topic."
+                    )
+                    _append_action(judgment, "demote_conflict_negation_no_topic")
+                    return judgment
+                # fall through for non-CONFLICT labels
             else:
                 # PR-K P4: when LLM is confidently positive (PARTIAL/COVERED
                 # with conf ≥0.70), the verifier should NOT override its
@@ -649,6 +743,79 @@ class PairVerifier:
                 judgment.rule_adjusted_label = LLMLabel.PARTIAL
                 judgment.explanation += f" [rule] Low entity overlap ({overlap:.2f}) with many entities → PARTIAL"
                 _append_action(judgment, "demote_covered_low_entity_overlap")
+                return judgment
+
+        # Rule 5: LLM-PARTIAL with near-zero entity overlap → IRRELEVANT.
+        #
+        # When the LLM assigns PARTIAL but the requirement and the unit share
+        # essentially no named entities, the partial-coverage verdict is almost
+        # certainly driven by incidental vocabulary overlap rather than genuine
+        # topical alignment. The canonical real-package failure mode is
+        # competitive-analysis PZ text: the requirement asks for specific
+        # technical features (TypeScript, Angular, Figma, REST API) while the
+        # retrieved unit is a competitor-description or analysis section that
+        # happens to share generic domain vocabulary — zero entity overlap, yet
+        # the LLM calls it PARTIAL.
+        #
+        # Guards:
+        #   * Requires ≥ 2 extracted entities on EACH side. Fewer entities
+        #     likely means extraction failed — we must not penalise the pair
+        #     on sparse entity data.
+        #   * Confidence guard (< 0.85): extremely confident LLM verdicts are
+        #     trusted over the entity signal; in practice genuine topically-
+        #     related PARTIALs have conf ≥ 0.85 when entity lists are rich.
+        #
+        # Note: only fires on LLM-native PARTIAL labels. Verifier-demoted
+        # PARTIAL (same-outcome CONFLICT, Rules 3/4) returns early and never
+        # reaches this point.
+        if (
+            judgment.llm_label == LLMLabel.PARTIAL
+            and len(req.entities) >= 2
+            and len(unit.entities) >= 2
+            and (judgment.llm_confidence or 0) < 0.85
+        ):
+            overlap = _entity_overlap(req, unit)
+            if overlap < 0.05:
+                # Audit (Polyakov 0.41::sent4): the entity extractor missed
+                # the "перечень функций / методы испытаний / технические средства"
+                # nominal phrases in the req side, so entity_overlap = 0 even
+                # though the texts paraphrase the same content. Adding a lexical
+                # jaccard floor catches this: real off-topic pairs (competitive
+                # analysis vs functional req) score lex_jac < 0.10; honest
+                # paraphrases land at 0.15-0.30. Demote only when BOTH signals
+                # are low.
+                from app.core.text import tokenize_content
+
+                req_toks = tokenize_content(req.normalized_text)
+                unit_toks = tokenize_content(unit.normalized_text)
+                lex_jac = (
+                    len(req_toks & unit_toks) / len(req_toks | unit_toks)
+                    if req_toks and unit_toks
+                    else 0.0
+                )
+                if lex_jac >= 0.20:
+                    judgment.rule_adjusted_label = judgment.llm_label
+                    judgment.explanation += (
+                        f" [rule] Near-zero entity overlap ({overlap:.2f}) on "
+                        f"LLM-PARTIAL verdict — preserved (lex_jac={lex_jac:.2f} "
+                        f"≥ 0.20 indicates lexical paraphrase, not off-topic)."
+                    )
+                    _append_action(judgment, "preserve_partial_low_entity_high_lex")
+                    return judgment
+
+                judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
+                judgment.explanation += (
+                    f" [rule] Near-zero entity overlap ({overlap:.2f}) and low "
+                    f"lex_jac ({lex_jac:.2f}) on LLM-PARTIAL verdict — evidence "
+                    f"likely off-topic; demoted to IRRELEVANT."
+                )
+                logger.debug(
+                    "Rule 5: PARTIAL demoted to IRRELEVANT for req=%s unit=%s "
+                    "(entity_overlap=%.2f, lex_jac=%.2f, conf=%.2f)",
+                    req.req_id[:8], unit.unit_id[:8],
+                    overlap, lex_jac, (judgment.llm_confidence or 0),
+                )
+                _append_action(judgment, "demote_partial_zero_entity_overlap")
                 return judgment
 
         # No adjustment needed — carry the LLM label forward.

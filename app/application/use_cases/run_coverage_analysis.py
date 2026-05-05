@@ -11,9 +11,11 @@ Full coverage analysis pipeline:
 """
 from __future__ import annotations
 
+import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from app.application.use_cases.adaptive_candidate_selector import (
     SelectionResult,
@@ -55,6 +57,58 @@ from app.infrastructure.llm.disabled_coverage_judge import DisabledCoverageJudge
 from app.infrastructure.llm.ollama_coverage_judge import OllamaCoverageJudge
 
 logger = get_logger(__name__)
+
+# ── Cross-requirement parallelism (PR-K post-fix B) ─────────────────────────
+# CQUALITY_REQ_CONCURRENCY controls how many requirement-workers run in
+# parallel. Each worker handles one requirement through the full
+# retrieval → judge → verify → aggregate chain independently.
+# Combined with per-pair judge concurrency (CQUALITY_JUDGE_CONCURRENCY)
+# the total concurrent LLM calls = req_workers × judge_workers. For a
+# typical single-GPU Ollama setup, req=3 + judge=1 (or req=2 + judge=2)
+# is the sweet spot.
+#
+# Thread-safety notes for callers of this path:
+#   * CandidateRetriever / PairVerifier / CoverageAggregator — stateless,
+#     thread-safe with no extra work.
+#   * OllamaCoverageJudge.unavailable_count — incremented without a lock,
+#     but it is purely a telemetry counter (no correctness risk); Python
+#     GIL protects the int object from corruption.
+#   * JudgmentCache — already uses per-call SQLite connections with WAL
+#     mode + a write lock. Safe for concurrent use from multiple threads.
+_REQ_CONCURRENCY_HARD_CAP = 8
+_REQ_CONCURRENCY_DEFAULT = 3
+_FLOOR_SKIP_EXEMPT_TYPES = {
+    RequirementType.SECURITY,
+    RequirementType.PERFORMANCE,
+    RequirementType.RELIABILITY,
+}
+
+
+def _can_skip_llm_below_floor(req: RequirementUnit) -> bool:
+    return req.requirement_type not in _FLOOR_SKIP_EXEMPT_TYPES and not req.constraints
+
+
+def _resolve_req_concurrency() -> int:
+    """Read CQUALITY_REQ_CONCURRENCY, validate, clamp to [1, cap]."""
+    raw = os.environ.get("CQUALITY_REQ_CONCURRENCY", str(_REQ_CONCURRENCY_DEFAULT)).strip()
+    if not raw:
+        return 1
+    try:
+        n = int(raw)
+    except ValueError:
+        logger.warning(
+            "CQUALITY_REQ_CONCURRENCY=%r is not an int; using 1", raw,
+        )
+        return 1
+    if n < 1:
+        return 1
+    if n > _REQ_CONCURRENCY_HARD_CAP:
+        logger.warning(
+            "CQUALITY_REQ_CONCURRENCY=%d > hard cap %d; clamping",
+            n, _REQ_CONCURRENCY_HARD_CAP,
+        )
+        return _REQ_CONCURRENCY_HARD_CAP
+    return n
 
 
 # Markers we expect in any normative TZ text. Used by the sanity guard
@@ -449,181 +503,101 @@ class CoverageAnalysisPipeline:
         logger.info("[%s] Sample req_ids (first 3): %s", job_id, _log_sample_req_ids)
 
         _total_shortlisted = 0
+        req_concurrency = _resolve_req_concurrency()
+        workers = min(req_concurrency, len(requirements)) if requirements else 1
 
-        for req_i, req in enumerate(requirements):
-            # Retrieve candidates per target document (keep them separate for per-doc reporting)
-            doc_candidates: Dict[str, List[RetrievedCandidate]] = {}
-            for artifact in target_artifacts:
-                doc_id = artifact["document_id"]
-                doc_units = [u for u in all_units if u.target_document_id == doc_id]
-                candidates = self._retriever.retrieve(req, doc_units)
-                doc_candidates[doc_id] = candidates
-                if req_i < 3:
-                    sample_scores = [round(c.retrieval_score, 3) for c in candidates[:3]]
-                    logger.debug(
-                        "[%s] req[%d]=%s → doc=%s shortlist=%d sample_scores=%s",
-                        job_id, req_i, req.req_id[:12], doc_id,
-                        len(candidates), sample_scores,
+        if workers <= 1 or len(requirements) <= 1:
+            # ── Serial path (unchanged behaviour) ────────────────────────
+            for req_i, req in enumerate(requirements):
+                _, req_results, req_judgments, req_shortlisted = (
+                    self._process_one_requirement(
+                        req_i, req, target_artifacts, all_units, units_by_id,
+                        judge_service, config, job_id,
                     )
-
-            for artifact in target_artifacts:
-                doc_id = artifact["document_id"]
-                doc_role = artifact.get("doc_role", "unknown")
-                shortlist = doc_candidates.get(doc_id, [])
-                _total_shortlisted += len(shortlist)
-
-                # PR-K: applicability-aware skip. NOT_APPLICABLE / OUT_OF_SCOPE
-                # rows do not get an LLM call at all — the aggregator emits a
-                # NOT_APPLICABLE-style row directly. Saves bandwidth and
-                # produces a cleaner trace.
-                req_type = req.requirement_type or RequirementType.OTHER
-                applicability = applicability_for(req_type, doc_role)
-                cov_level = coverage_requirement_level_for(req_type, doc_role)
-
-                if applicability != Applicability.APPLICABLE:
-                    # Build a NOT_APPLICABLE / OUT_OF_SCOPE row. Aggregator
-                    # produces the same shape on the empty-judgments path.
-                    result = self._aggregator.aggregate(
-                        requirement=req,
-                        judgments=[],
-                        candidates_by_unit_id={c.unit_id: c for c in shortlist},
-                        units_by_id=units_by_id,
-                        target_document_id=doc_id,
-                        target_doc_role=doc_role,
-                        selection_result=SelectionResult(
-                            selected=[], discarded=list(shortlist),
-                            selection_reason=(
-                                f"applicability={applicability.value}; "
-                                f"requirement_type={req_type.value} not "
-                                f"checked in target role '{doc_role}'."
-                            ),
-                            skip_llm=True,
-                            skip_reason=f"applicability={applicability.value}",
-                        ),
-                        coverage_requirement_level=cov_level,
-                        debug_cfg=config.debug,
-                        aggregator_cfg=config.aggregator,
-                    )
-                    all_results.append(result)
-                    continue
-
-                if not shortlist:
-                    logger.debug(
-                        "[%s] No candidates for req=%s target=%s (all below threshold or no units)",
-                        job_id, req.req_id[:12], doc_id,
-                    )
-                    result = self._aggregator.aggregate(
-                        requirement=req,
-                        judgments=[],
-                        candidates_by_unit_id={},
-                        units_by_id=units_by_id,
-                        target_document_id=doc_id,
-                        target_doc_role=doc_role,
-                        selection_result=SelectionResult(
-                            selection_reason="no candidates above min_retrieval_score",
-                            skip_llm=True,
-                            skip_reason="empty shortlist after retrieval",
-                        ),
-                        coverage_requirement_level=cov_level,
-                        debug_cfg=config.debug,
-                        aggregator_cfg=config.aggregator,
-                    )
-                    all_results.append(result)
-                    continue
-
-                # PR-K: AdaptiveCandidateSelector decides how many of the
-                # retrieved shortlist actually go to the LLM. NO_EVIDENCE
-                # top-1 → skip the LLM altogether; STRONG + wide margin →
-                # k=1; everything else broadens to k=3 (or up to selector_max_k
-                # for critical / numeric-constraint requirements).
-                selection: SelectionResult = select_candidates(
-                    req, shortlist, config.retrieval,
                 )
+                all_results.extend(req_results)
+                all_judgments.extend(req_judgments)
+                _total_shortlisted += req_shortlisted
+        else:
+            # ── Parallel path (PR-K post-fix B) ──────────────────────────
+            # Fan-out across requirement workers. Each worker runs the full
+            # retrieval → select → judge → verify → aggregate chain for one
+            # requirement. Results are merged in original input order so the
+            # report is deterministic.
+            logger.info(
+                "[%s] Parallel requirement processing: %d requirements, "
+                "%d workers (CQUALITY_REQ_CONCURRENCY=%s)",
+                job_id, len(requirements), workers,
+                os.environ.get("CQUALITY_REQ_CONCURRENCY", str(_REQ_CONCURRENCY_DEFAULT)),
+            )
+            indexed: List[Optional[Tuple]] = [None] * len(requirements)
+            with ThreadPoolExecutor(
+                max_workers=workers, thread_name_prefix="req-worker",
+            ) as pool:
+                future_to_idx = {
+                    pool.submit(
+                        self._process_one_requirement,
+                        req_i, req, target_artifacts, all_units, units_by_id,
+                        judge_service, config, job_id,
+                    ): req_i
+                    for req_i, req in enumerate(requirements)
+                }
+                for fut in as_completed(future_to_idx):
+                    req_i = future_to_idx[fut]
+                    try:
+                        _, req_results, req_judgments, req_shortlisted = fut.result()
+                        indexed[req_i] = (req_results, req_judgments, req_shortlisted)
+                    except Exception as exc:
+                        logger.error(
+                            "[%s] req-worker[%d] failed — requirement excluded "
+                            "from results: %s",
+                            job_id, req_i, exc, exc_info=True,
+                        )
+                        indexed[req_i] = ([], [], 0)
+            # Merge in input order for stable reporting.
+            for slot in indexed:
+                if slot is not None:
+                    req_results, req_judgments, req_shortlisted = slot
+                    all_results.extend(req_results)
+                    all_judgments.extend(req_judgments)
+                    _total_shortlisted += req_shortlisted
 
-                # BUG-9: evidence floor. If the strongest retrieval score in
-                # the shortlist is below the configured floor, we don't trust
-                # the LLM verdict regardless of label — the audit-time
-                # CONFLICT/COVERED rows came from retrieval below 0.45 with
-                # judge confidence 0.8, which is exactly this failure mode.
-                # We still call the judge so its rationale lands in evidence
-                # (useful for debugging), but we flag every produced judgment
-                # as low_confidence and force the aggregator-side flag.
-                max_score = max((c.retrieval_score for c in shortlist), default=0.0)
-                low_conf_floor = max_score < config.retrieval.evidence_floor
-
-                if selection.skip_llm or not selection.selected:
-                    # Skip LLM but still call the aggregator so the row is
-                    # populated (status_subcode, level-aware, evidence_trace).
-                    judgments: List[PairJudgment] = []
-                else:
-                    # Judge — only the selected slice
-                    judgments = judge_service.judge_shortlist(
-                        req, selection.selected, units_by_id,
-                    )
-
-                    # Verify
-                    if config.enable_rule_verification:
-                        judgments = [
-                            self._verifier.verify(j, req, units_by_id[j.unit_id])
-                            for j in judgments
-                            if j.unit_id in units_by_id
-                        ]
-
-                    # Mirror the judge label / confidence / grounding onto the
-                    # candidate so downstream and the trace can render the
-                    # full retrieval-and-judging story per candidate.
-                    cand_by_unit = {c.unit_id: c for c in selection.selected}
-                    for j in judgments:
-                        c = cand_by_unit.get(j.unit_id)
-                        if c is None:
-                            continue
-                        c.judge_label = j.rule_adjusted_label.value
-                        c.judge_confidence = float(j.llm_confidence or 0.0)
-                        # PR-K P0: grounding_passed reflects ONLY actual
-                        # citation grounding (grounding_failed flag), not
-                        # below-floor retrieval.
-                        c.grounding_passed = not bool(getattr(j, "grounding_failed", False))
-
-                    # BUG-9: stamp low_confidence on every judgment from a
-                    # below-floor shortlist. Aggregator OR-merges the flag
-                    # into the result for UI dimming. PR-K P0: this NO LONGER
-                    # auto-sets grounding_failed — below-floor is a retrieval
-                    # quality flag, not a grounding violation. Real-package
-                    # symptom (Polyakov 0.20::sent1): grounded COVERED
-                    # conf=1.0 with retrieval=0.44 was demoted to MISSING
-                    # by old code; with the split flag the row keeps
-                    # COVERED + low_confidence=True (UI dim).
-                    if low_conf_floor:
-                        for j in judgments:
-                            j.low_confidence = True
-                            # NB: `grounding_failed` deliberately NOT set —
-                            # the LLM's citation may be perfectly grounded
-                            # in the (low-retrieval) evidence text.
-
-                    all_judgments.extend(judgments)
-
-                # Aggregate
-                candidates_by_unit_id = {c.unit_id: c for c in shortlist}
-                result = self._aggregator.aggregate(
-                    requirement=req,
-                    judgments=judgments,
-                    candidates_by_unit_id=candidates_by_unit_id,
-                    units_by_id=units_by_id,
-                    target_document_id=doc_id,
-                    target_doc_role=doc_role,
-                    selection_result=selection,
-                    coverage_requirement_level=cov_level,
-                    debug_cfg=config.debug,
-                    aggregator_cfg=config.aggregator,
-                )
-                all_results.append(result)
+        # Telemetry: count rows where the LLM was skipped via the selector
+        # (NO_EVIDENCE / below-floor) or applicability gate. Useful for
+        # operators tuning evidence_floor / skip_llm_below_floor.
+        skipped_llm_rows = 0
+        applicability_skipped_rows = 0
+        for r in all_results:
+            subcode = (r.status_subcode or "")
+            if subcode in ("NOT_APPLICABLE", "OUT_OF_SCOPE"):
+                applicability_skipped_rows += 1
+            elif subcode in ("MISSING_NO_EVIDENCE", "OPTIONAL_NOT_FOUND"):
+                # Best-effort: these subcodes fire when the selector skipped
+                # the LLM (no shortlist or NO_EVIDENCE / below-floor) AND
+                # nothing else upgraded the row.
+                skipped_llm_rows += 1
 
         logger.info(
             "[%s] Pipeline done: requirements=%d, coverage_units=%d, "
-            "total_shortlisted=%d, pair_judgments=%d",
+            "total_shortlisted=%d, pair_judgments=%d, "
+            "rows_skipped_llm=%d, rows_skipped_applicability=%d",
             job_id, len(requirements), len(all_units),
             _total_shortlisted, len(all_judgments),
+            skipped_llm_rows, applicability_skipped_rows,
         )
+
+        # Surface savings as a non-fatal info-level warning so the
+        # orchestrator / UI can show it. Helps reviewers understand why a
+        # package has many MISSING_NO_EVIDENCE rows — those rows didn't
+        # cost LLM calls.
+        if skipped_llm_rows or applicability_skipped_rows:
+            warnings.append(
+                f"LLM_CALL_BUDGET: skipped {skipped_llm_rows} pair(s) via "
+                f"retrieval gates (NO_EVIDENCE / below evidence_floor) and "
+                f"{applicability_skipped_rows} pair(s) via applicability "
+                f"matrix (NOT_APPLICABLE / OUT_OF_SCOPE). Inspect "
+                f"evidence_trace on affected rows for the selection_reason."
+            )
 
         # BUG-09 fix: surface Ollama / LLM unavailability to the user.
         # If the active judge silently fell back to DisabledCoverageJudge for
@@ -709,3 +683,188 @@ class CoverageAnalysisPipeline:
             pair_judgments=all_judgments,
             warnings=warnings,
         )
+
+    # ------------------------------------------------------------------
+
+    def _process_one_requirement(
+        self,
+        req_i: int,
+        req: "RequirementUnit",
+        target_artifacts: List[dict],
+        all_units: List["CoverageUnit"],
+        units_by_id: Dict[str, "CoverageUnit"],
+        judge_service: PairJudgeService,
+        config: CoverageConfig,
+        job_id: str,
+    ) -> Tuple[int, List["RequirementCoverageResult"], List["PairJudgment"], int]:
+        """Process one requirement through retrieval → select → judge → verify → aggregate.
+
+        Called from the serial loop or from a ThreadPoolExecutor worker
+        (PR-K post-fix B).  All callees are stateless or thread-safe; see
+        the module-level note for the thread-safety reasoning.
+
+        Returns
+        -------
+        (req_i, results_for_this_req, judgments_for_this_req, total_shortlisted)
+        """
+        req_results: List[RequirementCoverageResult] = []
+        req_judgments: List[PairJudgment] = []
+        total_shortlisted = 0
+
+        # ── 1. Retrieve candidates per target document ───────────────────
+        doc_candidates: Dict[str, List[RetrievedCandidate]] = {}
+        for artifact in target_artifacts:
+            doc_id = artifact["document_id"]
+            doc_units = [u for u in all_units if u.target_document_id == doc_id]
+            candidates = self._retriever.retrieve(req, doc_units)
+            doc_candidates[doc_id] = candidates
+            if req_i < 3:
+                sample_scores = [round(c.retrieval_score, 3) for c in candidates[:3]]
+                logger.debug(
+                    "[%s] req[%d]=%s → doc=%s shortlist=%d sample_scores=%s",
+                    job_id, req_i, req.req_id[:12], doc_id,
+                    len(candidates), sample_scores,
+                )
+
+        # ── 2. Per-document: select → judge → verify → aggregate ─────────
+        for artifact in target_artifacts:
+            doc_id = artifact["document_id"]
+            doc_role = artifact.get("doc_role", "unknown")
+            shortlist = doc_candidates.get(doc_id, [])
+            total_shortlisted += len(shortlist)
+
+            # PR-K: applicability-aware skip — OUT_OF_SCOPE / NOT_APPLICABLE
+            # rows never get an LLM call; the aggregator fills the row.
+            req_type = req.requirement_type or RequirementType.OTHER
+            applicability = applicability_for(req_type, doc_role)
+            cov_level = coverage_requirement_level_for(req_type, doc_role)
+
+            if applicability != Applicability.APPLICABLE:
+                result = self._aggregator.aggregate(
+                    requirement=req,
+                    judgments=[],
+                    candidates_by_unit_id={c.unit_id: c for c in shortlist},
+                    units_by_id=units_by_id,
+                    target_document_id=doc_id,
+                    target_doc_role=doc_role,
+                    selection_result=SelectionResult(
+                        selected=[], discarded=list(shortlist),
+                        selection_reason=(
+                            f"applicability={applicability.value}; "
+                            f"requirement_type={req_type.value} not "
+                            f"checked in target role '{doc_role}'."
+                        ),
+                        skip_llm=True,
+                        skip_reason=f"applicability={applicability.value}",
+                    ),
+                    coverage_requirement_level=cov_level,
+                    debug_cfg=config.debug,
+                    aggregator_cfg=config.aggregator,
+                )
+                req_results.append(result)
+                continue
+
+            if not shortlist:
+                logger.debug(
+                    "[%s] No candidates for req=%s target=%s (all below threshold or no units)",
+                    job_id, req.req_id[:12], doc_id,
+                )
+                result = self._aggregator.aggregate(
+                    requirement=req,
+                    judgments=[],
+                    candidates_by_unit_id={},
+                    units_by_id=units_by_id,
+                    target_document_id=doc_id,
+                    target_doc_role=doc_role,
+                    selection_result=SelectionResult(
+                        selection_reason="no candidates above min_retrieval_score",
+                        skip_llm=True,
+                        skip_reason="empty shortlist after retrieval",
+                    ),
+                    coverage_requirement_level=cov_level,
+                    debug_cfg=config.debug,
+                    aggregator_cfg=config.aggregator,
+                )
+                req_results.append(result)
+                continue
+
+            # PR-K: AdaptiveCandidateSelector — pick how many candidates
+            # go to the LLM (NO_EVIDENCE skip; STRONG+wide margin → k=1;
+            # ambiguous → k=3; critical/numeric → up to selector_max_k).
+            selection: SelectionResult = select_candidates(
+                req, shortlist, config.retrieval,
+            )
+
+            # BUG-9: evidence floor.
+            max_score = max((c.retrieval_score for c in shortlist), default=0.0)
+            low_conf_floor = max_score < config.retrieval.evidence_floor
+
+            # PR-K post-fix (B): skip judge when below floor and not
+            # in debug mode, to avoid wasting LLM calls on retrievals
+            # that the aggregator will flag low_confidence anyway.
+            skip_due_to_floor = (
+                low_conf_floor
+                and config.retrieval.skip_llm_below_floor
+                and _can_skip_llm_below_floor(req)
+                and not config.debug.enabled
+            )
+
+            if selection.skip_llm or not selection.selected or skip_due_to_floor:
+                # Skip LLM — aggregator still runs to produce the row
+                # with proper subcode / level / trace.
+                judgments: List[PairJudgment] = []
+            else:
+                # Judge — only the selected slice
+                judgments = judge_service.judge_shortlist(
+                    req, selection.selected, units_by_id,
+                )
+
+                # Verify
+                if config.enable_rule_verification:
+                    judgments = [
+                        self._verifier.verify(j, req, units_by_id[j.unit_id])
+                        for j in judgments
+                        if j.unit_id in units_by_id
+                    ]
+
+                # Mirror the judge label / confidence / grounding onto
+                # the candidate so the trace can render the full story.
+                cand_by_unit = {c.unit_id: c for c in selection.selected}
+                for j in judgments:
+                    c = cand_by_unit.get(j.unit_id)
+                    if c is None:
+                        continue
+                    c.judge_label = j.rule_adjusted_label.value
+                    c.judge_confidence = float(j.llm_confidence or 0.0)
+                    # PR-K P0: grounding_passed reflects ONLY actual
+                    # citation grounding (grounding_failed flag), not
+                    # below-floor retrieval.
+                    c.grounding_passed = not bool(getattr(j, "grounding_failed", False))
+
+                # BUG-9: stamp low_confidence on below-floor judgments.
+                # `grounding_failed` deliberately NOT set — the LLM's
+                # citation may be perfectly grounded in the (low-retrieval)
+                # evidence text.
+                if low_conf_floor:
+                    for j in judgments:
+                        j.low_confidence = True
+
+                req_judgments.extend(judgments)
+
+            # Aggregate
+            candidates_by_unit_id = {c.unit_id: c for c in shortlist}
+            result = self._aggregator.aggregate(
+                requirement=req,
+                judgments=judgments,
+                candidates_by_unit_id=candidates_by_unit_id,
+                units_by_id=units_by_id,
+                target_document_id=doc_id,
+                target_doc_role=doc_role,
+                selection_result=selection,
+                coverage_requirement_level=cov_level,
+                debug_cfg=config.debug,
+                aggregator_cfg=config.aggregator,
+            )
+            req_results.append(result)
+
+        return req_i, req_results, req_judgments, total_shortlisted

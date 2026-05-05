@@ -354,7 +354,9 @@ class CoverageAggregator:
                 requirement_type=req_type,
                 applicability=applicability,
                 severity=severity_for(req_type, target_doc_role, status, applicability),
-                should_affect_critical=should_affect_critical(req_type, applicability, status),
+                should_affect_critical=should_affect_critical(
+                    req_type, applicability, status, target_doc_role,
+                ),
                 should_affect_grade=should_affect_grade(req_type, applicability),
                 status_subcode=subcode,
                 winning_candidate_id=None,
@@ -420,6 +422,7 @@ class CoverageAggregator:
                     # OPTIONAL_NOT_FOUND must not contribute to criticalCount.
                     status if coverage_requirement_level == CoverageRequirementLevel.REQUIRED
                     else CoverageStatus.COVERED,
+                    target_doc_role,
                 ),
                 should_affect_grade=should_affect_grade(req_type, applicability),
                 status_subcode=subcode,
@@ -465,6 +468,7 @@ class CoverageAggregator:
         # when confidence + grounding + retrieval_score thresholds line up.
         cov_thr = aggregator_cfg.covered_confidence_threshold
         cnf_thr = aggregator_cfg.conflict_confidence_threshold
+        par_thr = aggregator_cfg.partial_confidence_threshold
         med_thr = aggregator_cfg.medium_retrieval_threshold
 
         # Sort judgments by status priority (CONFLICT > COVERED > PARTIAL >
@@ -546,18 +550,32 @@ class CoverageAggregator:
                     )
                     continue
                 if not _verifier_confirmed_conflict(j):
+                    # An unconfirmed CONFLICT means the LLM reported a
+                    # contradiction but no deterministic rule could validate
+                    # it. This is NOT sufficient evidence of partial
+                    # coverage — the pair is often off-topic (e.g. LLM
+                    # hallucinated a conflict on unrelated evidence). Setting
+                    # PARTIAL here was the primary source of PARTIAL
+                    # inflation in real packages (Поляков runs). Instead,
+                    # record CONFLICT_UNVERIFIED as the MISSING subcode so
+                    # reviewers can see why the row is flagged, and continue
+                    # scanning for a genuine PARTIAL/COVERED verdict from
+                    # other candidates.
                     decision_log.append(
-                        f"CONFLICT pair unit={j.unit_id[:12]} rejected: "
-                        f"verifier did not confirm (verifier_actions={list(getattr(j, 'verifier_actions', []) or [])})."
+                        f"CONFLICT pair unit={j.unit_id[:12]} not confirmed by verifier "
+                        f"(verifier_actions={list(getattr(j, 'verifier_actions', []) or [])}); "
+                        f"treating as MISSING(CONFLICT_UNVERIFIED), scanning for better verdict."
                     )
-                    chosen_status = CoverageStatus.PARTIAL
-                    chosen_subcode = SUBCODE_PARTIAL
-                    winning = j
-                    winning_score = conf
-                    agg_reason = (
-                        f"CONFLICT downgraded to PARTIAL: verifier did not confirm "
-                        f"the contradiction (conf={conf:.2f}, retrieval={r_score:.2f})."
-                    )
+                    if chosen_status == CoverageStatus.MISSING:
+                        chosen_subcode = SUBCODE_CONFLICT_UNVERIFIED
+                        winning = j
+                        winning_score = conf
+                        agg_reason = (
+                            f"CONFLICT not confirmed by verifier; row treated as "
+                            f"MISSING (CONFLICT_UNVERIFIED). Pair may be off-topic "
+                            f"(conf={conf:.2f}, retrieval={r_score:.2f}, "
+                            f"verifier_actions={list(getattr(j, 'verifier_actions', []) or [])})."
+                        )
                     continue
                 # Confirmed CONFLICT.
                 chosen_status = CoverageStatus.CONFLICT
@@ -636,9 +654,24 @@ class CoverageAggregator:
                 break
 
             if status == CoverageStatus.PARTIAL:
-                # PARTIAL has a softer bar — accept when retrieval is at
-                # least medium AND grounding holds. Otherwise demote to
-                # MISSING_LOW_GROUNDING / MISSING_LOW_CONFIDENCE.
+                # PARTIAL has a softer bar — accept when confidence is at
+                # least par_thr AND retrieval is at least medium AND
+                # grounding holds. Otherwise demote to MISSING_*.
+                if conf < par_thr:
+                    if chosen_status == CoverageStatus.MISSING:
+                        chosen_subcode = SUBCODE_MISSING_LOW_CONFIDENCE
+                        winning = j
+                        winning_score = conf
+                        agg_reason = (
+                            f"PARTIAL rejected: judge confidence {conf:.2f} below "
+                            f"partial threshold {par_thr:.2f}; reported as "
+                            f"MISSING_LOW_CONFIDENCE."
+                        )
+                    decision_log.append(
+                        f"PARTIAL pair unit={j.unit_id[:12]} rejected: "
+                        f"conf {conf:.2f} < par_thr {par_thr:.2f}."
+                    )
+                    continue
                 if not grounded:
                     if chosen_status == CoverageStatus.MISSING:
                         chosen_subcode = SUBCODE_MISSING_LOW_GROUNDING
@@ -758,6 +791,7 @@ class CoverageAggregator:
                 # OPTIONAL_NOT_FOUND never contributes to criticalCount.
                 chosen_status if chosen_subcode != SUBCODE_OPTIONAL_NOT_FOUND
                 else CoverageStatus.COVERED,
+                target_doc_role,
             ),
             should_affect_grade=should_affect_grade(req_type, applicability),
             status_subcode=chosen_subcode,

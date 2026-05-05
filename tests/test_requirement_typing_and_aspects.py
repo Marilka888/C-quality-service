@@ -135,6 +135,90 @@ def test_should_affect_grade_excludes_out_of_scope():
     assert not should_affect_grade(RequirementType.DELIVERY_REQUIREMENT, Applicability.OUT_OF_SCOPE)
 
 
+# ── PZ asymmetry: spec-class types are OPTIONAL in PZ ────────────────────
+
+
+def test_pz_functional_is_optional_not_required():
+    """Audit (Polyakov ВКР): functional MISSING in PZ is structural — the
+    PZ describes implementation, not the spec. Must be OPTIONAL so it
+    doesn't inflate criticalCount."""
+    from app.application.use_cases.applicability import (
+        coverage_requirement_level_for,
+    )
+    from app.domain.c_quality_enums import CoverageRequirementLevel
+
+    assert coverage_requirement_level_for(
+        RequirementType.FUNCTIONAL, "pz",
+    ) == CoverageRequirementLevel.OPTIONAL
+    assert coverage_requirement_level_for(
+        RequirementType.DATA_IO, "pz",
+    ) == CoverageRequirementLevel.OPTIONAL
+    # In PMI same types remain REQUIRED.
+    assert coverage_requirement_level_for(
+        RequirementType.FUNCTIONAL, "pmi",
+    ) == CoverageRequirementLevel.REQUIRED
+
+
+def test_pz_security_and_reliability_remain_required():
+    """SECURITY / RELIABILITY / ARCHITECTURE_IMPLEMENTATION genuinely
+    belong in a design document — they stay REQUIRED in PZ."""
+    from app.application.use_cases.applicability import (
+        coverage_requirement_level_for,
+    )
+    from app.domain.c_quality_enums import CoverageRequirementLevel
+
+    for t in (
+        RequirementType.SECURITY,
+        RequirementType.RELIABILITY,
+        RequirementType.ARCHITECTURE_IMPLEMENTATION,
+    ):
+        assert coverage_requirement_level_for(
+            t, "pz",
+        ) == CoverageRequirementLevel.REQUIRED, f"{t} must be REQUIRED in PZ"
+
+
+def test_should_affect_critical_pz_functional_missing_is_warning():
+    """Polyakov-style: functional MISSING in PZ must NOT contribute to
+    criticalCount. Same call without target_role keeps legacy behaviour."""
+    # With target_role="pz" — non-critical (warning).
+    assert not should_affect_critical(
+        RequirementType.FUNCTIONAL,
+        Applicability.APPLICABLE,
+        CoverageStatus.MISSING,
+        target_role="pz",
+    )
+    # With target_role="pmi" — critical (legacy).
+    assert should_affect_critical(
+        RequirementType.FUNCTIONAL,
+        Applicability.APPLICABLE,
+        CoverageStatus.MISSING,
+        target_role="pmi",
+    )
+    # No target_role argument — backwards-compatible behaviour: critical.
+    assert should_affect_critical(
+        RequirementType.FUNCTIONAL,
+        Applicability.APPLICABLE,
+        CoverageStatus.MISSING,
+    )
+
+
+def test_should_affect_critical_pz_security_missing_still_critical():
+    """SECURITY/RELIABILITY missing in PZ remains critical — those
+    requirements DO belong in PZ."""
+    assert should_affect_critical(
+        RequirementType.SECURITY,
+        Applicability.APPLICABLE,
+        CoverageStatus.MISSING,
+        target_role="pz",
+    )
+    assert should_affect_critical(
+        RequirementType.RELIABILITY,
+        Applicability.APPLICABLE,
+        CoverageStatus.MISSING,
+        target_role="pz",
+    )
+
+
 def test_severity_security_missing_pmi_is_high():
     sev = severity_for(RequirementType.SECURITY, "pmi", CoverageStatus.MISSING, Applicability.APPLICABLE)
     assert sev == "high"

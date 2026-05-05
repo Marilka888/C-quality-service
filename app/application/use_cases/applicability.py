@@ -44,6 +44,14 @@ _PZ_ONLY_TYPES = frozenset({
     RequirementType.ECONOMIC_OR_NEED,
 })
 
+# Documentation meta-requirements (GOST sections, document composition):
+# only checked in PMI (where the TZ may specify what the PMI must
+# contain); PZ and other target roles are not the natural coverage home
+# for documentation structure requirements. A-quality handles those.
+_PMI_ONLY_TYPES = frozenset({
+    RequirementType.DOCUMENTATION_REQUIREMENT,
+})
+
 
 def applicability_for(
     req_type: RequirementType,
@@ -57,6 +65,9 @@ def applicability_for(
     if req_type in _PZ_ONLY_TYPES:
         return Applicability.APPLICABLE if role == "pz" else Applicability.NOT_APPLICABLE
 
+    if req_type in _PMI_ONLY_TYPES:
+        return Applicability.APPLICABLE if role == "pmi" else Applicability.NOT_APPLICABLE
+
     return Applicability.APPLICABLE
 
 
@@ -64,11 +75,18 @@ def should_affect_critical(
     req_type: RequirementType,
     applicability: Applicability,
     status: CoverageStatus,
+    target_role: str = "",
 ) -> bool:
     """A row contributes to package criticalCount only when it is
     APPLICABLE, in a "bad" status (CONFLICT / MISSING), and of a type
     that genuinely matters for safety / correctness. DOCUMENTATION /
     INTERFACE / ENVIRONMENT MISSING are warnings, not critical.
+
+    `target_role` is optional for backwards compatibility — when supplied,
+    PZ-demoted spec types (functional/data_io/performance/storage/logging)
+    contribute only as warnings even when MISSING (the PZ doesn't restate
+    the TZ spec, so functional MISSING in PZ is a documentation pattern,
+    not a correctness gap).
     """
     if applicability != Applicability.APPLICABLE:
         return False
@@ -77,6 +95,9 @@ def should_affect_critical(
     if status == CoverageStatus.CONFLICT:
         # Real CONFLICT (after same-aspect validation) is always critical.
         return True
+    role = (target_role or "").strip().lower()
+    if role == "pz" and req_type in _PZ_DEMOTED_TO_OPTIONAL:
+        return False
     # MISSING / PARTIAL: critical only for safety-relevant types.
     return req_type in {
         RequirementType.FUNCTIONAL,
@@ -128,6 +149,29 @@ _OPTIONAL_TYPES = frozenset({
 })
 
 
+# PZ (пояснительная записка) describes IMPLEMENTATION, not the
+# functional spec — that lives in TZ. Real ВКР-class PZ docs frequently
+# omit verbatim restatement of functional / data_io / interface
+# requirements; instead they describe how the implementation realises
+# them (architecture, components, data flow). Treating those types as
+# REQUIRED-in-PZ produces a flood of false-MISSING criticals (Polyakov:
+# 19/20 functional reqs marked MISSING in PZ even though the system
+# evidently works — the PZ just doesn't restate the spec).
+#
+# Pragmatic fix: in PZ, demote spec-class types to OPTIONAL. They are
+# still checked; if the PZ does happen to describe them they get
+# COVERED/PARTIAL credit, but their absence stops triggering criticalCount.
+# ARCHITECTURE_IMPLEMENTATION / RELIABILITY / SECURITY remain REQUIRED
+# in PZ — those genuinely belong in a design document.
+_PZ_DEMOTED_TO_OPTIONAL = frozenset({
+    RequirementType.FUNCTIONAL,
+    RequirementType.DATA_IO,
+    RequirementType.PERFORMANCE,
+    RequirementType.STORAGE,
+    RequirementType.LOGGING,
+})
+
+
 def coverage_requirement_level_for(
     req_type: RequirementType,
     target_role: str,
@@ -141,6 +185,9 @@ def coverage_requirement_level_for(
     appl = applicability_for(req_type, target_role)
     if appl != Applicability.APPLICABLE:
         return CoverageRequirementLevel.NOT_APPLICABLE
+    role = (target_role or "").strip().lower()
+    if role == "pz" and req_type in _PZ_DEMOTED_TO_OPTIONAL:
+        return CoverageRequirementLevel.OPTIONAL
     if req_type in _REQUIRED_TYPES:
         return CoverageRequirementLevel.REQUIRED
     return CoverageRequirementLevel.OPTIONAL

@@ -248,6 +248,9 @@ class DocumentCoverageReport(BaseModel):
     partial: int = 0
     missing: int = 0
     conflict: int = 0
+    # NOT_APPLICABLE + OUT_OF_SCOPE rows (excluded from total_requirements
+    # and from all status buckets so coverage_rate stays meaningful).
+    not_applicable: int = 0
 
     @property
     def coverage_rate(self) -> float:
@@ -262,6 +265,9 @@ class CoverageSummary(BaseModel):
     partial: int = 0
     missing: int = 0
     conflict: int = 0
+    # NOT_APPLICABLE + OUT_OF_SCOPE rows (excluded from total_requirements
+    # and from all status buckets so coverage_rate stays meaningful).
+    not_applicable: int = 0
 
     @property
     def coverage_rate(self) -> float:

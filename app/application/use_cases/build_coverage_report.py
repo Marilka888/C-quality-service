@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Dict, List, Optional
 
-from app.domain.c_quality_enums import CoverageStatus
+from app.domain.c_quality_enums import Applicability, CoverageStatus
 from app.domain.c_quality_models import (
     CoverageAnalysisResult,
     CoverageSummary,
@@ -17,8 +17,16 @@ from app.domain.c_quality_models import (
 
 
 def _tally(results: List[RequirementCoverageResult]) -> CoverageSummary:
-    s = CoverageSummary(total_requirements=len(results))
+    s = CoverageSummary()
     for r in results:
+        # NOT_APPLICABLE and OUT_OF_SCOPE rows are excluded from
+        # total_requirements and all status buckets so coverage_rate
+        # reflects only requirements that were actually checked. They
+        # are tracked in not_applicable for informational display.
+        if r.applicability != Applicability.APPLICABLE:
+            s.not_applicable += 1
+            continue
+        s.total_requirements += 1
         if r.status == CoverageStatus.COVERED:
             s.covered += 1
         elif r.status == CoverageStatus.PARTIAL:
@@ -53,6 +61,11 @@ class CoverageReportBuilder:
                     target_doc_role=r.target_doc_role,
                 )
             report = per_doc[r.target_document_id]
+            # NOT_APPLICABLE and OUT_OF_SCOPE rows are excluded from
+            # total_requirements and status buckets — same logic as _tally.
+            if r.applicability != Applicability.APPLICABLE:
+                report.not_applicable += 1
+                continue
             report.total_requirements += 1
             if r.status == CoverageStatus.COVERED:
                 report.covered += 1
