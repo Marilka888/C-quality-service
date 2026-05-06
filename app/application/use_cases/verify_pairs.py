@@ -342,6 +342,39 @@ def _same_upper_bound_same_aspect(req: RequirementUnit, unit: CoverageUnit) -> b
     return bool(shared_constraint_kinds) or len(shared_tokens) >= 4 or _entity_overlap(req, unit) >= 0.20
 
 
+# Methodology vocabulary used by the PMI-copy-without-methodology rule.
+# A PMI fragment that just duplicates the requirement text from ТЗ
+# without any of these words is not really describing how to verify —
+# it's a copy. See verify_pairs PMI-copy rule for usage.
+_PMI_METHODOLOGY_RE = re.compile(
+    r"\b(?:"
+    r"проверяется|проверка|проверки|проверить|проверяют|"
+    r"тест(?:а|у|ом|ы|ов|ам|ах|овый|ируется)?|"
+    r"тест[\s\-]?кейс|тестирование|тестирования|"
+    r"методика|методики|методику|"
+    r"испытани[ея]|испытаний|испытание|испытания|"
+    r"критери[йия]|критериев|"
+    r"выполняется\s+проверка|производится\s+проверка|"
+    r"ожидаемый\s+результат|"
+    r"условие\s+приемки|приёмки|приемочн|"
+    r"процедура\s+(?:проверки|испытани)|"
+    r"шаги\s+(?:проверки|тестирования)|"
+    r"тест[\-\s]?план"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _pmi_has_methodology(text: str) -> bool:
+    """True when `text` (a PMI fragment) contains methodology / test /
+    verification vocabulary. Used by the PMI-copy-without-methodology
+    rule in verify_pairs to distinguish 'PMI describes how to test'
+    from 'PMI just quotes the requirement verbatim'."""
+    if not text:
+        return False
+    return bool(_PMI_METHODOLOGY_RE.search(text))
+
+
 def _entity_overlap(req: RequirementUnit, unit: CoverageUnit) -> float:
     if not req.entities or not unit.entities:
         return 0.0
@@ -452,6 +485,57 @@ class PairVerifier:
             )
             _append_action(judgment, "upgrade_conflict_same_outcome_covered")
             return judgment
+
+        # ── Audit (Annenkov package): PMI-copy-without-methodology ──────
+        #
+        # Symptom: when ПМИ just copies the requirement text from ТЗ
+        # verbatim (no test procedure, no expected result, no acceptance
+        # criterion), small-model judges (qwen-3b) ставят COVERED on
+        # exact-text match. Larger models (Llama-70b) correctly say
+        # MISSING because PMI is supposed to describe HOW to verify,
+        # not duplicate the requirement.
+        #
+        # Deterministic fix: if the LLM said COVERED on a PMI target
+        # AND the evidence text is essentially a copy of the requirement
+        # (high lex_jac AND no methodology vocabulary), demote to PARTIAL.
+        # This makes small / large models agree on the right outcome.
+        #
+        # Guard `lex_jac >= 0.80` is intentionally strict: real PMI text
+        # paraphrases (lex_jac 0.30-0.60) — only near-verbatim duplication
+        # of the TZ requirement triggers the rule. Calibrated against
+        # tests/test_coverage_pipeline.py::TestNearVerbatimRequirementMatch
+        # where "Обеспечивать разграничение прав..." vs "Система должна
+        # обеспечивать разграничение прав... по ролям" has lex_jac=0.56
+        # (legitimate COVERED, must not be demoted). Annenkov-style
+        # verbatim copies sit at lex_jac≈1.00 and trigger correctly.
+        if (
+            judgment.llm_label == LLMLabel.COVERED
+            and (unit.target_doc_role or "").strip().lower() == "pmi"
+            and not _pmi_has_methodology(unit.text)
+        ):
+            from app.core.text import tokenize_content
+
+            req_toks = tokenize_content(req.normalized_text)
+            unit_toks = tokenize_content(unit.normalized_text)
+            lex_jac = (
+                len(req_toks & unit_toks) / len(req_toks | unit_toks)
+                if req_toks and unit_toks
+                else 0.0
+            )
+            if lex_jac >= 0.80:
+                judgment.rule_adjusted_label = LLMLabel.PARTIAL
+                missing = list(judgment.missing_aspects) + [
+                    "методика проверки требования не описана в фрагменте",
+                ]
+                judgment.missing_aspects = missing
+                judgment.explanation += (
+                    f" [rule] PMI fragment is a near-verbatim copy of the "
+                    f"requirement (lex_jac={lex_jac:.2f}) without methodology "
+                    f"vocabulary (тест/проверяется/проверка/критерий/etc.); "
+                    f"demoted COVERED → PARTIAL."
+                )
+                _append_action(judgment, "demote_covered_pmi_no_methodology")
+                return judgment
 
         conflict_details: List[str] = list(judgment.conflict_aspects)
 

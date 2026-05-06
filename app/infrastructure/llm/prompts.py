@@ -239,6 +239,98 @@ def build_judge_prompt_compact(
     return _SYSTEM_PROMPT_COMPACT, user
 
 
+# ── Batch prompt: one LLM call judges multiple candidates per requirement ──
+#
+# Use case: rate-limit-constrained free APIs (Groq, OpenRouter free tier
+# routed through shared upstream pools). One per-requirement call instead
+# of N per-pair calls cuts the call count 3-5×, fitting comfortably in
+# 50-req/day budgets. See LiteLLMCoverageJudge.judge_batch for the caller.
+#
+# The schema returns a JSON ARRAY of verdicts in the SAME ORDER as the
+# input candidates. Each entry is the same shape as the per-pair schema
+# (label / confidence / matched_aspects / missing_aspects /
+# conflict_aspects / cited_phrases / explanation) plus an "index" field
+# echoing the candidate's position so we can detect drift if the LLM
+# returns the array out of order.
+
+_SYSTEM_PROMPT_BATCH = """Ты эксперт по проверке соответствия требований ТЗ и целевых документов (ПМИ — методики проверки, ПЗ — описания реализации).
+
+Тебе дано ОДНО требование из ТЗ и СПИСОК фрагментов целевого документа. Для КАЖДОГО фрагмента в списке нужно отдельно оценить покрытие.
+
+Возможные label:
+  COVERED    — требование полностью покрыто фрагментом
+  PARTIAL    — частичное соответствие, часть аспектов не отражена
+  CONFLICT   — фрагмент явно противоречит требованию (другое числовое значение, инвертированная модальность)
+  IRRELEVANT — фрагмент о другом
+
+Верни ТОЛЬКО JSON массив, в том же порядке что и входные фрагменты:
+[
+  {
+    "index": 0,
+    "label": "<COVERED|PARTIAL|CONFLICT|IRRELEVANT>",
+    "confidence": <0.0-1.0>,
+    "matched_aspects": ["<аспект1>", ...],
+    "missing_aspects": ["<аспект1>", ...],
+    "conflict_aspects": ["<аспект1>", ...],
+    "cited_phrases": ["<точная подстрока этого фрагмента>", ...],
+    "explanation": "<1-2 предложения>"
+  },
+  { "index": 1, ... },
+  ...
+]
+
+Правила:
+- В массиве должно быть РОВНО столько элементов, сколько фрагментов на входе.
+- Поле "index" обязательно — соответствует позиции фрагмента (с 0).
+- cited_phrases для index=N — точная подстрока ФРАГМЕНТА N (не требования и не других фрагментов).
+- Для IRRELEVANT все аспект-списки пусты.
+- Для CONFLICT conflict_aspects не пуст.
+"""
+
+
+def build_judge_batch_prompt(
+    req: RequirementUnit, units: list[CoverageUnit],
+) -> tuple[str, str]:
+    """Return (system_prompt, user_prompt) for a batch of N candidates
+    against ONE requirement.
+
+    Output schema: JSON array of N verdicts in input order. See
+    `_SYSTEM_PROMPT_BATCH` for the contract. Caller is
+    `LiteLLMCoverageJudge.judge_batch` which parses the array back into
+    PairJudgment objects."""
+    type_hint = _TYPE_HINTS.get(req.requirement_type.value, "")
+    target_role = (units[0].target_doc_role.upper() if units else "?")
+
+    parts = [
+        f"[prompt_version={PROMPT_VERSION}-batch]",
+        f"Тип документа-источника фрагментов: {target_role}",
+        f"Тип требования: {req.requirement_type.value}",
+    ]
+    if type_hint:
+        parts.append(f"Подсказка по типу требования: {type_hint}")
+    if req.constraints:
+        cs = ", ".join(
+            f"{c.kind} {c.operator} {c.value}{(' ' + c.unit) if c.unit else ''}"
+            for c in req.constraints
+        )
+        parts.append(f"Числовые ограничения ТЗ: {cs}")
+
+    parts.append("")
+    parts.append("=== ТРЕБОВАНИЕ (из ТЗ) ===")
+    parts.append(req.text)
+    parts.append("")
+    parts.append(f"=== ФРАГМЕНТЫ ({target_role}, всего {len(units)}) ===")
+    for i, u in enumerate(units):
+        parts.append(f"--- index={i} ---")
+        parts.append(u.text)
+    parts.append("")
+    parts.append(
+        f"Оцени покрытие для каждого из {len(units)} фрагментов и верни "
+        f"JSON массив длиной {len(units)} по схеме выше."
+    )
+    return _SYSTEM_PROMPT_BATCH, "\n".join(parts)
+
+
 # ── Compact-prompt model heuristic (PR-K P1) ──────────────────────────────
 #
 # Models known to struggle with the full v5 prompt. Match on substring of

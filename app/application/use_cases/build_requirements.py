@@ -141,6 +141,26 @@ def _is_document_boilerplate(text: str) -> bool:
         alpha_chars = sum(1 for c in text if c.isalpha())
         if alpha_chars and digit_punct_chars / max(1, alpha_chars + digit_punct_chars) > 0.4:
             return True
+
+    # Audit (Annenkov package): section-header text glued to the start
+    # of a bullet list, e.g.
+    #   "Требования к программе 4.1. Требования к функциональным
+    #    характеристикам Модуль ... обеспечивать выполнение
+    #    перечисленных ниже функций:."
+    # Two "Требования к ..." headers separated by a section number —
+    # almost always a glued heading. ONLY fire on short fragments
+    # (<= 50 words) — long sections legitimately contain multiple
+    # "Требования к ..." subheadings that aren't pasted together.
+    # Regression note: an earlier broader version filtered any
+    # sentence ending with "следующие/перечисленных ... функций:"
+    # which incorrectly killed legitimate requirement-list intros.
+    # Removed.
+    if len(words) <= 50 and re.search(
+        r"Требования\s+к\s+\S+.*?\d+\.\d+\.?.*?Требования\s+к\s+\S+",
+        stripped, re.IGNORECASE | re.DOTALL,
+    ):
+        return True
+
     return False
 
 

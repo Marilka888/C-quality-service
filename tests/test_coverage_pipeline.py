@@ -1290,18 +1290,25 @@ class TestNearVerbatimRequirementMatch:
             f"Near-verbatim requirement with same action verb must be COVERED; got {status}"
         )
 
-    def test_near_verbatim_obespechivat_covered(self):
+    def test_near_verbatim_obespechivat_demoted_to_partial(self):
         """
         TZ: "Обеспечивать разграничение прав доступа пользователей."
         PMI: "Система должна обеспечивать разграничение прав доступа пользователей по ролям."
-        Expected: COVERED
+
+        Semantics changed (Annenkov audit): a PMI fragment that is a
+        near-verbatim copy of the TZ requirement WITHOUT methodology
+        vocabulary (проверяется/тест/критерий/...) is now demoted to
+        PARTIAL. PMI is supposed to describe HOW to verify, not just
+        re-quote the requirement. With "по ролям" added but no
+        verification vocabulary, lex_jac=0.80 triggers the rule.
         """
         status = _run(_make_package(
             "Обеспечивать разграничение прав доступа пользователей.",
             "Система должна обеспечивать разграничение прав доступа пользователей по ролям.",
         ))
-        assert status == CoverageStatus.COVERED, (
-            f"Near-verbatim 'обеспечивать' match must be COVERED; got {status}"
+        assert status == CoverageStatus.PARTIAL, (
+            f"Near-verbatim 'обеспечивать' match without methodology "
+            f"vocabulary must be demoted to PARTIAL; got {status}"
         )
 
 

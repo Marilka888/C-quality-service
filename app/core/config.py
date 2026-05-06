@@ -208,30 +208,61 @@ class CoverageLLMConfig(BaseModel):
     #                   reranker model; no training required)
     # "disabled"      — rule-based DisabledCoverageJudge fallback
     #
-    # Default: litellm + Groq Cloud Llama-3.1-8B-Instant.
+    # Default: litellm + OpenRouter Llama-3.3-70B-Instruct (free tier).
     #
-    # Why 8B and not 70B: Groq free tier TPM limits.
-    #   * llama-3.3-70b-versatile: 12K TPM — too tight; bursting 41
-    #     pair-judgments at ~1500 tokens each saturates it instantly
-    #     and 38/41 calls fail with RateLimitError (Polyakov re-run).
-    #   * llama-3.1-8b-instant:    30K TPM — fits a 60K-token burst
-    #     comfortably over 2 minutes.
+    # Why OpenRouter and not Groq: Groq's free tier TPM throttles new
+    # accounts hard (Polyakov re-runs got 6K TPM, not the advertised
+    # 30K). OpenRouter's free tier is request-based (20 RPM) which
+    # fits our 41-pair pipeline comfortably — no token bookkeeping
+    # needed.
     #
-    # Quality trade-off: 8B is weaker than 70B on Russian paraphrase
-    # but still much stronger than qwen2.5:3b (and an order of
-    # magnitude faster, at ~750 tok/sec on Groq).
+    # Free-tier daily quota:
+    #   * 50 requests/day with no credit on file
+    #   * 1000 requests/day after a one-time $5 top-up (lifetime,
+    #     not a subscription) — recommended if you'll run more than
+    #     1 package per day.
     #
-    # If you need 70B quality, set:
-    #   model_name = "groq/llama-3.3-70b-versatile"
-    # AND wait for the rate-limit-aware retry (see LiteLLMCoverageJudge
-    # which now parses the 'try again in Xs' hint from RateLimitError).
-    # 70B will run slower (~5 min per package on free tier) but produce
-    # richer verdicts.
+    # Setup:
+    #   1. Register at https://openrouter.ai/
+    #   2. https://openrouter.ai/keys → Create Key
+    #   3. setx OPENROUTER_API_KEY "sk-or-v1-..."
+    #   4. (optional) top up $5 to lift daily limit to 1000 reqs
     #
-    # Operators can override per-request via options.judge_backend or
-    # options.llm_model_name.
-    backend: str = "litellm"
-    model_name: str = "groq/llama-3.1-8b-instant"
+    # OpenRouter rotates :free model availability frequently — pinning
+    # any specific :free id is fragile. Confirmed-working in this
+    # operator's session (we saw real verdicts from it):
+    #   meta-llama/llama-3.3-70b-instruct:free — works; occasionally
+    #   gets upstream rate-limited under shared peak load. Our retry
+    #   logic (24a8310 + 1cbc1c4) handles those by sleeping 30-60s
+    #   instead of falling back to disabled judge.
+    #
+    # Confirmed REMOVED from free tier (DO NOT use):
+    #   qwen/qwen-2.5-72b-instruct:free          — 404 (2026-05-07)
+    #   deepseek/deepseek-chat-v3-0324:free      — 404 (2026-05-07)
+    #   google/gemma-2-9b-it:free                — superseded by gemma-3
+    #
+    # Always check the live list before pinning:
+    #   https://openrouter.ai/models?max_price=0
+    #
+    # Per-request override (recommended for trying alternatives):
+    #   options.llm_model_name = "openrouter/google/gemma-3-27b-it:free"
+    #   options.llm_model_name = "openrouter/meta-llama/llama-4-scout:free"
+    #
+    # Or stick with Groq: model_name = "groq/llama-3.1-8b-instant"
+    # AND set CQUALITY_LITELLM_TPM=5500 to enable token-bucket throttle.
+    #
+    # Default reverted to local Ollama (qwen2.5:3b): no rate limits, no
+    # API keys, no upstream rotation. Quality is lower than 70B-class
+    # cloud models (qwen-3b sometimes ставит ложный COVERED on
+    # near-verbatim PMI without methodology — but the deterministic
+    # PMI-copy-without-methodology rule from 8bfd165 catches that),
+    # but for iterative development on real packages predictable local
+    # inference beats cloud-rate-limit-roulette.
+    #
+    # Switch to cloud per-request via options.llm_model_name, or change
+    # backend = "litellm" to make it the global default.
+    backend: str = "ollama"
+    model_name: str = "qwen2.5:3b"
     prompt_version: str = "v1"
     timeout: int = 120
     # Thresholds for cross_encoder backend. Calibrated for BAAI/bge-reranker-v2-m3
