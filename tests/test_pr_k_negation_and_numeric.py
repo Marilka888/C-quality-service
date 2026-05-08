@@ -129,9 +129,11 @@ class TestNegationContradictionAllForms:
         # feminine
         ("Программа не должна сохранять пароли в логах.",
          "Программа сохраняет введённые пароли в системный лог."),
-        # neuter — was missing from the old regex (the smoke-time bug)
-        ("Время отклика не должно превышать двух секунд.",
-         "Время отклика составляет 5 секунд при типовой нагрузке."),
+        # neuter — non-quantifier action ban (carve-out only excludes
+        # numeric-bound quantifiers like «не должно превышать»). An
+        # action ban with neuter form must still register.
+        ("Окно не должно блокировать ввод других элементов.",
+         "Окно блокирует ввод других элементов до закрытия."),
         # plural
         ("Пользователи не должны видеть данные других клиентов.",
          "Пользователи видят данные всех клиентов в общем списке."),
@@ -142,6 +144,24 @@ class TestNegationContradictionAllForms:
         assert _negation_contradiction(req, unit) is True, (
             f"negation_contradiction missed for req={req_text!r} unit={unit_text!r}"
         )
+
+    def test_quantifier_prohibition_excluded_from_negation_rule(self):
+        """Numeric-bound quantifiers («не должно превышать N»,
+        «не более N», «не менее N», «не позднее N») are NOT action
+        bans — they declare a numeric bound. Numeric conflicts on the
+        same metric are Rule 1's responsibility, not Rule 2's. This
+        prevents false-positive CONFLICTs when a quantifier-bearing
+        requirement is paired with an off-topic positive-phrasing
+        coverage unit."""
+        req = _req("Время отклика не должно превышать двух секунд.")
+        unit = _unit("Время отклика составляет 5 секунд при типовой нагрузке.")
+        # `_negation_contradiction` itself returns False — a quantifier
+        # prohibition + a positive numeric statement is not a
+        # modality contradiction (they're both declaring quantitative
+        # bounds, just with different framings). Rule 1 (numeric
+        # conflict) is what must catch the actual 2-vs-5 mismatch
+        # — and it has its own topical guards.
+        assert _negation_contradiction(req, unit) is False
 
 
 # ── End-to-end via verifier: prohibition mismatch → CONFLICT ────────────
@@ -156,10 +176,16 @@ class TestEndToEndProhibitionConflict:
         self.verifier = PairVerifier()
 
     @pytest.mark.parametrize("req_text, unit_text", [
+        # Action ban: «не должна сохранять» (banned action) vs
+        # «сохраняет» (admits the banned action). True modality
+        # contradiction.
         ("Программа не должна сохранять пароль в открытом виде.",
          "Программа сохраняет пароль пользователя в журнале аудита."),
-        ("Время отклика не должно превышать 2 секунд.",
-         "Время отклика составляет 5 секунд при пиковой нагрузке."),
+        # Action ban: «не должна предоставлять» (banned action) vs
+        # «предоставляет» (admits the banned action). True modality
+        # contradiction.
+        ("Система не должна предоставлять анонимный доступ к личному кабинету.",
+         "Система предоставляет анонимный доступ к личному кабинету."),
     ])
     def test_prohibition_vs_affirmation_promotes_to_conflict(self, req_text, unit_text):
         req = _req(req_text)

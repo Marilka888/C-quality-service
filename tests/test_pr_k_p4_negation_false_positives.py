@@ -631,3 +631,151 @@ class TestRule5PartialZeroEntityOverlap:
             f"got {out.rule_adjusted_label}, actions={out.verifier_actions}"
         )
         assert "preserve_partial_low_entity_high_lex" in (out.verifier_actions or [])
+
+
+class TestQuantifierProhibitionNotNormative:
+    """Regression: «не должно превышать» / «не более» / «не позднее» are
+    NUMERIC-BOUND quantifiers, not action-banning prohibitions. They must
+    not feed `_negation_contradiction`, otherwise any positive-phrasing
+    coverage unit (off-topic or not) ends up flipping the verdict to
+    CONFLICT just because the requirement carries the word «не должно».
+    Numeric-bound conflicts on the same metric are Rule 1's job — that
+    rule has its own topical guards.
+
+    Real-package symptom: Polyakov 0.20::sent1 returned a CONFLICT when
+    one of the lower-scored evidence units happened to be «Система должна
+    корректно обрабатывать неверные запросы…» — a positive-phrasing
+    sentence with no «не должн». The negation-rule then false-confirmed.
+    """
+
+    def setup_method(self):
+        self.verifier = PairVerifier()
+
+    def test_quantifier_prohibition_with_positive_unit_no_conflict(self):
+        """TZ «время восстановления не должно превышать общее время на
+        перезагрузку» (quantifier) vs PMI «Система должна корректно
+        обрабатывать…» (positive, off-topic). Must NOT fire CONFLICT
+        through Rule 2 — req's «не должно» is a numeric bound, not an
+        action ban."""
+        req = _req(
+            "Время восстановления после отказа работы системы не должно "
+            "превышать общее время, необходимое на перезагрузку "
+            "составляющих системы.",
+            req_type=RequirementType.RELIABILITY,
+        )
+        unit = _unit(
+            "Система должна корректно обрабатывать неверные запросы любого "
+            "вида и выдавать информативные сообщения об ошибках, а также "
+            "уведомлять о них пользователя в случае необходимости."
+        )
+        j = _judgment(LLMLabel.PARTIAL, conf=0.40)
+        out = self.verifier.verify(j, req, unit)
+        assert out.rule_adjusted_label != LLMLabel.CONFLICT, (
+            f"quantifier-only «не должно превышать» + positive-phrasing "
+            f"unit produced CONFLICT; actions={out.verifier_actions}"
+        )
+
+    def test_action_ban_prohibition_still_fires_with_topic_link(self):
+        """Sanity check: a real action-banning prohibition («не должна
+        аварийно завершать») paired with a positive unit that talks about
+        the same topic should still be evaluated by the negation rule —
+        only the quantifier carve-out is new. Whether the rule fires
+        CONFLICT or suppresses depends on existing same-outcome /
+        topical-link guards; here we just assert the carve-out doesn't
+        accidentally exempt action bans."""
+        req = _req(
+            "Система не должна аварийно завершать свою работу в случае "
+            "возникновения ошибки.",
+            req_type=RequirementType.RELIABILITY,
+        )
+        unit = _unit(
+            "В случае ошибки при обработке запроса система должна "
+            "продолжать корректно функционировать."
+        )
+        # _negation_contradiction itself must still see this as a
+        # modality mismatch — same-outcome compatibility is what
+        # demotes / suppresses, not the carve-out.
+        from app.application.use_cases.verify_pairs import _negation_contradiction
+        assert _negation_contradiction(req, unit) is True, (
+            "action-banning prohibition («не должна аварийно завершать») "
+            "must still register as prohibitive — only quantifier-only "
+            "prohibitions are carved out."
+        )
+
+
+class TestPartialPreservedOnSharedDomainAnchor:
+    """Regression: PARTIAL must be preserved when req and unit share at
+    least one substantive content noun, even if entity overlap and
+    lex-jaccard are individually low. Aggressive demotion produced
+    false MISSING for genuine partial coverage where the entity
+    extractor missed a head noun.
+
+    Real-package symptom (Polyakov 0.11::sent11): TZ
+    «Комплексная система фильтрации поиска по репозиторию. (Авторы,
+    темы, ключевые слова, дата и другие в случае необходимости)» vs
+    PMI «Система должна обеспечивать поиск по публикациям и проектам.»
+    Shared content lemma «поиск» — search-as-feature is covered, the
+    specific filters aren't. PARTIAL is the correct verdict.
+    """
+
+    def setup_method(self):
+        self.verifier = PairVerifier()
+
+    def _req_with_entities(self, text: str, entities: list[str]) -> RequirementUnit:
+        from app.application.use_cases.build_requirements import _normalize_text
+        return RequirementUnit(
+            req_id="r1", source_document_id="doc-tz",
+            text=text, normalized_text=_normalize_text(text),
+            requirement_type=RequirementType.FUNCTIONAL,
+            modality=Modality.MUST,
+            constraints=[], entities=entities,
+        )
+
+    def _unit_with_entities(self, text: str, entities: list[str], role: str = "pmi") -> CoverageUnit:
+        from app.application.use_cases.build_requirements import _normalize_text
+        return CoverageUnit(
+            unit_id="u1", target_document_id=f"doc-{role}", target_doc_role=role,
+            text=text, normalized_text=_normalize_text(text),
+            entities=entities,
+        )
+
+    def test_partial_with_shared_anchor_noun_preserved(self):
+        """Polyakov 0.11::sent11 case: shared lemma «поиск» is a real
+        topical anchor, so PARTIAL must survive the demotion rule even
+        with low entity overlap and low lex_jac."""
+        req = self._req_with_entities(
+            "Комплексная система фильтрации поиска по репозиторию. "
+            "Авторы, темы, ключевые слова, дата и другие в случае необходимости.",
+            entities=["фильтрация", "репозиторий", "автор", "тема"],
+        )
+        unit = self._unit_with_entities(
+            "Система должна обеспечивать поиск по публикациям и проектам.",
+            entities=["публикация", "проект"],
+        )
+        j = _judgment(LLMLabel.PARTIAL, conf=0.70)
+        out = self.verifier.verify(j, req, unit)
+        assert out.rule_adjusted_label == LLMLabel.PARTIAL, (
+            f"PARTIAL with shared substantive anchor must be preserved; "
+            f"got {out.rule_adjusted_label}, actions={out.verifier_actions}"
+        )
+
+    def test_partial_no_anchor_still_demoted(self):
+        """Sanity: when there is genuinely no shared substantive content
+        token, PARTIAL is still demoted. Off-topic pairs should not
+        survive the new soft-anchor rule."""
+        req = self._req_with_entities(
+            "Время отклика приложения не должно превышать 3 секунд.",
+            entities=["время", "отклик", "приложение"],
+        )
+        unit = self._unit_with_entities(
+            "Климатические условия эксплуатации должны соответствовать "
+            "стандартам ВЦ.",
+            entities=["климат", "эксплуатация", "стандарт"],
+        )
+        j = _judgment(LLMLabel.PARTIAL, conf=0.50)
+        out = self.verifier.verify(j, req, unit)
+        # No substantive shared token → demoted as before.
+        assert out.rule_adjusted_label == LLMLabel.IRRELEVANT, (
+            f"off-topic PARTIAL must still demote; got "
+            f"{out.rule_adjusted_label}, actions={out.verifier_actions}"
+        )

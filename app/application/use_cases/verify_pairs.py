@@ -34,6 +34,29 @@ _VALUE_TOLERANCE = 1e-6
 # producing a false-positive CONFLICT in the smoke run on
 # "Время отклика не должно превышать 2 секунд" vs the same PMI fragment
 # (which uses masc "не должен"). All gender/number forms now recognised.
+# Common Russian content words that pass the «≥5 chars» length gate but
+# are too generic to count as a topical anchor on their own. Used by
+# Rule 5 (PARTIAL preservation): we only consider a shared token a
+# topical anchor if it survives this stoplist.
+_CONTENT_TOKEN_STOPWORDS = frozenset({
+    "система", "систему", "системы", "системе", "систем",
+    "должен", "должна", "должно", "должны",
+    "может", "могут",
+    "также", "только", "также", "может", "может",
+    "соответствии", "соответствует", "соответствия", "соответствующи",
+    "следующий", "следующее", "следующие", "следующих",
+    "необходимо", "обеспечив", "обеспечивает",
+    "является", "являются",
+    "целью", "целях",
+    "данный", "данных", "данные",
+    "пользователь", "пользователя", "пользователем", "пользователю", "пользователей",
+    "программ", "программа", "программой", "программе", "программу", "программы",
+    "приложен", "приложение", "приложения", "приложению", "приложением",
+    "функций", "функции", "функция", "функцию", "функциях",
+    "интерфейс", "интерфейса",
+})
+
+
 _PROHIBITION_RE = re.compile(
     r"\b(?:"
     # Russian "не должен / не должна / не должно / не должны"
@@ -317,12 +340,70 @@ def _negation_contradiction(req: RequirementUnit, unit: CoverageUnit) -> bool:
     """
     True only when a requirement with explicit MUST_NOT modality is covered by
     a unit that makes a positive assertion (or vice-versa).
-    Uses strict prohibition markers to avoid false positives from quantifiers
-    like "не более" / "не менее".
+
+    Quantifier-class prohibitions («не должно превышать», «не более»,
+    «не позднее», «не менее») are NOT treated as prohibitive for the
+    purposes of this rule — they declare a numeric bound, not a banned
+    behaviour. Real-package symptom (Polyakov 0.20::sent1):
+    «время восстановления не должно превышать общее время…» (TZ) was
+    matched against a positive-phrasing unit «Система должна корректно
+    обрабатывать неверные запросы…» (PMI). The negation rule fired
+    because TZ had «не должн» and PMI did not, then the negation-rule
+    suppression for «same upper bound on both sides» couldn't trigger
+    (PMI doesn't have «не должно превышать»), and the result was a
+    false-positive CONFLICT.
+
+    Numeric-bound conflicts on the same metric («3 сек» vs «10 сек»)
+    are handled by Rule 1 (numeric conflict) — that rule has the
+    appropriate aspect/topic guards. Stripping quantifier-prohibitions
+    from this rule is therefore safe.
     """
-    req_prohibited = req.modality == Modality.MUST_NOT or bool(_PROHIBITION_RE.search(req.normalized_text))
-    unit_prohibited = unit.modality == Modality.MUST_NOT if hasattr(unit, "modality") else bool(_PROHIBITION_RE.search(unit.normalized_text))
-    # Only flag when one side is explicitly prohibitive and the other isn't
+
+    def _is_quantifier_only_prohibition(text: str) -> bool:
+        """True when the only prohibition in `text` is a numeric-bound
+        quantifier («не должно превышать», «не более X»), with no
+        action-banning prohibition («не должна аварийно завершать»,
+        «запрещено», «недопустимо», …)."""
+        if not text:
+            return False
+        for m in _PROHIBITION_RE.finditer(text):
+            tail = text[m.end():m.end() + 80].lower()
+            head = m.group(0).lower()
+            # Quantifier-class tails: «не должн... превышать» / «не должн...
+            # быть менее» / «не более N». «не позднее N». «не менее N».
+            # If the prohibition doesn't continue with one of these, it's
+            # an action-banning prohibition — keep it.
+            quantifier_continuation = bool(re.match(
+                r"\s*(?:превышат|быть\s+(?:менее|больше|более|меньше|не\s+менее)|"
+                r"(?:более|менее|позднее|раньше)\s+\b)",
+                tail, re.I,
+            ))
+            head_quantifier = bool(re.match(
+                r"не\s+(?:более|менее|позднее|раньше)\b", head, re.I,
+            ))
+            if not (quantifier_continuation or head_quantifier):
+                return False
+        return True
+
+    req_prohibited_raw = (
+        req.modality == Modality.MUST_NOT
+        or bool(_PROHIBITION_RE.search(req.normalized_text))
+    )
+    unit_prohibited_raw = (
+        unit.modality == Modality.MUST_NOT if hasattr(unit, "modality")
+        else bool(_PROHIBITION_RE.search(unit.normalized_text))
+    )
+
+    # Strip quantifier-only prohibitions. We treat the side as «not
+    # prohibited for negation-rule purposes» — the side has a numeric
+    # bound, which is Rule 1's responsibility, not Rule 2's.
+    req_prohibited = req_prohibited_raw and not _is_quantifier_only_prohibition(
+        req.normalized_text
+    )
+    unit_prohibited = unit_prohibited_raw and not _is_quantifier_only_prohibition(
+        unit.normalized_text if hasattr(unit, "normalized_text") else ""
+    )
+
     return req_prohibited != unit_prohibited
 
 
@@ -885,6 +966,35 @@ class PairVerifier:
                         f"≥ 0.20 indicates lexical paraphrase, not off-topic)."
                     )
                     _append_action(judgment, "preserve_partial_low_entity_high_lex")
+                    return judgment
+
+                # Soft anchor: if req and unit share at least one
+                # substantive content token (≥5 chars, not a stopword)
+                # AND the LLM was at least mildly confident (≥0.6),
+                # preserve PARTIAL. This catches genuine same-domain
+                # partial coverage where the entity extractor missed
+                # the head noun on one side. Real-package symptom
+                # (Polyakov 0.11::sent11): TZ «Комплексная система
+                # фильтрации поиска по репозиторию. (Авторы, темы,
+                # ключевые слова, дата…)» vs PMI «Система должна
+                # обеспечивать поиск по публикациям и проектам.» —
+                # both share the noun «поиск», LLM said PARTIAL conf
+                # 0.7. Aggressive demotion forced MISSING; the user
+                # correctly reads this as PARTIAL (search is covered,
+                # specific filters aren't).
+                substantive_shared = {
+                    t for t in (req_toks & unit_toks)
+                    if len(t) >= 5 and t not in _CONTENT_TOKEN_STOPWORDS
+                }
+                if substantive_shared and (judgment.llm_confidence or 0) >= 0.60:
+                    judgment.rule_adjusted_label = judgment.llm_label
+                    judgment.explanation += (
+                        f" [rule] Near-zero entity overlap ({overlap:.2f}) on "
+                        f"LLM-PARTIAL verdict — preserved (shared substantive "
+                        f"token(s): {sorted(substantive_shared)[:3]}; "
+                        f"conf={judgment.llm_confidence:.2f})."
+                    )
+                    _append_action(judgment, "preserve_partial_shared_anchor")
                     return judgment
 
                 judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
