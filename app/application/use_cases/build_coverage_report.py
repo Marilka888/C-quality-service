@@ -76,6 +76,11 @@ class CoverageReportBuilder:
             else:
                 report.missing += 1
 
+        out_of_scope = [
+            r for r in requirement_results
+            if r.applicability == Applicability.OUT_OF_SCOPE
+        ]
+
         return CoverageAnalysisResult(
             job_id=job_id,
             package_id=package_id,
@@ -86,4 +91,5 @@ class CoverageReportBuilder:
             requirement_results=requirement_results,
             pair_judgments=pair_judgments,
             warnings=warnings or [],
+            out_of_scope_requirements=out_of_scope,
         )

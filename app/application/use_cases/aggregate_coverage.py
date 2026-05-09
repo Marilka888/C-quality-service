@@ -55,6 +55,7 @@ def _label_to_status(label: LLMLabel) -> CoverageStatus:
         LLMLabel.PARTIAL: CoverageStatus.PARTIAL,
         LLMLabel.CONFLICT: CoverageStatus.CONFLICT,
         LLMLabel.IRRELEVANT: CoverageStatus.MISSING,
+        LLMLabel.NOT_JUDGED: CoverageStatus.UNKNOWN,
     }[label]
 
 
@@ -77,6 +78,10 @@ SUBCODE_COVERED = "COVERED"
 SUBCODE_PARTIAL = "PARTIAL"
 SUBCODE_CONFLICT_VERIFIED = "CONFLICT_VERIFIED"
 SUBCODE_CONFLICT_UNVERIFIED = "CONFLICT_UNVERIFIED"
+# Polyakov-regression (2026-05-10): runtime LLM-failure rows. The
+# aggregator surfaces these as CoverageStatus.UNKNOWN (not MISSING)
+# so an Ollama timeout doesn't morph into a CRITICAL package status.
+SUBCODE_UNKNOWN_LLM_UNAVAILABLE = "UNKNOWN_LLM_UNAVAILABLE"
 
 
 # Default Russian rationales for MISSING when no judgment yields a usable
@@ -103,6 +108,12 @@ _DEFAULT_RATIONALE_OUT_OF_SCOPE = (
 _DEFAULT_RATIONALE_OPTIONAL = (
     "Не найдено покрытия для опционального требования. "
     "Отсутствие не считается критичным."
+)
+_DEFAULT_RATIONALE_UNKNOWN = (
+    "LLM-судья не смог вынести вердикт по этой паре (таймаут / ошибка "
+    "соединения / некорректный ответ). Покрытие не оценено — статус "
+    "UNKNOWN. Строка не учитывается ни в criticalCount, ни в C-grade. "
+    "Перезапустите C-quality после восстановления LLM-сервиса."
 )
 
 
@@ -156,6 +167,8 @@ def _pick_rationale(
         if coverage_requirement_level == CoverageRequirementLevel.OPTIONAL:
             return _DEFAULT_RATIONALE_OPTIONAL
         return _DEFAULT_RATIONALE_MISSING
+    if best_status == CoverageStatus.UNKNOWN:
+        return _DEFAULT_RATIONALE_UNKNOWN
     return ""
 
 
@@ -294,6 +307,19 @@ class CoverageAggregator:
         debug_cfg = debug_cfg or CoverageDebugConfig()
         aggregator_cfg = aggregator_cfg or CoverageAggregatorConfig()
 
+        # P0 #9 (Хамроев) — applicability is the FIRST decision in
+        # aggregate(). NOT_APPLICABLE / OUT_OF_SCOPE rows must never be
+        # overwritten by MISSING_NO_EVIDENCE just because the upstream
+        # pipeline produced an empty shortlist. Putting the
+        # applicability check before any snapshot / branch-B logic
+        # makes the ordering explicit and pins it against future
+        # regression: even a caller that bypasses the pipeline gate
+        # (run_coverage_analysis._handle_one_requirement) and invokes
+        # aggregate() directly with empty judgments still gets the
+        # correct OUT_OF_SCOPE row.
+        req_type = requirement.requirement_type or RequirementType.OTHER
+        applicability = applicability_for(req_type, target_doc_role)
+
         # BUG-12: snapshot the requirement's source-side context once so
         # both the empty-shortlist branch and the regular branch return
         # the same locator fields.
@@ -308,8 +334,6 @@ class CoverageAggregator:
             or None
         )
 
-        req_type = requirement.requirement_type or RequirementType.OTHER
-        applicability = applicability_for(req_type, target_doc_role)
         if coverage_requirement_level is None:
             # Derive from applicability if caller didn't pass it (legacy path).
             from app.application.use_cases.applicability import (
@@ -440,8 +464,103 @@ class CoverageAggregator:
                 ),
             )
 
+        # ── Branch B': all judgments are runtime-failure sentinels ──
+        # Polyakov-regression (2026-05-10): when the LLM judge
+        # backend errored at request time (timeout / connection /
+        # HTTP / parse-exhausted / unexpected exception), the wrappers
+        # return `make_unknown_judgment(...)` — a sentinel
+        # PairJudgment with llm_label=NOT_JUDGED. If EVERY judgment
+        # for this requirement is such a sentinel, the pair was simply
+        # never assessed; surfacing it as MISSING (the old behaviour)
+        # converts an infrastructure failure into a documentation
+        # defect on the report and inflates criticalCount. UNKNOWN is
+        # the explicit "we couldn't judge this pair" status; it does
+        # not contribute to criticalCount and is excluded from the
+        # C-grade denominator (should_affect_grade=False below).
+        # NOTE: when only SOME judgments are sentinels, Branch C
+        # below filters them out and aggregates the real ones — the
+        # sentinel doesn't poison the verdict.
+        from app.infrastructure.llm.coverage_judge import is_unknown_judgment
+        unknown_judgments = [j for j in judgments if is_unknown_judgment(j)]
+        if unknown_judgments and len(unknown_judgments) == len(judgments):
+            status = CoverageStatus.UNKNOWN
+            # First sentinel's reason tag tells the reviewer WHY
+            # (timeout / HTTP / …); use the first explanation as the
+            # row-level rationale so the UI tooltip is specific.
+            first_sentinel = unknown_judgments[0]
+            decision_log.append(
+                f"All {len(judgments)} judgment(s) are LLM-unavailable "
+                f"sentinels; row reported as UNKNOWN."
+            )
+            agg_reason = (
+                f"All {len(judgments)} candidate pair(s) were not judged "
+                f"due to LLM backend unavailability "
+                f"({(first_sentinel.verifier_actions or ['unknown'])[0]}). "
+                f"Status UNKNOWN: row excluded from criticalCount and "
+                f"C-grade denominator."
+            )
+            return RequirementCoverageResult(
+                req_id=requirement.req_id,
+                source_document_id=requirement.source_document_id,
+                target_document_id=target_document_id,
+                target_doc_role=target_doc_role,
+                status=status,
+                req_text=req_text,
+                req_section_title=req_section_title,
+                req_section_id=req_section_id,
+                req_number=req_number,
+                rationale=(
+                    first_sentinel.explanation
+                    or _DEFAULT_RATIONALE_UNKNOWN
+                ),
+                requirement_type=req_type,
+                applicability=applicability,
+                # UNKNOWN is "we don't know" — surface as low priority
+                # so it doesn't dominate the UI sort order.
+                severity="low",
+                # Infrastructure failure must NOT inflate criticalCount.
+                should_affect_critical=False,
+                # And must NOT be in the C-grade assessable denominator —
+                # otherwise an Ollama timeout drags grade down on a
+                # perfectly-fine package.
+                should_affect_grade=False,
+                status_subcode=SUBCODE_UNKNOWN_LLM_UNAVAILABLE,
+                winning_candidate_id=None,
+                final_confidence=0.0,
+                aggregation_reason=agg_reason,
+                coverage_requirement_level=coverage_requirement_level,
+                evidence_trace=(
+                    _build_evidence_trace(
+                        requirement, candidates_by_unit_id, selection_result,
+                        judgments, decision_log, debug_cfg,
+                    )
+                    if debug_cfg.enabled
+                    else None
+                ),
+            )
+
+        # If SOME judgments are sentinels, drop them — Branch C
+        # aggregates only judgments that actually carry a verdict.
+        if unknown_judgments:
+            judgments = [j for j in judgments if not is_unknown_judgment(j)]
+            decision_log.append(
+                f"Filtered {len(unknown_judgments)} LLM-unavailable "
+                f"sentinel(s) before aggregation; {len(judgments)} "
+                f"real judgment(s) remain."
+            )
+
         # ── Branch C: judgments exist — evidence-based decision ──────
         any_low_conf = any(getattr(j, "low_confidence", False) for j in judgments)
+        # P0 #10: row-level grounding flag mirrors the per-judgment
+        # grounding_failed signal. True when ANY judgment that could
+        # have driven the verdict had its citations rejected by the
+        # substring-grounding gate (LLM hallucinated its quotes). The
+        # docback mapper exposes this as a UI badge separate from
+        # low_confidence (which also covers below-evidence-floor
+        # retrieval, a retrieval-quality flag rather than LLM honesty).
+        any_grounding_failed = any(
+            getattr(j, "grounding_failed", False) for j in judgments
+        )
 
         # Build EvidenceItem list (used by the wire payload).
         evidence_items: List[EvidenceItem] = []
@@ -451,12 +570,24 @@ class CoverageAggregator:
             unit = units_by_id.get(j.unit_id)
             candidate = candidates_by_unit_id.get(j.unit_id)
             if unit is not None:
+                # Polyakov-regression: the wire-truncation budget for
+                # evidence text was a hard `[:300]` cut that landed
+                # mid-word («жизненн» → user-visible report). The UI
+                # «Требования» tab renders this string verbatim, so
+                # mid-word cuts read as garbled. Use the same
+                # sentence-boundary truncator that build_coverage_units
+                # applies to SECTION_WINDOW units, and lift the budget
+                # to 600 chars so a typical PMI restatement paragraph
+                # fits without truncation at all.
+                from app.application.use_cases.build_coverage_units import (
+                    _truncate_at_sentence_boundary,
+                )
                 evidence_items.append(
                     EvidenceItem(
                         unit_id=j.unit_id,
                         fragment_id=unit.fragment_id,
                         section_id=unit.section_id,
-                        text=unit.text[:300],
+                        text=_truncate_at_sentence_boundary(unit.text, 600),
                         retrieval_score=candidate.retrieval_score if candidate else 0.0,
                         judgment=j,
                     )
@@ -470,6 +601,37 @@ class CoverageAggregator:
         cnf_thr = aggregator_cfg.conflict_confidence_threshold
         par_thr = aggregator_cfg.partial_confidence_threshold
         med_thr = aggregator_cfg.medium_retrieval_threshold
+
+        # Polyakov-regression (2026-05-10): per-type medium-retrieval
+        # floor relaxation for SECURITY / PERFORMANCE / RELIABILITY.
+        # These types tend to use specialised vocabulary («атаки типа
+        # Внедрение кода», «время отклика», «отказоустойчивость») that
+        # rarely shares lexical mass with the surrounding PMI/PZ
+        # narrative, so retrieval scores cap at ~0.20-0.30 even when
+        # the LLM judge correctly identifies a partial-coverage
+        # relationship (Polyakov 0.14::sent1: judge PARTIAL with
+        # retrieval=0.28; 0.18::sent2: judge PARTIAL conf 0.7 with
+        # retrieval=0.20). Both got rejected by the 0.30 floor and
+        # surfaced as MISSING_LOW_CONFIDENCE, inflating criticalCount
+        # for what the LLM read as legitimate partial coverage. Lower
+        # the floor to 0.20 for these specialised types — the LLM
+        # confidence + grounding gates still apply, so we're not
+        # admitting hallucinations, just relaxing the lex-density
+        # gate that hurts narrow-domain requirements.
+        _RELAXED_FLOOR_TYPES = {
+            RequirementType.SECURITY,
+            RequirementType.PERFORMANCE,
+            RequirementType.RELIABILITY,
+        }
+        if req_type in _RELAXED_FLOOR_TYPES:
+            relaxed_med_thr = min(med_thr, 0.20)
+            if relaxed_med_thr < med_thr:
+                decision_log.append(
+                    f"medium_retrieval_threshold relaxed for type "
+                    f"{req_type.value}: {med_thr:.2f} → {relaxed_med_thr:.2f} "
+                    f"(specialised-vocabulary type cap)."
+                )
+                med_thr = relaxed_med_thr
 
         # Sort judgments by status priority (CONFLICT > COVERED > PARTIAL >
         # MISSING) so we evaluate the strongest claim first.
@@ -774,6 +936,7 @@ class CoverageAggregator:
             uncovered_aspects=list(dict.fromkeys(uncovered)),
             conflict_details=final_conflicts,
             low_confidence=any_low_conf,
+            grounding_failed=any_grounding_failed,
             req_text=req_text,
             req_section_title=req_section_title,
             req_section_id=req_section_id,

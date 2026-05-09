@@ -131,16 +131,137 @@ _ARTIFACT_CANONICAL: dict = {
 }
 
 # Regex for PMI verification-step units: "Пункт N) проверяется ...", etc.
+#
+# Polyakov-regression: the original pattern required «для проверки» to
+# be followed by one of (пункта/требования/данного/указанного) — too
+# narrow. Real ПМИ verification steps frequently read «Для проверки
+# поиска / авторизации / доступа / работы выполняются …», where the
+# noun after «для проверки» is the SUBJECT of verification, not a
+# meta-token. The unit «Для проверки поиска выполняются запросы к
+# системе поиска» (Polyakov ПМИ методы испытаний) was scored 0.503
+# by the retriever but missed the verification gate, so the disabled
+# judge fell through to IRRELEVANT on lex=0.11. Loosened to accept
+# any word ≥3 chars and added two more PMI patterns that also
+# unambiguously mark a verification step.
 _VERIFICATION_UNIT_RE = re.compile(
     r"""
     пункт\w*\s+\S+\s*[).:\s]*проверяется
     | проверяется\s+(через|с\s+помощью|с\s+использованием|методом|путём|путем)
-    | для\s+проверки\s+(пункта|требования|данного|указанного)
+    | для\s+проверки\s+\w{3,}
+    | при\s+проверке\s+\w{3,}
+    | проверка\s+\w{4,}
+    | выполняются\s+(запросы|тесты|проверк|испытани|шаги|операци)
     | метод\w*\s+(верификации|проверки)\w*
     | тестирование\w*\s+(предусматривает|включает|проводится)
     """,
     re.I | re.VERBOSE | re.UNICODE,
 )
+
+
+# ---------------------------------------------------------------------------
+# Subject-head extraction (Polyakov-regression)
+# ---------------------------------------------------------------------------
+#
+# Many TZ↔PMI false-MISSING pairs share the same subject head (Система /
+# Клиентская часть / Программа / Сервис / Модуль / Подсистема / API /
+# Пользователь / Приложение). When both texts open with the same subject
+# AND both have a modal verb («должн[аоы]», «обязан\\w*», «необходимо»),
+# the unit is almost certainly a restatement / verification of the
+# requirement — even when the lexical Jaccard is low because one side
+# is a long PMI section_window and the other is a short TZ sentence.
+#
+# Without this signal, requirements like «Клиентская часть должна
+# представлять из себя пользовательский интерфейс…» fall through to
+# IRRELEVANT against PMI units like «Клиентская часть приложения должна
+# обеспечивать возможность выполнения следующих функций…» — even
+# though the subject head is identical and both texts are normative.
+
+_SUBJECT_HEAD_RE = re.compile(
+    r"^\s*("
+    r"клиентск\w+\s+част"
+    r"|серверн\w+\s+част"
+    r"|пользовательск\w+\s+интерфейс"
+    r"|программн\w+\s+интерфейс"
+    r"|административн\w+\s+панел"
+    r"|систем\w*"
+    r"|программ\w*"
+    r"|приложени\w*"
+    r"|сервис\w*"
+    r"|модуль|модул\w*"
+    r"|подсистем\w*"
+    r"|компонент\w*"
+    r"|клиент\w*"
+    r"|сервер\w*"
+    r"|интерфейс\w*"
+    r"|пользовател\w*"
+    r"|администратор\w*"
+    r"|оператор\w*"
+    r"|API|api"
+    r")\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+_NORMATIVE_MODAL_RE = re.compile(
+    r"\b(должен|должн[аоы]|обязан\w*|необходимо|следует|надлежит|"
+    r"требует(?:ся)?)\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+def _subject_head(text: str) -> Optional[str]:
+    """Return the leading subject head (canonicalised) or None.
+
+    Tries each sentence start in the text — PMI section_window units
+    typically open with the section title («Требования к
+    функциональным характеристикам.») and only the SECOND sentence
+    starts with the actual subject («Клиентская часть приложения
+    должна …»). The single first-token check would miss those.
+    """
+    if not text:
+        return None
+    raw = None
+    # Try each sentence head: the leading sentence, plus each sentence
+    # that follows a «.» / «;» / «:» punctuation. Bail out at first
+    # match — we don't combine multiple subjects.
+    for sentence in re.split(r"(?<=[.:;])\s+", text.strip()):
+        m = _SUBJECT_HEAD_RE.match(sentence.strip())
+        if m:
+            raw = m.group(1).lower()
+            break
+    if raw is None:
+        return None
+    # Canonicalise common variants to one shared key so morphology
+    # variations («системы», «системе», «систему») compare equal.
+    canon_map = (
+        ("клиентск", "client_part"),
+        ("серверн", "server_part"),
+        ("пользовательск", "user_interface"),
+        ("программн", "prog_interface"),
+        ("административн", "admin_panel"),
+        ("систем", "system"),
+        ("программ", "program"),
+        ("приложен", "application"),
+        ("сервис", "service"),
+        ("модул", "module"),
+        ("подсистем", "subsystem"),
+        ("компонент", "component"),
+        ("клиент", "client"),
+        ("сервер", "server"),
+        ("интерфейс", "interface"),
+        ("пользоват", "user"),
+        ("администратор", "admin"),
+        ("оператор", "operator"),
+    )
+    for prefix, key in canon_map:
+        if raw.startswith(prefix):
+            return key
+    if raw.upper() == "API":
+        return "api"
+    return raw
+
+
+def _has_normative_modal(text: str) -> bool:
+    return bool(_NORMATIVE_MODAL_RE.search(text or ""))
 
 
 # ---------------------------------------------------------------------------
@@ -529,6 +650,45 @@ class DisabledCoverageJudge(CoverageJudge):
                 f"→ PARTIAL; does not directly state requirement"
             )
 
+        # PX_SUBJECT: shared canonical subject head + both texts are
+        # normative (carry «должен» / «обязан» / «необходимо»). Polyakov
+        # regression — TZ «Клиентская часть должна представлять из себя
+        # пользовательский интерфейс …» vs PMI «Клиентская часть
+        # приложения должна обеспечивать возможность выполнения
+        # следующих функций …». Subject head «client_part» on both
+        # sides + both modal-bearing → genuine topical overlap even
+        # when verb extraction misses (the be-class verb «представлять»
+        # is in the extended whitelist now, but the broader pattern
+        # also catches «программа должна работать» ↔ «программа должна
+        # обеспечивать» where verbs differ but topic is the same).
+        # Lex floor 0.10 protects against pairs that share only the
+        # subject and nothing else.
+        elif (
+            (req_subject := _subject_head(req.normalized_text))
+            and (unit_subject := _subject_head(unit.normalized_text))
+            and req_subject == unit_subject
+            and _has_normative_modal(req.normalized_text)
+            and _has_normative_modal(unit.normalized_text)
+            and lex >= 0.10
+        ):
+            label = LLMLabel.PARTIAL
+            matched_aspects += [
+                f"shared_subject:{req_subject}",
+                "both_normative_modal",
+            ]
+            if top_shared:
+                matched_aspects.append(f"shared_tokens:{','.join(top_shared)}")
+            missing_aspects = [
+                "specific_object_match",
+                "verb_object_coverage",
+            ]
+            explanation = (
+                f"[disabled-judge] Shared subject «{req_subject}» with "
+                f"normative modals on both sides ({signal_str}) → PARTIAL; "
+                f"requirement and unit address the same subject without "
+                f"verifiable specific-object match"
+            )
+
         # P10: at least 3 shared content tokens AND lex ≥ 0.12 — catches low-lex topical overlap
         # where Jaccard is low due to length disparity but vocabulary is clearly related.
         # Threshold kept conservative (≥3 + lex≥0.12) to avoid promoting pairs that share
@@ -599,9 +759,24 @@ class DisabledCoverageJudge(CoverageJudge):
                 # verb + object phrase paths
                 conf = max(lex, 0.75)
         elif label == LLMLabel.PARTIAL:
-            # PARTIAL doesn't have a hard aggregator gate but should
-            # still reflect signal strength; lex is a fine proxy.
-            conf = max(lex, 0.5)
+            # PR-K post-fix (B): the aggregator's
+            # `partial_confidence_threshold` was raised to 0.65 to cut
+            # false-PARTIALs from small LLMs. The DisabledCoverageJudge
+            # must produce confidence ≥ 0.65 for paths that represent
+            # genuine topical overlap (lex ≥ 0.20), otherwise the row
+            # would always become MISSING_LOW_CONFIDENCE when the
+            # rule-based judge is the active backend (and the
+            # canonical Polyakov scenario «Проверить время ответа»
+            # ↔ «время ответа не более 2 секунд» would silently
+            # demote to MISSING despite lex ≈ 0.30 topical overlap).
+            # Weak signal (lex < 0.20 — artifact / verification-only
+            # paths, low-density vocabulary overlap) keeps the old
+            # 0.50 floor so truly uncertain pairs can still be gated
+            # by the aggregator.
+            if lex >= 0.20:
+                conf = max(lex, 0.65)
+            else:
+                conf = max(lex, 0.50)
         else:
             conf = round(max(lex, 0.6 if ck_match else 0.0), 3)
 

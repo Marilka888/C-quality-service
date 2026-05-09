@@ -300,7 +300,12 @@ class CoverageAnalysisPipeline:
     """Stateless orchestrator — create once, call run() per request."""
 
     def __init__(self, config: Optional[CoverageConfig] = None) -> None:
-        self._config = config or CoverageConfig()
+        # Default constructor honours env-var overrides — this is the
+        # only way a deployment can lower min_retrieval_score /
+        # evidence_floor without per-request flags or code changes.
+        # Polyakov-class packages need 0.15-0.20 thresholds on the BoW
+        # retriever to stop dropping real paraphrases below the floor.
+        self._config = config or CoverageConfig.from_env()
         self._req_builder = RequirementBuilder(self._config)
         self._unit_builder = CoverageUnitBuilder()
         self._embedding_backend = _build_embedding_backend(self._config)
@@ -531,6 +536,13 @@ class CoverageAnalysisPipeline:
                 os.environ.get("CQUALITY_REQ_CONCURRENCY", str(_REQ_CONCURRENCY_DEFAULT)),
             )
             indexed: List[Optional[Tuple]] = [None] * len(requirements)
+            # Polyakov-regression: track per-worker failures so the
+            # final report carries a WARN about silently-excluded
+            # requirements. Without this, exceptions inside
+            # _process_one_requirement disappear into ERROR-level logs
+            # only and the user sees a 31-requirements ТЗ collapse to
+            # 3 results with no on-report explanation.
+            worker_failures: list[tuple[int, str, str]] = []
             with ThreadPoolExecutor(
                 max_workers=workers, thread_name_prefix="req-worker",
             ) as pool:
@@ -548,12 +560,43 @@ class CoverageAnalysisPipeline:
                         _, req_results, req_judgments, req_shortlisted = fut.result()
                         indexed[req_i] = (req_results, req_judgments, req_shortlisted)
                     except Exception as exc:
+                        req_id_short = (
+                            requirements[req_i].req_id[:24]
+                            if req_i < len(requirements) else "?"
+                        )
+                        worker_failures.append(
+                            (req_i, req_id_short, f"{type(exc).__name__}: {exc}")
+                        )
                         logger.error(
                             "[%s] req-worker[%d] failed — requirement excluded "
                             "from results: %s",
                             job_id, req_i, exc, exc_info=True,
                         )
                         indexed[req_i] = ([], [], 0)
+            if worker_failures:
+                # Surface the failure count in a single WARN entry so
+                # the orchestrator / UI can show "N requirements
+                # silently excluded due to worker error" and the user
+                # can investigate via the C-quality service logs. Cap
+                # the per-failure detail at 5 entries so the warning
+                # stays readable; the rest live only in the log stream.
+                detail_lines = [
+                    f"req[{i}] {rid}: {err}"
+                    for i, rid, err in worker_failures[:5]
+                ]
+                tail = (
+                    f" (+ {len(worker_failures) - 5} more — see C-quality logs)"
+                    if len(worker_failures) > 5 else ""
+                )
+                warnings.append(
+                    f"WORKER_EXCLUSIONS: {len(worker_failures)} requirement(s) "
+                    f"silently excluded due to per-worker exceptions in "
+                    f"_process_one_requirement. The corresponding (req × target) "
+                    f"rows are missing from the result set; coverage_rate / "
+                    f"criticalCount are computed without them. Investigate the "
+                    f"C-quality service ERROR logs for stack traces. "
+                    f"First failures: {'; '.join(detail_lines)}{tail}"
+                )
             # Merge in input order for stable reporting.
             for slot in indexed:
                 if slot is not None:
@@ -613,10 +656,13 @@ class CoverageAnalysisPipeline:
                 fail_count, last_err = consume()
                 if fail_count > 0:
                     warnings.append(
-                        f"LLM_UNAVAILABLE: judge backend fell back to disabled mode for "
-                        f"{fail_count} pair(s); last_error={last_err!r}. "
-                        f"Affected pairs were judged IRRELEVANT (→ MISSING). "
-                        f"Coverage results may be incomplete; verify the LLM service."
+                        f"LLM_UNAVAILABLE: judge backend errored on {fail_count} "
+                        f"pair(s); last_error={last_err!r}. "
+                        f"Affected pairs were marked NOT_JUDGED → status UNKNOWN "
+                        f"(excluded from criticalCount and C-grade denominator). "
+                        f"C-quality results are incomplete for these requirements: "
+                        f"re-run after restoring the LLM service to obtain a "
+                        f"definitive verdict."
                     )
                     logger.warning(
                         "[%s] LLM_UNAVAILABLE: %d fallback events; last_error=%s",

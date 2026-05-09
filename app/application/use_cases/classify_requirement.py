@@ -142,7 +142,15 @@ _SECTION_TYPE_RULES: List[Tuple[re.Pattern, RequirementType]] = [
 # ── Text-level rules (used when section title is uninformative) ─────────
 
 _TEXT_TYPE_RULES: List[Tuple[re.Pattern, RequirementType]] = [
-    # Delivery — explicit LMS / Antiplagiat / archive submission / deadline.
+    # Delivery — submission/marking/packaging/transport/storage of the
+    # physical or archival deliverable. Hamroev-package surfaced this
+    # bucket: USB-носители, .rar/.zip distributives, "комплект поставки",
+    # "хранение печатных документов" — none of these are functional or
+    # coverage requirements, but without dedicated patterns they slip
+    # past the type filter, become FUNCTIONAL/OTHER, and then drag the
+    # C-score down with bogus MISSING. Negative lookahead on
+    # «хранен(ие|ия) данн|информаци|журнал» preserves storage/logging
+    # semantics that legitimately use the same root.
     (re.compile(
         r"\bsmartlms\b|"
         r"\bантиплагиат\b|"
@@ -150,7 +158,21 @@ _TEXT_TYPE_RULES: List[Tuple[re.Pattern, RequirementType]] = [
         r"загруж\w+\s+в\s+(?:личн\w+\s+кабинет|smartlms)|"
         r"\bархив\w+\s+проект|"
         r"подпис\w+\s+(?:руководител|исполнител)|"
-        r"за\s+\d+\s+дн\w+\s+до\s+(?:начала|защит|представл)",
+        r"за\s+\d+\s+дн\w+\s+до\s+(?:начала|защит|представл)|"
+        # Hamroev: marking / packaging / transport / physical storage.
+        r"\bмаркир\w*|"
+        r"\bупаковк\w*|"
+        r"\bтранспортирован\w*|"
+        r"\bхранен(?:и[ея])\w*\s+(?!данн|информаци|журнал)"
+        r"(?:печатн|документ|готов\w+\s+продукц|изделий|на\s+склад)|"
+        # Distribution-medium: USB-носитель, оптические носители,
+        # дистрибутив, явный .rar/.zip, комплект поставки.
+        r"\b(?:usb-?|оптическ\w+\s+|съёмн\w+\s+|внешн\w+\s+)носител\w*|"
+        r"\bносител\w+\s+(?:информаци|данн|дистрибут)|"
+        r"\bLMS\b|"
+        r"\bдистрибутив\w*|"
+        r"\.rar\b|\.zip\b|"
+        r"комплект\w*\s+поставк",
         re.I,
     ), RequirementType.DELIVERY_REQUIREMENT),
 
@@ -249,11 +271,20 @@ _TEXT_TYPE_RULES: List[Tuple[re.Pattern, RequirementType]] = [
         re.I,
     ), RequirementType.INTERFACE),
 
-    # Documentation — GOST 19 / docs composition.
+    # Documentation — GOST 19 / docs composition / ВКР explanatory note
+    # and user-facing manuals. Hamroev: «программная документация должна
+    # содержать пояснительную записку, руководство пользователя и
+    # описание применения» — without these patterns the sentence
+    # classifies as FUNCTIONAL and produces a spurious MISSING in PMI/PZ.
     (re.compile(
         r"\bгост\s*19\b|"
         r"программн\w+\s+документац|"
-        r"оформлен\w+\s+документ",
+        r"программн(?:ой|ую)\s+документац|"
+        r"оформлен\w+\s+документ|"
+        r"\bпояснительн\w+(?:\s+записк)?|"
+        r"руководств(?:о|а|у)\s+(?:пользовател|оператор|администратор|программист)|"
+        r"описан(?:ие|ия|ию)\s+применени|"
+        r"\bтекст\s+программ\w*",
         re.I,
     ), RequirementType.DOCUMENTATION_REQUIREMENT),
 

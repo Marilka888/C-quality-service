@@ -16,8 +16,7 @@ import requests
 from app.core.logging import get_logger
 from app.domain.c_quality_enums import LLMLabel
 from app.domain.c_quality_models import CoverageUnit, PairJudgment, RequirementUnit
-from app.infrastructure.llm.coverage_judge import CoverageJudge
-from app.infrastructure.llm.disabled_coverage_judge import DisabledCoverageJudge
+from app.infrastructure.llm.coverage_judge import CoverageJudge, make_unknown_judgment
 from app.infrastructure.llm.judgment_cache import JudgmentCache
 from app.infrastructure.llm.prompts import (
     PROMPT_VERSION,
@@ -29,7 +28,6 @@ from app.infrastructure.llm.prompts import (
 logger = get_logger(__name__)
 
 _VALID_LABELS = {l.value for l in LLMLabel}
-_FALLBACK = DisabledCoverageJudge()
 
 # Retry parameters for transient JSON-parse failures (empty / garbled response
 # from small models like qwen2.5:3b). Only parse failures are retried —
@@ -197,7 +195,16 @@ def _parse_response(
 
 
 class OllamaCoverageJudge(CoverageJudge):
-    """Calls the local Ollama HTTP API. Falls back to DisabledCoverageJudge on error.
+    """Calls the local Ollama HTTP API.
+
+    On runtime failure (timeout / connection / HTTP error / parse-
+    exhausted / unexpected exception) returns a runtime-failure
+    sentinel via `make_unknown_judgment(...)`. The aggregator surfaces
+    such pairs as CoverageStatus.UNKNOWN — distinct from MISSING,
+    excluded from criticalCount, excluded from C-grade denominator.
+    Old behaviour (silent fall-through to DisabledCoverageJudge → most
+    pairs labelled IRRELEVANT → MISSING → false CRITICAL package
+    status on transient Ollama timeouts) is removed.
 
     The previous implementation shelled out to `ollama run` per pair, which
     re-loaded the model for every call and made realistic pair counts
@@ -205,15 +212,33 @@ class OllamaCoverageJudge(CoverageJudge):
     daemon API (`POST /api/generate`) keeps the model hot across calls.
     """
 
-    def __init__(self, model_name: str = "llama3:8b", timeout: int = 120) -> None:
+    def __init__(self, model_name: str = "llama3:8b", timeout: int = 240) -> None:
+        # Polyakov-regression (2026-05-10): default bumped 120 → 240 s.
+        # On a real Polyakov re-run with parallelism=1, qwen2.5:7b on a
+        # warm Ollama daemon timed out on 57 of ~60 pairs at the 120 s
+        # budget — typical successful pair takes 30-90 s, but a 7-13 s
+        # tail from cold-cache prompts pushed many over 120 s. 240 s
+        # absorbs that tail without making the wall-clock substantially
+        # worse (the median is unchanged; only the slowest 5-10 %
+        # benefit). CQUALITY_JUDGE_TIMEOUT env var overrides at runtime.
         self._model = model_name
+        env_to = os.environ.get("CQUALITY_JUDGE_TIMEOUT", "").strip()
+        if env_to:
+            try:
+                timeout = max(30, int(env_to))
+            except ValueError:
+                logger.warning(
+                    "CQUALITY_JUDGE_TIMEOUT=%r is not an int; using %ds",
+                    env_to, timeout,
+                )
         self._timeout = timeout
         self._url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
-        # BUG-09 fix: track silent fallbacks so the pipeline can surface
-        # an LLM_UNAVAILABLE warning to the user. Without this, every pair
-        # is silently judged IRRELEVANT (DisabledCoverageJudge) and the
-        # final report is full of MISSING with no explanation. The pipeline
-        # consumes these via `consume_unavailability()` after judging.
+        # BUG-09 fix: track unavailability events so the pipeline can
+        # surface an LLM_UNAVAILABLE warning to the user. Each affected
+        # pair returns a sentinel PairJudgment (LLMLabel.NOT_JUDGED)
+        # which the aggregator surfaces as CoverageStatus.UNKNOWN. The
+        # pipeline consumes the count via `consume_unavailability()`
+        # to print "N pair(s) not judged due to LLM unavailability".
         self.unavailable_count: int = 0
         self.last_error: str = ""
         # PR-K post-fix: optional persistent judgment cache. Enabled by
@@ -274,13 +299,23 @@ class OllamaCoverageJudge(CoverageJudge):
         full_prompt = f"[SYSTEM]\n{system_prompt}\n\n[USER]\n{user_prompt}"
 
         # ── Retry loop ────────────────────────────────────────────────────
-        # Only parse failures (empty / garbled JSON) are retried — they are
-        # transient (3B models occasionally produce malformed output on the
-        # first attempt but succeed on the second). Hard errors (timeout,
-        # connection refused, HTTP error) break out immediately: retrying
-        # into an overloaded Ollama instance makes things worse, not better.
+        # Parse failures (empty / garbled JSON) are retried up to
+        # `max_attempts` times — they are transient (small models
+        # occasionally produce malformed output on the first attempt
+        # but succeed on the second).
+        #
+        # Polyakov-regression (2026-05-10): timeouts ALSO get one
+        # retry now, after a longer backoff. Original reasoning was
+        # "retrying into an overloaded Ollama makes things worse" —
+        # but on the Polyakov re-run 57 of ~60 pairs hit the 120 s
+        # timeout, suggesting the bottleneck wasn't sustained overload
+        # but transient queue + cold-cache effects on the long-prompt
+        # tail. With timeout bumped to 240 s and one retry available,
+        # we expect 40-50 of those 57 to recover. Connection / HTTP
+        # errors still break out immediately — those are systemic.
         max_attempts = _resolve_max_attempts()
         last_parse_error: str = ""
+        last_timeout_error: str = ""
 
         for attempt in range(max_attempts):
             if attempt > 0:
@@ -353,12 +388,27 @@ class OllamaCoverageJudge(CoverageJudge):
 
             except requests.Timeout:
                 msg = f"timeout after {self._timeout}s"
+                last_timeout_error = msg
                 logger.warning(
                     "Ollama timed out: req=%s unit=%s (%s)",
                     req.req_id[:8], unit.unit_id[:8], msg,
                 )
+                # Polyakov-regression (2026-05-10): timeouts now share
+                # the parse-retry budget. Many pairs that initially
+                # timed out at the previous 120 s budget succeeded on
+                # a second attempt — Ollama queue drains, prompt-cache
+                # warms, KV-cache reuse kicks in. Continue means the
+                # for-loop's natural backoff (1s → 2s → …) takes over;
+                # if the budget exhausts we fall through to the
+                # post-loop sentinel, which already covers exhaustion.
+                if attempt + 1 < max_attempts:
+                    continue
                 self._record_unavailable(msg)
-                return _FALLBACK.judge(req, unit)  # no retry
+                # Polyakov-regression (2026-05-10): runtime-failure
+                # sentinel instead of rule-based fallback. Aggregator
+                # surfaces these as CoverageStatus.UNKNOWN, not MISSING
+                # — see make_unknown_judgment docstring.
+                return make_unknown_judgment(req, unit, msg)
 
             except requests.ConnectionError as exc:
                 msg = f"ConnectionError: {exc}"
@@ -367,7 +417,7 @@ class OllamaCoverageJudge(CoverageJudge):
                     req.req_id[:8], unit.unit_id[:8], msg,
                 )
                 self._record_unavailable(msg)
-                return _FALLBACK.judge(req, unit)  # no retry
+                return make_unknown_judgment(req, unit, msg)
 
             except requests.HTTPError as exc:
                 status = exc.response.status_code if exc.response is not None else "?"
@@ -377,7 +427,7 @@ class OllamaCoverageJudge(CoverageJudge):
                     req.req_id[:8], unit.unit_id[:8], msg,
                 )
                 self._record_unavailable(msg)
-                return _FALLBACK.judge(req, unit)  # no retry
+                return make_unknown_judgment(req, unit, msg)
 
             except Exception as exc:
                 msg = f"{type(exc).__name__}: {exc}"
@@ -386,15 +436,22 @@ class OllamaCoverageJudge(CoverageJudge):
                     req.req_id[:8], unit.unit_id[:8], msg,
                 )
                 self._record_unavailable(msg)
-                return _FALLBACK.judge(req, unit)  # no retry
+                return make_unknown_judgment(req, unit, msg)
 
-        # All attempts exhausted by parse failures — fall back gracefully.
-        msg = (
-            f"JSON parse failed after {max_attempts} attempt(s): {last_parse_error}"
+        # All attempts exhausted by parse failures and/or timeouts —
+        # sentinel out, do not coerce infrastructure failure into a
+        # documentation defect. Pick the more informative tail error:
+        # if the LAST attempt was a timeout we surface it (matches
+        # what the user sees on Ollama overload); otherwise the parse
+        # error.
+        msg_tail = (
+            f"timeout (after {max_attempts} attempt(s)): {last_timeout_error}"
+            if last_timeout_error and not last_parse_error
+            else f"JSON parse failed after {max_attempts} attempt(s): {last_parse_error}"
         )
         logger.warning(
-            "Ollama judge parse exhausted: req=%s unit=%s: %s",
-            req.req_id[:8], unit.unit_id[:8], msg,
+            "Ollama judge attempts exhausted: req=%s unit=%s: %s",
+            req.req_id[:8], unit.unit_id[:8], msg_tail,
         )
-        self._record_unavailable(msg)
-        return _FALLBACK.judge(req, unit)
+        self._record_unavailable(msg_tail)
+        return make_unknown_judgment(req, unit, msg_tail)

@@ -41,6 +41,28 @@ _PMI_PREFERRED: Set[RequirementType] = {
     RequirementType.PERFORMANCE,
     RequirementType.LOGGING,
 }
+
+# Polyakov-regression: canonical ПМИ test sections per ГОСТ 19.301 —
+# units extracted from these sections describe the verification of ТЗ
+# requirements and should win retrieval over noise from other ПМИ
+# parts (cover page, list of references, climate notes). Without a
+# section-name boost the BoW retriever ranks units purely by lexical
+# overlap; on Polyakov-class packages legitimate test descriptions
+# («Для проверки авторизации необходимы логин и пароль…») score
+# 0.30-0.55 — close to noise units like «Windows 10 Pro» from the
+# environment section. The boost moves test-section units above
+# evidence_floor so the LLM judge actually sees them.
+_PMI_TEST_SECTION_RE = re.compile(
+    r"требовани\w*\s+к\s+программ"
+    r"|метод\w*\s+испытани"
+    r"|состав\w*\s+и\s+порядок\s+испытани"
+    r"|порядок\s+(?:проведени|испытани|приёмки|приемки)"
+    r"|проверк\w+\s+(?:требовани|выполнени)"
+    r"|объект\s+испытани"
+    r"|цель\s+испытани"
+    r"|программа\s+(?:и\s+методика\s+)?испытани",
+    re.IGNORECASE | re.UNICODE,
+)
 _PZ_PREFERRED: Set[RequirementType] = {
     RequirementType.FUNCTIONAL,
     RequirementType.SECURITY,
@@ -95,11 +117,27 @@ _ADMIN_CAPABILITY_PENALTY = 0.20
 _COLLECTION_REPAIR_PENALTY = 0.25
 
 _ASPECT_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_.+-]*|\d+(?:[.,]\d+)?", re.UNICODE)
+# Polyakov-regression (R2): file-extension form is the canonical PZ
+# notation for client-side files («.ts», «.html», «.css», «.scss»),
+# but `_ASPECT_TOKEN_RE` requires a leading letter and won't extract
+# `.html` as a token. Extract these explicitly so an aspect overlap
+# between TZ «HTML и CSS» and PZ «.ts, .html, .css, .scss» is captured.
+_FILE_EXT_TOKEN_RE = re.compile(r"\.(?:ts|tsx|html?|css|scss|sass|less|js|jsx)\b", re.IGNORECASE)
 _TECH_KEYWORDS = {
     "api", "rest", "json", "xml", "http", "https",
     "typescript", "angular", "react", "vue", "javascript",
+    # Polyakov-regression (R2): markup/style stack — TZ requirements
+    # use bare names («HTML», «CSS», «SCSS»), PZ uses extension forms
+    # («.html», «.css»). Both forms must be aspect-token extractable
+    # so overlap can fire even when lex retrieval fails.
+    "html", "css", "scss", "sass", "less",
+    ".ts", ".tsx", ".html", ".css", ".scss", ".sass", ".js",
     "github", "gitlab", "git", "docker", "figma",
     "sql", "postgresql", "mysql", "mongodb",
+    # Polyakov-regression (R2): platform / framework names found in
+    # ВКР PZ documents that lex retrieval routinely misses against
+    # narrative TZ requirements.
+    "dspace", "spa",
 }
 
 # Domain anchors that ordinary BoW/embedding retrieval often underweights in
@@ -121,6 +159,27 @@ _ASPECT_ALIASES: dict[str, tuple[str, ...]] = {
     "github": ("github", "git"),
     "typescript_angular": ("typescript", "angular", ".ts"),
     "performance_time": ("отклик", "секунд", "response", "time"),
+    # Polyakov-regression (R2 / narrative-PZ retrieval boost). Without
+    # these aliases the PZ-side coverage stays at 0 even when the ВКР
+    # clearly mentions the corresponding implementation-stack term.
+    "web_markup": (
+        "html", ".html", "css", ".css", "scss", ".scss", "разметк", "стилев",
+    ),
+    "container_docker": ("docker", "docker-compose", "контейнер", "контейнериз"),
+    "vcs_git": ("git", "github", "gitlab", "git-репозитор", "версион"),
+    "spa_arch": ("spa", "single-page", "одностраничн", "single page"),
+    "user_roles": (
+        "анонимн", "зарегистрирован", "автор", "ревьюер", "редактор",
+        "администратор", "роль", "рол",
+    ),
+    "dspace_hierarchy": (
+        "dspace", "сообществ", "коллекц", "иерархи", "репозитори", "объект",
+    ),
+    "auth_access": (
+        "авторизац", "аутентификац", "разграничен", "доступ", "роль",
+        "регистрац",
+    ),
+    "rest_api": ("rest", "rest api", "rest-api", "api", "endpoint", "эндпоинт"),
 }
 
 _BOOSTABLE_ASPECTS: Set[str] = {
@@ -136,6 +195,15 @@ _BOOSTABLE_ASPECTS: Set[str] = {
     "github",
     "typescript_angular",
     "performance_time",
+    # Polyakov-regression (R2): narrative-PZ implementation aspects.
+    "web_markup",
+    "container_docker",
+    "vcs_git",
+    "spa_arch",
+    "user_roles",
+    "dspace_hierarchy",
+    "auth_access",
+    "rest_api",
 }
 
 _PZ_TOPIC_ALIASES: dict[RequirementType, tuple[str, ...]] = {
@@ -143,28 +211,76 @@ _PZ_TOPIC_ALIASES: dict[RequirementType, tuple[str, ...]] = {
         "обоснование средств", "средства разработки", "архитектур",
         "развертыван", "развёртыван", "технолог", "github", "docker",
         "typescript", "angular",
+        # Polyakov-regression (R2): narrative-PZ implementation
+        # vocabulary that appears in ВКР but was missed by retrieval.
+        "html", "css", "scss", ".ts", ".html", ".css", "spa",
+        "single-page", "клиентск", "серверн", "контейнер",
+        "git", "версион", "реализац", "компонент", "модул",
     ),
     RequirementType.DATA_IO: (
         "архитектур", "взаимодейств", "сервер", "rest", "api", "json",
         "входн", "выходн", "данн",
+        # R2: narrative-PZ data-flow vocabulary.
+        "endpoint", "эндпоинт", "запрос", "ответ", "модель данн",
+        "формат", "типизированн", "веб-форм",
     ),
     RequirementType.INTERFACE: (
         "прототип", "figma", "макет", "интерфейс", "стилизац", "ui", "ux",
+        # R2: narrative-PZ UI vocabulary.
+        "страниц", "форм", "кнопк", "виджет", "компонент",
+        "цветов", "палитр", "стил", "дизайн", "браузер",
     ),
     RequirementType.FUNCTIONAL: (
         "пользовательские сценар", "сценар", "интерфейс веб", "страница",
         "проект", "поиск", "фильтр", "скач", "загруз", "файл",
         "регистрац", "авторизац",
+        # R2: narrative-PZ functional/scenario vocabulary.
+        "роль", "анонимн", "зарегистрирован", "автор", "ревьюер",
+        "редактор", "администратор", "коллекц", "иерархи",
+        "сообществ", "dspace", "публикац", "исследован",
     ),
     RequirementType.SECURITY: (
         "регистрац", "авторизац", "аутентификац", "доступ", "роль",
         "безопас", "инъекц", "внедрен", "ошиб",
+        # R2: narrative-PZ security vocabulary.
+        "разграничен", "пароль", "логин", "сессия", "токен",
+        "защит", "проверк", "валидац", "санитайз",
     ),
     RequirementType.RELIABILITY: (
         "развертыван", "развёртыван", "сервер", "ошиб", "отказ",
         "коррект", "устойчив", "восстанов",
+        # R2: narrative-PZ reliability vocabulary.
+        "перезагрузк", "перезапуск", "обработк", "продолж",
+        "функционир", "работоспособ", "сбой", "неисправн",
     ),
 }
+
+# Polyakov-regression (R2): narrative-PZ section title boost — mirror
+# of `_PMI_TEST_SECTION_RE`. ВКР sections like «Архитектура клиентской
+# части», «Обоснование средств разработки», «Иерархия данных DSpace»,
+# «Структура клиентской части», «Реализация», «Развёртывание»
+# canonically describe HOW the requirement is implemented in PZ. Boost
+# them to 1.0 unconditionally (ignoring requirement type) so the
+# evidence_floor doesn't suppress narrative implementation evidence
+# whose lex retrieval is intrinsically low (PZ paragraphs use
+# implementation vocabulary, TZ requirements use specification
+# vocabulary — vocab gap is the structural problem).
+_PZ_NARRATIVE_SECTION_RE = re.compile(
+    r"архитектур"
+    r"|структур\w*\s+(?:клиентск|серверн|систем|приложен|реализац)"
+    r"|обоснован\w*\s+(?:средств|выбор)"
+    r"|средств\w*\s+разработк"
+    r"|реализац"
+    r"|развертыван|развёртыван"
+    r"|иерархи\w*\s+данн"
+    r"|сценар\w*\s+(?:использовани|пользоват|работ)"
+    r"|ролев\w*\s+модел"
+    r"|роли\s+пользоват"
+    r"|клиент-серверн"
+    r"|пользовательск\w*\s+интерфейс"
+    r"|описани\w*\s+(?:реализац|компонент|систем)",
+    re.IGNORECASE | re.UNICODE,
+)
 
 _PMI_TOPIC_ALIASES: dict[RequirementType, tuple[str, ...]] = {
     RequirementType.FUNCTIONAL: (
@@ -233,10 +349,38 @@ def _constraint_overlap(req_constraints: List[Constraint], unit_constraints: Lis
 
 def _section_prior(req: RequirementUnit, unit: CoverageUnit) -> float:
     role = unit.target_doc_role.lower()
-    if role == "pmi" and req.requirement_type in _PMI_PREFERRED:
-        return 1.0
-    if role == "pz" and req.requirement_type in _PZ_PREFERRED:
-        return 1.0
+    if role == "pmi":
+        # Polyakov-regression: ПМИ units coming from a canonical test
+        # section («Требования к программе», «Методы испытаний»,
+        # «Состав и порядок испытаний», «Проверка требований к
+        # программной документации», «Объект/Цель испытаний») are
+        # exactly where coverage of ТЗ requirements lives by ГОСТ
+        # 19.301 convention — boost them regardless of req type so
+        # the retriever surfaces them above evidence_floor and the
+        # LLM judge gets to evaluate the pair instead of being
+        # short-circuited by NO_EVIDENCE / OPTIONAL_NOT_FOUND.
+        section_title = _unit_section_title(unit)
+        if section_title and _PMI_TEST_SECTION_RE.search(section_title):
+            return 1.0
+        if req.requirement_type in _PMI_PREFERRED:
+            return 1.0
+    if role == "pz":
+        # Polyakov-regression (R2): narrative-PZ section title boost.
+        # ВКР-style PZ documents express coverage as descriptions of
+        # implementation under headings like «Архитектура клиентской
+        # части», «Обоснование средств разработки», «Иерархия данных
+        # DSpace». Their lex/sem against TZ requirement text is
+        # intrinsically low because PZ uses implementation-vocab and
+        # TZ uses specification-vocab; without a section boost they
+        # land below evidence_floor and never reach the LLM judge,
+        # producing the «0 COVERED / 31 MISSING» PZ headline. Boost
+        # unconditionally — type-level prefs are a separate fall-back
+        # path right below.
+        section_title = _unit_section_title(unit)
+        if section_title and _PZ_NARRATIVE_SECTION_RE.search(section_title):
+            return 1.0
+        if req.requirement_type in _PZ_PREFERRED:
+            return 1.0
     return 0.0
 
 
@@ -330,6 +474,16 @@ def _aspect_tokens(text: str) -> Set[str]:
     for canonical, variants in _ASPECT_ALIASES.items():
         if _contains_any(lower_text, variants):
             out.add(canonical)
+    # Polyakov-regression (R2): file-extension tokens («.ts», «.html»,
+    # «.css», «.scss») are the canonical PZ form for client-side
+    # files but `_ASPECT_TOKEN_RE` requires a leading letter, so they
+    # never get extracted. Pull them explicitly so an aspect overlap
+    # between TZ «HTML и CSS» and PZ «.ts, .html, .css, .scss» fires.
+    for raw_ext in _FILE_EXT_TOKEN_RE.findall(text or ""):
+        out.add(raw_ext.lower())
+        # Also add the bare-name form so `.html` overlaps with «html»
+        # extracted from a TZ requirement that uses the unprefixed name.
+        out.add(raw_ext.lower().lstrip("."))
     for raw in _ASPECT_TOKEN_RE.findall(text or ""):
         token = raw.lower().strip(".,;:()[]{}")
         if not token:

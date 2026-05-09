@@ -168,30 +168,64 @@ class TestNegationContradictionAllForms:
 
 
 class TestEndToEndProhibitionConflict:
-    """When LLM labels PARTIAL/COVERED but the texts have a clear
-    "X не должно делать Y" / "X делает Y" mismatch, the verifier must
-    promote the verdict to CONFLICT_VERIFIED with conflict_confirmed_negation."""
+    """P0 #7 (Калугин) reshapes this contract:
+
+      * Verifier may CONFIRM an LLM-CONFLICT verdict on a prohibition
+        mismatch (CONFLICT stays CONFLICT, with provenance).
+      * Verifier MUST NOT upgrade PARTIAL/COVERED → CONFLICT when it
+        sees a prohibition mismatch — that path was the dominant source
+        of false-CONFLICT rows on semantic same-outcome phrasings
+        («не должна аварийно завершаться» ↔ «должна обрабатывать ошибки
+        и продолжать работу»). The LLM verdict wins.
+    """
 
     def setup_method(self):
         self.verifier = PairVerifier()
 
     @pytest.mark.parametrize("req_text, unit_text", [
-        # Action ban: «не должна сохранять» (banned action) vs
-        # «сохраняет» (admits the banned action). True modality
-        # contradiction.
+        # Action ban: «не должна сохранять» (banned action) vs «сохраняет».
         ("Программа не должна сохранять пароль в открытом виде.",
          "Программа сохраняет пароль пользователя в журнале аудита."),
-        # Action ban: «не должна предоставлять» (banned action) vs
-        # «предоставляет» (admits the banned action). True modality
-        # contradiction.
+        # Action ban: «не должна предоставлять» vs «предоставляет».
         ("Система не должна предоставлять анонимный доступ к личному кабинету.",
          "Система предоставляет анонимный доступ к личному кабинету."),
     ])
-    def test_prohibition_vs_affirmation_promotes_to_conflict(self, req_text, unit_text):
+    def test_prohibition_vs_affirmation_confirms_llm_conflict(self, req_text, unit_text):
+        # When the LLM already returned CONFLICT, the verifier should
+        # confirm the verdict — keep CONFLICT, tag provenance, bump conf.
+        # Entities supplied so the topical-link guard (which dropped the
+        # llm_confidence proxy for LLM-CONFLICT in PR-K post-fix F) sees
+        # genuine entity overlap and admits the confirmation.
         req = _req(req_text)
         unit = _unit(unit_text)
-        # LLM thinks they're related (PARTIAL) but doesn't catch the
-        # prohibition mismatch — verifier must.
+        req.entities = ["программа", "пароль"]
+        unit.entities = ["программа", "пароль"]
+        j = PairJudgment(
+            req_id="r1", unit_id="u1", target_document_id="doc-pmi",
+            llm_label=LLMLabel.CONFLICT,
+            rule_adjusted_label=LLMLabel.CONFLICT,
+            llm_confidence=0.55,
+        )
+        out = self.verifier.verify(j, req, unit)
+        assert out.rule_adjusted_label == LLMLabel.CONFLICT, (
+            f"verifier didn't confirm LLM-CONFLICT; "
+            f"actions={out.verifier_actions}"
+        )
+        assert "conflict_confirmed_negation" in out.verifier_actions
+        # Confidence bumped so the aggregator's CONFLICT gate passes.
+        assert out.llm_confidence >= 0.85
+
+    @pytest.mark.parametrize("req_text, unit_text", [
+        ("Программа не должна сохранять пароль в открытом виде.",
+         "Программа сохраняет пароль пользователя в журнале аудита."),
+        ("Система не должна предоставлять анонимный доступ к личному кабинету.",
+         "Система предоставляет анонимный доступ к личному кабинету."),
+    ])
+    def test_prohibition_mismatch_does_not_upgrade_partial_p7_kalugin(
+        self, req_text, unit_text,
+    ):
+        req = _req(req_text)
+        unit = _unit(unit_text)
         j = PairJudgment(
             req_id="r1", unit_id="u1", target_document_id="doc-pmi",
             llm_label=LLMLabel.PARTIAL,
@@ -199,13 +233,12 @@ class TestEndToEndProhibitionConflict:
             llm_confidence=0.55,
         )
         out = self.verifier.verify(j, req, unit)
-        assert out.rule_adjusted_label == LLMLabel.CONFLICT, (
-            f"verifier didn't promote to CONFLICT; "
+        assert out.rule_adjusted_label == LLMLabel.PARTIAL, (
+            f"verifier wrongly upgraded PARTIAL → {out.rule_adjusted_label}; "
             f"actions={out.verifier_actions}"
         )
-        assert "conflict_confirmed_negation" in out.verifier_actions
-        # Confidence bumped so the aggregator's CONFLICT gate passes.
-        assert out.llm_confidence >= 0.85
+        assert "no_op_negation_no_upgrade" in out.verifier_actions
+        assert "conflict_confirmed_negation" not in out.verifier_actions
 
 
 # ── Numeric conflict — same topic vs different topic ────────────────────

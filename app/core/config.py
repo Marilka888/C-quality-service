@@ -262,9 +262,24 @@ class CoverageLLMConfig(BaseModel):
     # Switch to cloud per-request via options.llm_model_name, or change
     # backend = "litellm" to make it the global default.
     backend: str = "ollama"
-    model_name: str = "qwen2.5:3b"
+    # P0 #8 (all 5 packages): pinned to a ≥ 7B model for the demo.
+    # qwen2.5:3b produced unstable confidence ≥ 0.7 on marginal matches —
+    # surface lexical overlap pushed it into confident COVERED on pairs
+    # that 7B+ models correctly call PARTIAL/IRRELEVANT. The 7B variant
+    # is the smallest size that consistently respects the prompt's
+    # grounding contract (cited_phrases must be substrings of the
+    # evidence) without the small-model echo-and-fabricate failure mode.
+    # Override per-deployment with CQUALITY_LLM_MODEL_NAME or per-request
+    # via options.llm_model_name.
+    model_name: str = "qwen2.5:7b"
     prompt_version: str = "v1"
-    timeout: int = 120
+    # Polyakov-regression (2026-05-10): bumped 120 → 240 s. On Ollama
+    # qwen2.5:7b with parallelism=1 the 90th-percentile pair latency is
+    # ~110-180 s; the previous 120 s budget had ~15% timeout rate (57/60
+    # on the May-10 Polyakov re-run). 240 s absorbs the long-prompt tail
+    # without making median wall-clock worse. CQUALITY_JUDGE_TIMEOUT env
+    # overrides at runtime in the Ollama wrapper.
+    timeout: int = 240
     # Thresholds for cross_encoder backend. Calibrated for BAAI/bge-reranker-v2-m3
     # sigmoid output. Tune against a manually reviewed sample on real packages.
     cross_encoder_covered_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
@@ -347,6 +362,56 @@ class CoverageConfig(BaseModel):
     #              sentence in requirement-plausible sections
     # "candidates" / "fragments" — legacy paths for explicit control
     requirement_extraction: str = "auto"
+
+    @classmethod
+    def from_env(cls) -> "CoverageConfig":
+        """Build a CoverageConfig from defaults and apply env-var
+        overrides. Honoured variables (each optional, defaults to the
+        field default when unset / unparseable):
+
+          * CQUALITY_MIN_RETRIEVAL_SCORE — float in [0, 1]; lowers or
+            raises the per-shortlist retrieval gate.
+          * CQUALITY_EVIDENCE_FLOOR     — float in [0, 1]; below this
+            the LLM verdict is flagged low_confidence on the row.
+          * CQUALITY_LLM_MODEL_NAME    — already honoured by the
+            startup warmup (P0 #8); also propagated here so the
+            LiteLLM-backed runs see the same model.
+
+        Polyakov-regression motivation: real ВКР packages whose ПЗ
+        paraphrases the ТЗ heavily often have max retrieval score
+        0.20-0.34 — below the 0.05 default of min_retrieval_score
+        the row is processed, but the dominant lexical bias drops
+        many genuine paraphrases below the (downstream-applied)
+        evidence_floor of 0.30. Lowering both via env vars at
+        deployment time is the safest knob; the alternative is to
+        hard-code a smaller default and risk false COVERED on
+        unrelated lexically-similar pairs.
+        """
+        config = cls()
+        import os
+
+        def _float_env(name: str, lo: float = 0.0, hi: float = 1.0) -> Optional[float]:
+            raw = os.environ.get(name)
+            if raw is None:
+                return None
+            try:
+                v = float(raw)
+            except ValueError:
+                return None
+            if v < lo or v > hi:
+                return None
+            return v
+
+        v = _float_env("CQUALITY_MIN_RETRIEVAL_SCORE")
+        if v is not None:
+            config.retrieval.min_retrieval_score = v
+        v = _float_env("CQUALITY_EVIDENCE_FLOOR")
+        if v is not None:
+            config.retrieval.evidence_floor = v
+        model = os.environ.get("CQUALITY_LLM_MODEL_NAME")
+        if model:
+            config.llm.model_name = model
+        return config
 
     @classmethod
     def from_options(cls, options: Dict) -> "CoverageConfig":

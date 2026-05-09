@@ -8,6 +8,17 @@ class CoverageStatus(str, Enum):
     PARTIAL = "PARTIAL"
     MISSING = "MISSING"
     CONFLICT = "CONFLICT"
+    # Polyakov-regression (2026-05-10): when the LLM judge backend is
+    # unavailable at request time (timeout / connection / HTTP error /
+    # malformed response), the affected pair must NOT collapse to
+    # MISSING — that artificially inflates criticalCount and converts
+    # an infrastructure failure into a documentation defect on the
+    # report. UNKNOWN is the explicit "we couldn't judge this pair"
+    # status. It does not contribute to criticalCount and is excluded
+    # from the C-grade assessable denominator. Distinct from the
+    # disabled-judge code path (user explicitly turned off LLM): there
+    # the judge IS the disabled rule-based one and verdicts stand.
+    UNKNOWN = "UNKNOWN"
 
 
 class RequirementType(str, Enum):
@@ -101,6 +112,7 @@ class CoverageUnitType(str, Enum):
     EXPECTED_RESULT = "expected_result"
     PRECONDITION = "precondition"
     TABLE_ROW_TEXT = "table_row_text"
+    SECTION_WINDOW = "section_window"
 
 
 class Modality(str, Enum):
@@ -116,3 +128,10 @@ class LLMLabel(str, Enum):
     PARTIAL = "PARTIAL"
     CONFLICT = "CONFLICT"
     IRRELEVANT = "IRRELEVANT"
+    # Polyakov-regression (2026-05-10): sentinel returned by the
+    # LLM-judge wrapper when the backend was unreachable at request
+    # time (timeout / connection / HTTP error / parse-exhausted /
+    # unexpected exception). Carries no claim about coverage; the
+    # aggregator surfaces such pairs as CoverageStatus.UNKNOWN rather
+    # than aggregating them into MISSING.
+    NOT_JUDGED = "NOT_JUDGED"

@@ -84,6 +84,19 @@ class RetrievedCandidate(BaseModel):
     score_reason: Optional[str] = None
     # Did AdaptiveCandidateSelector send this candidate to the LLM?
     selected_for_llm: bool = False
+    # Unit type carried from CoverageUnit so the selector can prefer
+    # atomic evidence (PARAGRAPH / LIST_ITEM / TEST_STEP) over aggregate
+    # SECTION_WINDOW units when both compete for the same LLM slot.
+    # Polyakov-regression fix: this field was added in the prior-session
+    # WIP and read by AdaptiveCandidateSelector (`c.unit_type !=
+    # SECTION_WINDOW` filter) and written by retrieve_candidates.py, but
+    # the model declaration never landed on master. The mismatch caused
+    # AttributeError on every requirement processed in parallel mode —
+    # 28 of 31 Polyakov requirements were silently excluded by the
+    # worker-exception catch in run_coverage_analysis. Defaulting to
+    # PARAGRAPH (the most common kind) preserves backward compat with
+    # any caller that constructs RetrievedCandidate without unit_type.
+    unit_type: CoverageUnitType = CoverageUnitType.PARAGRAPH
     # Reranker telemetry. reranker_used==True means the cross-encoder
     # was applied to this shortlist (per ConditionalReranker rules);
     # reranker_score is the raw reranker output before re-sorting.
@@ -167,6 +180,15 @@ class RequirementCoverageResult(BaseModel):
     # status itself should be treated as MISSING-equivalent for grade /
     # criticalCount calculations.
     low_confidence: bool = False
+    # P0 #10 (all 5 packages): row-level grounding flag — True when ANY
+    # judgment that could have driven the verdict failed the
+    # cited_phrases-substring grounding gate (LLM hallucinated its
+    # quotes). The orchestrator surfaces this to the UI as a
+    # «грounding не прошёл» badge so the reviewer can see WHY the row
+    # was reported the way it was — distinct from `low_confidence` which
+    # also fires on below-evidence-floor retrieval (a retrieval-quality
+    # signal, not an LLM-honesty signal).
+    grounding_failed: bool = False
     # BUG-12: source-side context for the requirement so the orchestrator /
     # UI can render the requirement card with proper locator instead of
     # the opaque `req_id` hash. Populated from the RequirementUnit at
@@ -286,3 +308,14 @@ class CoverageAnalysisResult(BaseModel):
     requirement_results: List[RequirementCoverageResult]
     pair_judgments: Optional[List[PairJudgment]] = None
     warnings: List[str] = Field(default_factory=list)
+    # Additive: rows whose applicability is OUT_OF_SCOPE (delivery /
+    # process / marking / documentation-meta requirements). They are
+    # already counted in `summary.not_applicable` and present in
+    # `requirement_results`, but the orchestrator UI renders them as a
+    # separate section («Требования вне функциональной согласованности»)
+    # so the user sees WHY a TZ requirement was dropped from coverage,
+    # rather than silently losing it. Empty for documents with no
+    # out-of-scope requirements; safe to ignore for old consumers.
+    out_of_scope_requirements: List[RequirementCoverageResult] = Field(
+        default_factory=list
+    )

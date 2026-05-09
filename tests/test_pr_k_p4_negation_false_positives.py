@@ -334,17 +334,24 @@ class TestNegationGuardsDoNotBreakRealConflict:
 
     def test_genuine_prohibition_vs_affirmation_still_conflict(self):
         """Both sides talk about THE SAME thing (passwords + storage),
-        modality is opposite. Real CONFLICT, must survive new guards."""
+        modality is opposite. Real CONFLICT, must survive new guards.
+
+        P0 #7 contract: verifier may CONFIRM an LLM-CONFLICT but never
+        UPGRADE a non-CONFLICT label. The genuine-conflict scenario is
+        therefore expressed as LLM=CONFLICT (which the LLM should
+        produce on a true contradiction); the verifier confirms.
+        """
         req = _req(
             "Программа не должна сохранять пароль пользователя в логах.",
             req_type=RequirementType.SECURITY,
         )
+        req.entities = ["программа", "пароль", "лог"]
         unit = _unit(
             "Программа сохраняет пароль пользователя в системном логе "
             "для целей аудита.",
         )
-        # LLM uncertain (PARTIAL low conf) — verifier should override.
-        j = _judgment(LLMLabel.PARTIAL, conf=0.45)
+        unit.entities = ["программа", "пароль", "лог"]
+        j = _judgment(LLMLabel.CONFLICT, conf=0.55)
         out = self.verifier.verify(j, req, unit)
         assert out.rule_adjusted_label == LLMLabel.CONFLICT, (
             f"genuine password-storage CONFLICT was suppressed; "

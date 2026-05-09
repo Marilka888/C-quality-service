@@ -12,7 +12,7 @@ The verifier never upgrades a label; it can only keep or downgrade.
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from app.core.logging import get_logger
 from app.domain.c_quality_enums import LLMLabel, Modality
@@ -95,29 +95,86 @@ _PROHIBITION_RE = re.compile(
 # operation under errors, so CONFLICT was wrong. The fix recognises
 # the pair and suppresses the negation contradiction rule.
 
+# P0 #7 (Калугин): the original list above held two narrow string-level
+# pairs ("не должна аварийно завершаться" ↔ "должна продолжать
+# корректно функционировать"). Any new semantic equivalence the LLM
+# produced — «не должна завершаться с ошибкой» vs «должна обрабатывать
+# ошибки» — slipped past and the negation rule fired CONFLICT. The
+# replacement is a stem-level pattern table: each entry is
+# (banned-bad-outcome-stem, equivalent-good-outcome-stem); both sides
+# are matched in either order. Stems are deliberately broad (аварийн |
+# с ошибк | некорректн | нестабильн | со сбо | прерыван | падат |
+# крашит) so that surface-form variation does not produce false-CONFLICT
+# rows.
 _SAME_OUTCOME_PAIRS: list[tuple[re.Pattern, re.Pattern]] = [
-    # Crash / continue working
+    # ── Continued operation under failure ────────────────────────────
+    # Banned: «не должн[аоы] аварийно завершать[ся] | падать | крашить
+    # | прерывать работу | завершаться с ошибкой | работать с ошибками
+    # | работать некорректно | работать нестабильно | работать со сбоями».
     (
         re.compile(
-            r"не\s+должн\w+\s+(?:аварийн\w+\s+заверш|падат|крашит|"
-            r"прерыват\w*\s+работ)",
+            r"не\s+долж(?:ен|на|но|ны)\s+(?:"
+            r"аварийн\w+\s+заверш"
+            r"|падат\w*"
+            r"|крашит\w*"
+            r"|прерыват\w*\s+работ"
+            r"|заверш\w+\s+(?:с\s+ошибк|со\s+сбо)"
+            r"|работат\w+\s+(?:с\s+ошибк|со\s+сбо|некорректн|нестабильн)"
+            r"|выполнят\w+\s+(?:некорректн|нестабильн|со\s+сбо)"
+            r")",
             re.I,
         ),
         re.compile(
-            r"продолж\w+\s+(?:корректн\w+\s+)?(?:функционир|работ)|"
-            r"должн\w+\s+продолжат\w+\s+работ|"
-            r"должн\w+\s+(?:корректн\w+\s+)?функционир",
+            r"(?:долж\w+|обязан\w*)\s+(?:"
+            r"продолжат\w+\s+(?:корректн\w*\s+)?(?:работ|функционир)"
+            r"|(?:корректн\w*|стабильн\w*)\s+(?:работат|функционир)"
+            r"|работат\w+\s+(?:корректн|стабильн|без\s+(?:ошиб|сбо))"
+            r"|функционир\w+\s+(?:корректн|стабильн|без\s+(?:ошиб|сбо))"
+            r"|обрабатыват\w+\s+ошибк"
+            r"|обеспечив\w+\s+(?:непрерывн\w*|стабильн\w*|корректн\w*)\s+работ"
+            r")"
+            r"|продолж\w+\s+(?:корректн\w+\s+)?(?:функционир|работ)"
+            r"|(?:корректн\w*|стабильн\w*)\s+(?:работа|функционирован)",
             re.I,
         ),
     ),
-    # Lose data / save data
+    # ── Data preservation ────────────────────────────────────────────
+    # Banned: «не должн[аоы] терять / потерять / удалять безвозвратно
+    # данные | информацию».
     (
         re.compile(
-            r"не\s+должн\w+\s+(?:терят|потерят|удалят\w*\s+безвозврат)\w*\s+дан",
+            r"не\s+долж(?:ен|на|но|ны)\s+(?:"
+            r"терят\w*"
+            r"|потерят\w*"
+            r"|утрачив\w*"
+            r"|удалят\w*\s+безвозврат\w*"
+            r")\s+(?:дан|информаци)",
             re.I,
         ),
         re.compile(
-            r"должн\w+\s+(?:сохран|сберег|резервн)\w*\s+дан",
+            r"(?:долж\w+|обязан\w*)\s+(?:"
+            r"сохранят\w*"
+            r"|сберег\w*"
+            r"|резервн\w*\s+копир"
+            r"|обеспечив\w+\s+сохран"
+            r")\s+(?:дан|информаци)|"
+            r"долж\w+\s+(?:сохран|сберег|резервн)\w*\s+дан",
+            re.I,
+        ),
+    ),
+    # ── Access denial vs explicit availability ───────────────────────
+    # Banned: «не должн[оы] блокировать (доступ|ввод|пользователю)»;
+    # equivalent positive: «должн[оы] предоставлять / обеспечивать
+    # доступ / возможность».
+    (
+        re.compile(
+            r"не\s+долж(?:ен|на|но|ны)\s+(?:блокироват\w*|препятствоват\w*|"
+            r"огранич\w+\s+доступ\w*)",
+            re.I,
+        ),
+        re.compile(
+            r"(?:долж\w+|обязан\w*)\s+(?:предоставлят\w+|обеспечив\w+|"
+            r"гарантироват\w+)\s+(?:доступ|возможност)",
             re.I,
         ),
     ),
@@ -477,6 +534,72 @@ def _entity_overlap(req: RequirementUnit, unit: CoverageUnit) -> float:
     return len(req_set & unit_set) / len(req_set | unit_set)
 
 
+# Polyakov-regression (2026-05-10): tech-stack token families. When
+# both the requirement and the evidence mention identifiers from the
+# same family, the topic alignment is genuine — entity-overlap demoter
+# must not fire. Each family is a frozenset of lowercased substring
+# probes; the helper checks `probe in text.lower()` (no word-boundary
+# strictness because we want «.ts» to match «...файлы .ts...» and
+# «typescript» to match «typescriptом»).
+_TECH_STACK_FAMILIES: dict[str, frozenset[str]] = {
+    "client_lang": frozenset({
+        "typescript", "javascript", "angular", "react", "vue",
+        ".ts", ".tsx", ".js", ".jsx",
+    }),
+    "markup": frozenset({
+        "html", "css", "scss", "sass", "less",
+        ".html", ".css", ".scss", ".sass",
+    }),
+    "transport": frozenset({
+        "rest api", "rest-api",
+        " rest ", " rest.", " rest,", " rest;",
+        " json ", " json.", " json,", " json;", " json:",
+        "jsonом", "https",
+        "http/", "graphql", "websocket",
+    }),
+    "spa_arch": frozenset({"spa", "single-page", "single page application"}),
+    "container": frozenset({
+        "docker", "docker-compose", "docker compose", "kubernetes",
+        "k8s", " containerd",
+    }),
+    "vcs": frozenset({
+        # Word-bounded variants — substring probes can't use \b, so we
+        # enumerate the punctuation/space contexts that surround «git»
+        # in normal Russian/English prose.
+        " git ", " git.", " git,", " git;", " git:", " git\n",
+        "git-репозитор", "git репозитор", "github", "gitlab",
+    }),
+    "design_tool": frozenset({"figma", "sketch", "adobe xd"}),
+    "platform_dspace": frozenset({"dspace", "d-space"}),
+    "wsh": frozenset({"вшэ", "вышка", "higher school of economics"}),
+}
+
+
+def _tech_stack_co_occurrence(req_text: str, unit_text: str) -> Optional[str]:
+    """Return the family name (e.g. "client_lang") when the requirement
+    and the evidence both mention any identifier from the same tech-
+    stack family. Otherwise None.
+
+    Catches Polyakov 0.27::sent1 — TZ «TypeScript с использованием
+    библиотеки Angular» vs PZ «.ts, .html, .css» — both clearly point
+    to the same client-side stack but neither lex-jaccard nor entity
+    overlap can bridge the syntactic gap (extension form vs full name,
+    English-vs-Russian transliteration).
+    """
+    if not req_text or not unit_text:
+        return None
+    rq = req_text.lower()
+    un = unit_text.lower()
+    for family, probes in _TECH_STACK_FAMILIES.items():
+        req_hits = any(p in rq for p in probes)
+        if not req_hits:
+            continue
+        unit_hits = any(p in un for p in probes)
+        if unit_hits:
+            return family
+    return None
+
+
 def _append_action(judgment: PairJudgment, action: str) -> None:
     """Append a verifier action tag onto the judgment.
 
@@ -496,7 +619,46 @@ def _append_action(judgment: PairJudgment, action: str) -> None:
 
 
 class PairVerifier:
-    """Applies rule-based adjustments to a PairJudgment."""
+    """Applies rule-based adjustments to a PairJudgment.
+
+    P0 #7 (Калугин) — two contract changes that close the false-CONFLICT
+    class around semantic same-outcome phrasing:
+
+      1. Optional `same_outcome_sim_fn` (and `same_outcome_sim_threshold`,
+         default 0.65). When provided, the similarity between the
+         requirement and the unit is computed BEFORE the polarity rule;
+         pairs at or above the threshold are treated as same-outcome and
+         the negation contradiction is suppressed. Falls through to the
+         pattern table (`_SAME_OUTCOME_PAIRS`) when no embedder is
+         injected so unit tests and offline pipelines stay deterministic.
+      2. Hard rule: the negation rule may CONFIRM an LLM-CONFLICT verdict
+         (CONFLICT remains CONFLICT, with provenance) but may NEVER
+         upgrade a PARTIAL/COVERED/IRRELEVANT label to CONFLICT. Any
+         residual prohibition mismatch becomes a warning on the existing
+         label, not a label change.
+    """
+
+    def __init__(
+        self,
+        same_outcome_sim_fn: Optional[Callable[[str, str], float]] = None,
+        same_outcome_sim_threshold: float = 0.65,
+    ) -> None:
+        self._same_outcome_sim_fn = same_outcome_sim_fn
+        self._same_outcome_sim_threshold = same_outcome_sim_threshold
+
+    def _embedding_says_same_outcome(self, req_text: str, unit_text: str) -> bool:
+        fn = self._same_outcome_sim_fn
+        if fn is None:
+            return False
+        try:
+            score = float(fn(req_text or "", unit_text or ""))
+        except Exception:  # embedder must never break the verifier
+            logger.warning(
+                "same_outcome_sim_fn raised; falling back to pattern table",
+                exc_info=True,
+            )
+            return False
+        return score >= self._same_outcome_sim_threshold
 
     def verify(
         self,
@@ -546,7 +708,8 @@ class PairVerifier:
         if (
             judgment.llm_label == LLMLabel.CONFLICT
             and (
-                _same_outcome_negation_compatible(req.text, unit.text, check_upper_bound=False)
+                self._embedding_says_same_outcome(req.text, unit.text)
+                or _same_outcome_negation_compatible(req.text, unit.text, check_upper_bound=False)
                 or _same_upper_bound_same_aspect(req, unit)
             )
         ):
@@ -738,6 +901,19 @@ class PairVerifier:
         # are likely about *different* topics that happen to share a few tokens, so a
         # modality mismatch (one prohibits, the other permits) is not a real conflict.
         if _negation_contradiction(req, unit) and judgment.llm_confidence >= 0.25:
+            # P0 #7: embedding-driven same-outcome check runs first.
+            # When the optional similarity backend says the two texts
+            # describe the same outcome (cos ≥ 0.65), suppress the
+            # negation rule entirely — the prohibition phrasing is
+            # equivalent to the positive affirmation.
+            if self._embedding_says_same_outcome(req.text, unit.text):
+                judgment.rule_adjusted_label = judgment.llm_label
+                judgment.explanation += (
+                    " [rule] Negation contradiction suppressed — embedding "
+                    "similarity ≥ threshold indicates same-outcome phrasing."
+                )
+                _append_action(judgment, "suppress_negation_embedding_same_outcome")
+                return judgment
             # PR-G refactor: same-outcome compatibility table catches the
             # pre-classified semantic equivalences ("don't crash" ≡ "keep
             # working"). When recognised, the modality mismatch is fake —
@@ -870,7 +1046,14 @@ class PairVerifier:
                     )
                     _append_action(judgment, "suppress_negation_judge_positive")
                     # fall through — leave rule_adjusted_label as LLM said
-                else:
+                elif judgment.llm_label == LLMLabel.CONFLICT:
+                    # P0 #7 hard rule: the negation rule may CONFIRM an
+                    # LLM-CONFLICT verdict but must NEVER upgrade
+                    # PARTIAL/COVERED → CONFLICT. The pattern set is
+                    # narrow enough that confirming an LLM that already
+                    # decided CONFLICT is high-precision; promoting from
+                    # PARTIAL on the same signal was the dominant source
+                    # of false-CONFLICTs in Калугин-class packages.
                     judgment.rule_adjusted_label = LLMLabel.CONFLICT
                     msg = "[rule] Negation contradiction between requirement and coverage unit"
                     judgment.conflict_aspects = conflict_details + [msg]
@@ -879,6 +1062,24 @@ class PairVerifier:
                     # PR-K P0: same confidence-bump as the numeric path.
                     if judgment.llm_confidence < 0.85:
                         judgment.llm_confidence = 0.95
+                    return judgment
+                else:
+                    # P0 #7: prohibition mismatch on a non-CONFLICT LLM
+                    # label. We surface it as a warning on the existing
+                    # label (so the trace explains why the pair looked
+                    # off) but we do not change the verdict — the
+                    # canonical false-CONFLICT mode in Калугин-class
+                    # packages was «не должен X» on TZ paired with «должен
+                    # антоним(X)» on PMI/PZ which are semantically
+                    # equivalent; LLM rightly returned PARTIAL/COVERED
+                    # and the verifier had no business overriding that.
+                    judgment.rule_adjusted_label = judgment.llm_label
+                    judgment.explanation += (
+                        " [rule] Prohibition mismatch detected but LLM verdict "
+                        "is not CONFLICT — verifier may only confirm CONFLICT, "
+                        "never upgrade. Label preserved."
+                    )
+                    _append_action(judgment, "no_op_negation_no_upgrade")
                     return judgment
 
         # Rule 3: COVERED but req has constraints and unit has none → PARTIAL
@@ -933,10 +1134,24 @@ class PairVerifier:
         # Note: only fires on LLM-native PARTIAL labels. Verifier-demoted
         # PARTIAL (same-outcome CONFLICT, Rules 3/4) returns early and never
         # reaches this point.
+        # Polyakov-regression (2026-05-10, R1+ tightening): demoter
+        # gate now requires `len(req.entities) >= 3` AND
+        # `len(unit.entities) == 0`. Per user spec: "повысить порог
+        # entity-демотера до «есть ≥ 3 entities в требовании, и 0 в
+        # evidence»". The previous `unit.entities >= 2` threshold still
+        # produced false-MISSING on Polyakov 0.17::sent1 / 0.18::sent1
+        # (req+evidence both had 2-3 entities, entity_overlap=0 by
+        # extractor misalignment, lex_jac low — judge PARTIAL conf 0.7
+        # got demoted). Genuinely off-topic evidence (the canonical
+        # competitive-analysis blob) typically has ZERO extracted
+        # entities relative to the technical req — that's the only
+        # case where entity_overlap=0 is diagnostic, not a sign of
+        # extractor noise. Conservative narrowing — only fires now
+        # when evidence is genuinely empty of named things.
         if (
             judgment.llm_label == LLMLabel.PARTIAL
-            and len(req.entities) >= 2
-            and len(unit.entities) >= 2
+            and len(req.entities) >= 3
+            and len(unit.entities) == 0
             and (judgment.llm_confidence or 0) < 0.85
         ):
             overlap = _entity_overlap(req, unit)
@@ -995,6 +1210,36 @@ class PairVerifier:
                         f"conf={judgment.llm_confidence:.2f})."
                     )
                     _append_action(judgment, "preserve_partial_shared_anchor")
+                    return judgment
+
+                # Polyakov-regression (2026-05-10): tech-stack
+                # co-occurrence preservation. When the requirement and
+                # the evidence both mention identifiers from the same
+                # technology stack family (TypeScript/Angular/REST/
+                # JSON/Docker/Git/SPA/DSpace/Figma/HTML/CSS/SCSS/
+                # extensions like .ts/.html/.css), the topic alignment
+                # is genuine even when the entity extractor missed the
+                # phrasing (extension-form vs full-name, English-vs-
+                # Russian transliteration, etc.). Real-package failure
+                # mode (Polyakov 0.27::sent1): TZ «Исходные коды
+                # программы должны быть написаны на TypeScript с
+                # использованием библиотеки Angular» vs PZ «.ts, .html,
+                # .css, .scss» — both clearly about the same client-
+                # side stack, but neither lex-jaccard nor entity overlap
+                # picks it up because of the syntactic gap. Preserve
+                # PARTIAL when there is any match in the same family.
+                tech_match = _tech_stack_co_occurrence(
+                    req.normalized_text, unit.normalized_text,
+                )
+                if tech_match and (judgment.llm_confidence or 0) >= 0.60:
+                    judgment.rule_adjusted_label = judgment.llm_label
+                    judgment.explanation += (
+                        f" [rule] Near-zero entity overlap ({overlap:.2f}) on "
+                        f"LLM-PARTIAL verdict — preserved (tech-stack "
+                        f"co-occurrence: {tech_match}; "
+                        f"conf={judgment.llm_confidence:.2f})."
+                    )
+                    _append_action(judgment, "preserve_partial_tech_stack")
                     return judgment
 
                 judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
