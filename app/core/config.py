@@ -127,6 +127,20 @@ class CoverageRetrievalConfig(BaseModel):
     # bin into evidence_strength, and let the selector pick how many
     # to actually send to the LLM. 10-20 is a good range.
     initial_top_n: int = Field(default=10, ge=1, le=50)
+    # Step 5 (deeper PZ retrieval): PZ documents (Пояснительная записка
+    # ВКР) carry evidence scattered across narrative implementation
+    # sections («Архитектура клиентской части», «Описание реализации»,
+    # «Обоснование выбора СУБД»). A single TZ requirement is typically
+    # covered by 2-4 disjoint paragraphs across different chapters; with
+    # the default top_k=5 the LLM judge sees only 1-2 of them and emits
+    # PARTIAL/MISSING despite full coverage being present. PMI, by
+    # contrast, is structurally narrow (one test step matches one
+    # requirement) — keeping top_k tight there avoids noise.
+    #
+    # When `target_doc_role == "pz"` the retriever uses these wider
+    # caps; PMI / other roles fall back to top_k / initial_top_n.
+    top_k_pz: int = Field(default=12, ge=1, le=50)
+    initial_top_n_pz: int = Field(default=25, ge=1, le=100)
     # EvidenceStrength bin thresholds on retrieval_score (0..1).
     # See EvidenceStrength docstring.
     evidence_strength_strong_threshold: float = Field(default=0.45, ge=0.0, le=1.0)

@@ -600,6 +600,160 @@ def _tech_stack_co_occurrence(req_text: str, unit_text: str) -> Optional[str]:
     return None
 
 
+# Polyakov-regression Step 7 (2026-05-11): aspect-mismatch guards.
+#
+# The LLM judge frequently raises PARTIAL on pairs that share generic
+# vocabulary («система», «интерфейс», «ошибка») but belong to
+# different semantic topics. Real-package examples from the May-11
+# Polyakov run:
+#
+#   * 0.14 «время отклика 3 сек» (response_time) vs PMI evidence
+#     about hardware («Процессор Intel i5») / recovery time («время
+#     восстановления при отказе») → judge said PARTIAL conf 0.6,
+#     should be MISSING.
+#   * 0.18::sent2 «устойчивость к атакам типа Внедрение кода»
+#     (code_injection) vs PMI evidence about access roles
+#     («разграничение доступа») → PARTIAL conf 0.7, should be
+#     MISSING.
+#   * 0.15::sent2 «макет в Figma» (figma_design) vs PMI evidence
+#     about browser UI («интерактивный интерфейс в браузере») →
+#     PARTIAL conf 0.7, should be MISSING.
+#   * 0.17::sent4 «обработка данных с сервера»
+#     (data_from_server) vs PMI evidence about invalid request
+#     handling → COVERED conf 0.95 — different aspects.
+#
+# Strategy: classify each side into a small set of fine-grained
+# topics (heuristic regex). When the requirement has topic A and the
+# evidence has topic B such that (A,B) is on the mismatch list AND
+# the requirement does NOT also have topic B → demote PARTIAL/COVERED
+# to IRRELEVANT. The verifier's earlier preserve-paths (entity-rich
+# / tech-stack / shared-substantive) all run before this — Step 7 is
+# the LAST pre-aggregation guard, catching pairs that everything else
+# accepted but that semantically don't match.
+
+# Topic classification — ordered list of (topic_name, regex). First
+# match wins; a requirement / unit can carry multiple topics so we
+# collect ALL hits, not just the first.
+_TOPIC_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
+    ("response_time", re.compile(
+        r"врем\w*\s+(?:отклик|ответ)|отклик\w*\s+(?:приложен|сервис|систем)|"
+        r"\bresponse\s*time\b|не\s+должно\s+превышать\s+\d+\s*сек",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("recovery_time", re.compile(
+        r"врем\w*\s+восстановлен|восстановлен\w*\s+(?:после|при)\s+отказ|"
+        r"перезагрузк\w+\s+(?:операц|систем|программ|компонент|составл)",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("hardware_specs", re.compile(
+        r"процессор|intel|amd|ryzen|i[3579]-\d+|\d+\s*(?:гб|gb|мб|mb)\b|"
+        r"оперативн\w*\s+памят|дисков\w*\s+пространств|ssd|hdd|"
+        r"монитор\s*\(|разрешени\w*\s+\d+x\d+",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("code_injection", re.compile(
+        r"внедрен\w*\s+код|инъекц\w+|sql\s*injection|xss|cross.site|"
+        r"атак\w+\s+типа\s+«?(?:внедрен|инъекц)|"
+        r"уязвим\w*\s+(?:к|против)\s+(?:внедр|инъекц)",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("access_control", re.compile(
+        r"разграничен\w*\s+доступ|ролев\w*\s+модел|"
+        r"роли\s+пользоват|права\s+доступ|"
+        # «настройки доступа к объектам на основе ролей пользователей» —
+        # don't require the «доступ» and «на основе ролей» to be
+        # adjacent; allow up to a few intervening words.
+        r"настройк\w*\s+доступ[а-я\s]*на\s+основ\w*\s+рол|"
+        # Generic «на основе ролей» phrase.
+        r"на\s+основ\w*\s+рол(?:ей|и|ям|ями|ях)\s+пользоват|"
+        # «пользователи с различными ролями» — RBAC-test phrasing.
+        r"пользовател\w+\s+с\s+различн\w+\s+рол|"
+        r"\brbac\b|access\s*control",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("figma_design", re.compile(
+        r"\bfigma\b|макет\w*\s+(?:в|разработ\w+\s+в|интерфейс\w*\s+в)\s+figma|"
+        r"прототип\w*\s+в\s+figma",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("browser_ui", re.compile(
+        r"в\s+браузер|интерактивн\w*\s+(?:пользоват|интерфейс)|"
+        r"chrome|edge|firefox|safari|yandex|opera|"
+        r"запуска\w*\s+в\s+браузер",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("data_from_server", re.compile(
+        # Allow optional `,` and whitespace between «данные» and the
+        # qualifier («полученные» / «с сервера» / «от сервера») —
+        # «данные, полученные с сервера» is the canonical form.
+        r"данн\w+[,\s]+(?:полученн|с\s+сервер|от\s+сервер)|"
+        r"ответ\w*\s+(?:сервер|серверн\w+\s+част)|"
+        r"данн\w+[,\s]+полученн\w+\s+с\s+сервер",
+        re.IGNORECASE | re.UNICODE,
+    )),
+    ("invalid_request_handling", re.compile(
+        r"неверн\w*\s+запрос|некорректн\w*\s+(?:ввод|запрос|данн)|"
+        r"обработк\w+\s+(?:неверн|некорректн|ошибочн)\w*\s+(?:запрос|ввод)|"
+        r"информативн\w*\s+сообщен\w*\s+об\s+ошибк",
+        re.IGNORECASE | re.UNICODE,
+    )),
+)
+
+
+def _classify_topics(text: str) -> set[str]:
+    """Return the set of topics the text matches. Empty set when none
+    of the topic patterns fire — safe default (no mismatch can fire
+    against an unclassified text)."""
+    if not text:
+        return set()
+    out: set[str] = set()
+    for topic, pat in _TOPIC_PATTERNS:
+        if pat.search(text):
+            out.add(topic)
+    return out
+
+
+# Pairs (req_topic, unit_topic) where mixing is a topical mismatch:
+# req IS about the first topic, evidence IS about the second, and the
+# two are not interchangeable. Order matters — only the listed
+# direction triggers the demotion.
+_TOPIC_MISMATCH_PAIRS: frozenset[tuple[str, str]] = frozenset({
+    # Performance vs reliability/hardware confusion (Polyakov 0.14).
+    ("response_time", "recovery_time"),
+    ("response_time", "hardware_specs"),
+    # Security: injection ≠ RBAC (Polyakov 0.18::sent2).
+    ("code_injection", "access_control"),
+    # Design tooling ≠ delivered UI (Polyakov 0.15::sent2).
+    ("figma_design", "browser_ui"),
+    # Different I/O directions / failure modes (Polyakov 0.17::sent4).
+    ("data_from_server", "invalid_request_handling"),
+})
+
+
+def _topic_mismatch_reason(
+    req_topics: set[str], unit_topics: set[str],
+) -> Optional[str]:
+    """Return a human-readable mismatch reason when the (req, unit)
+    pair hits one of `_TOPIC_MISMATCH_PAIRS` AND the unit does NOT
+    also carry the requirement's topic. Otherwise None.
+
+    The "AND not overlap" guard means: an evidence paragraph that
+    discusses BOTH the right topic and the wrong topic stays — it's
+    multi-aspect coverage, not a mismatch. Only pure off-topic
+    evidence triggers the demote.
+    """
+    if not req_topics or not unit_topics:
+        return None
+    # Overlap → topics agree on at least one — never a mismatch.
+    if req_topics & unit_topics:
+        return None
+    for r in req_topics:
+        for u in unit_topics:
+            if (r, u) in _TOPIC_MISMATCH_PAIRS:
+                return f"req topic {r!r} ≠ evidence topic {u!r}"
+    return None
+
+
 def _append_action(judgment: PairJudgment, action: str) -> None:
     """Append a verifier action tag onto the judgment.
 
@@ -1111,6 +1265,63 @@ class PairVerifier:
                 _append_action(judgment, "demote_covered_low_entity_overlap")
                 return judgment
 
+        # Rule 4-bis (Step 8): stricter COVERED bar for PMI.
+        #
+        # ПМИ — это методика проверки. Чтобы строка из ПМИ покрывала
+        # требование, она ОБЯЗАНА явно ссылаться на требование —
+        # либо повторяя его ключевые сущности, либо цитируя его
+        # формулировку (≥30% лексическое пересечение). PZ, напротив,
+        # может покрывать требование «обоснованием решения» с гораздо
+        # слабым vocabulary overlap (нарративные параграфы используют
+        # implementation-лексику, а ТЗ — specification-лексику).
+        #
+        # Rule 4 (generic, выше) срабатывает только при ≥3 сущностях с
+        # обеих сторон и порогe 0.10. Этот гораздо более строгий гейт
+        # применяется ТОЛЬКО к ПМИ и ловит случаи, когда LLM ставит
+        # COVERED на ПМИ-фрагменте, который структурно не привязан к
+        # требованию: ни сущностного, ни лексического сцепления.
+        # Симптом из Polyakov May-11: ПМИ test-step «Проверить вход
+        # в систему под учётной записью admin» получает COVERED на
+        # требовании «Журнал событий должен храниться 90 дней» —
+        # entity_overlap=0, lex_jac=0.07.
+        if (
+            judgment.rule_adjusted_label == LLMLabel.COVERED
+            and (unit.target_doc_role or "").strip().lower() == "pmi"
+        ):
+            from app.core.text import tokenize_content
+
+            req_toks_p = tokenize_content(req.normalized_text)
+            unit_toks_p = tokenize_content(unit.normalized_text)
+            lex_jac_pmi = (
+                len(req_toks_p & unit_toks_p) / len(req_toks_p | unit_toks_p)
+                if req_toks_p and unit_toks_p else 0.0
+            )
+            ent_ov_pmi = _entity_overlap(req, unit)
+            # Both signals weak → no verifiable link to the requirement.
+            # Thresholds calibrated against the Annenkov-style verbatim
+            # rule above (lex_jac ≥ 0.80 there): genuine PMI test steps
+            # paraphrasing a requirement sit at lex_jac 0.30–0.60 and
+            # ent_overlap ≥ 0.30; below both bars at once is structurally
+            # unrelated.
+            if lex_jac_pmi < 0.20 and ent_ov_pmi < 0.25:
+                judgment.rule_adjusted_label = LLMLabel.PARTIAL
+                judgment.missing_aspects = list(judgment.missing_aspects) + [
+                    "ПМИ-фрагмент не ссылается на требование (нет общих сущностей и нет лексического пересечения)",
+                ]
+                judgment.explanation += (
+                    f" [rule] PMI COVERED demoted — weak verbatim link "
+                    f"(lex_jac={lex_jac_pmi:.2f}, ent_ov={ent_ov_pmi:.2f}); "
+                    f"ПМИ должна явно цитировать или перечислять сущности требования."
+                )
+                _append_action(judgment, "demote_covered_pmi_weak_link")
+                # Intentional fall-through (no `return`): the Step-7
+                # aspect-mismatch demoter at the end of verify() still
+                # needs a chance to escalate PARTIAL → IRRELEVANT when
+                # the topics are genuinely off — its guard looks at
+                # `llm_label` (still COVERED here) so it will fire.
+                # Returning early here masked off-topic pairs as PARTIAL
+                # instead of the correct IRRELEVANT.
+
         # Rule 5: LLM-PARTIAL with near-zero entity overlap → IRRELEVANT.
         #
         # When the LLM assigns PARTIAL but the requirement and the unit share
@@ -1255,6 +1466,40 @@ class PairVerifier:
                     overlap, lex_jac, (judgment.llm_confidence or 0),
                 )
                 _append_action(judgment, "demote_partial_zero_entity_overlap")
+                return judgment
+
+        # Polyakov-regression Step 7 (2026-05-11): aspect-mismatch
+        # guard. LAST gate before the no-op exit. The LLM judge
+        # frequently raises PARTIAL/COVERED on pairs sharing only
+        # generic vocabulary («система», «интерфейс», «ошибка») when
+        # the actual semantic topics don't match. Real-package examples:
+        #   * 0.14 «время отклика 3 сек» vs hardware/recovery time;
+        #   * 0.18::sent2 «внедрение кода» vs RBAC/auth;
+        #   * 0.15::sent2 «макет в Figma» vs «интерфейс в браузере»;
+        #   * 0.17::sent4 «данные с сервера» vs invalid-request handling.
+        # Demote to IRRELEVANT when topics are on the curated mismatch
+        # list AND req+unit have NO overlapping topic.
+        if judgment.llm_label in {LLMLabel.PARTIAL, LLMLabel.COVERED}:
+            req_topics = _classify_topics(req.text or req.normalized_text or "")
+            unit_topics = _classify_topics(unit.text or unit.normalized_text or "")
+            mismatch_reason = _topic_mismatch_reason(req_topics, unit_topics)
+            if mismatch_reason:
+                judgment.rule_adjusted_label = LLMLabel.IRRELEVANT
+                judgment.explanation += (
+                    f" [rule] Topic mismatch demote: {mismatch_reason}. "
+                    f"Req topics={sorted(req_topics)!r}, "
+                    f"unit topics={sorted(unit_topics)!r}; no overlap → "
+                    f"evidence is off-topic for the requirement."
+                )
+                _append_action(
+                    judgment,
+                    f"demote_topic_mismatch_{mismatch_reason.split(' ')[2].strip(chr(39))}",
+                )
+                logger.debug(
+                    "Rule 7: %s → IRRELEVANT for req=%s unit=%s (%s)",
+                    judgment.llm_label.name, req.req_id[:8], unit.unit_id[:8],
+                    mismatch_reason,
+                )
                 return judgment
 
         # No adjustment needed — carry the LLM label forward.

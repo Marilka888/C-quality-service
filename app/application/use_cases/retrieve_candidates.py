@@ -651,9 +651,20 @@ class CandidateRetriever:
     ) -> List[RetrievedCandidate]:
         """Return up to `initial_top_n` candidates above
         `min_retrieval_score`, sorted descending. Falls back to `top_k`
-        when `initial_top_n` is unset (older configs)."""
+        when `initial_top_n` is unset (older configs).
+
+        Step 5: when the target documents are PZ (Пояснительная записка),
+        widen the shortlist cap to `initial_top_n_pz` / `top_k_pz`.
+        Evidence in PZ is scattered across narrative implementation
+        sections; the default top_k=5 starves the LLM of paragraphs that
+        together constitute coverage. PMI keeps the tighter cap.
+        Role is inferred from the first unit's `target_doc_role` — the
+        per-document loop in `_process_one_requirement` calls retrieve()
+        once per target artifact, so all units share a role here.
+        """
         if not coverage_units:
             return []
+        target_role = (coverage_units[0].target_doc_role or "").strip().lower()
 
         req_tokens: Set[str] = tokenize_content(requirement.normalized_text)
         candidate_texts = [u.normalized_text for u in coverage_units]
@@ -800,10 +811,21 @@ class CandidateRetriever:
         # PR-K: return up to initial_top_n. Falls back to top_k when the
         # config predates PR-K (e.g. unit tests that explicitly set top_k
         # to a small value and never touch initial_top_n).
-        cap = max(
-            getattr(self._cfg, "initial_top_n", 0) or 0,
-            self._cfg.top_k,
-        )
+        # Step 5: PZ targets use the wider role-specific caps.
+        if target_role == "pz":
+            initial_n = (
+                getattr(self._cfg, "initial_top_n_pz", 0)
+                or getattr(self._cfg, "initial_top_n", 0)
+                or 0
+            )
+            top_k_eff = (
+                getattr(self._cfg, "top_k_pz", 0)
+                or self._cfg.top_k
+            )
+        else:
+            initial_n = getattr(self._cfg, "initial_top_n", 0) or 0
+            top_k_eff = self._cfg.top_k
+        cap = max(initial_n, top_k_eff)
         if cap <= 0:
             cap = self._cfg.top_k
         return results[:cap]

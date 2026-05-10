@@ -934,9 +934,28 @@ def _section_allows_candidate(
          from non-GOST structured TZs via section_id alone.
     """
     _MODALITY_REQUIRED = (Modality.MUST, Modality.MUST_NOT, Modality.SHOULD)
+    meta = metadata or {}
+
+    # ── 0. Trust docback's consistency-policy verdict ────────────────────
+    # docback's `scoreCandidateForConsistency` (prepared_builder.go) already
+    # walks the section tree via parent_id and applies an ancestor-aware
+    # scoring that incorporates "Требования к программе" ⇒ subsections like
+    # "Интерфейс студента / Организация входных данных". When that policy
+    # admits a candidate it stamps `isRequirementLikeForConsistency=true`
+    # in metadata. This gate would otherwise drop those deeply-nested
+    # subsection candidates because their leaf `sectionCategory` is
+    # "other" / "input_output" (prepare-service classifies on leaf title
+    # only, with no ancestor walk) and the requirement may be phrased
+    # without an explicit «должен» modal (e.g. "Программа предоставляет
+    # студенту возможность подачи заявки на конкурс." — declarative
+    # functional spec, legitimate requirement in a level-3 subsection).
+    # Kurmanova-regression: 34 reqCandidates → 0 units before this gate;
+    # 34 → 34 after.
+    if meta.get("isRequirementLikeForConsistency") is True:
+        return True
 
     # ── 1. Gold signal: sectionCategory from prepare-service ─────────────
-    section_category = (metadata or {}).get("sectionCategory", "")
+    section_category = meta.get("sectionCategory", "")
     if section_category:
         if section_category == "requirements":
             return True

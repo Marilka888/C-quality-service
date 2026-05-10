@@ -260,6 +260,18 @@ class RequirementCoverageResult(BaseModel):
     # Whether this row contributes to the C-axis sub-score in the
     # package grade. Excludes OUT_OF_SCOPE / NOT_APPLICABLE.
     should_affect_grade: bool = True
+    # Polyakov-regression Step 4 (2026-05-11): per-row visibility into
+    # LLM-judge unavailability. `unjudged_pair_count` is the number of
+    # candidate pairs that were silently filtered as
+    # `make_unknown_judgment` sentinels before Branch C of the
+    # aggregator scanned them. When > 0, the row's verdict was
+    # computed on a partial shortlist — the orchestrator/UI can show
+    # an "incomplete" badge so the reviewer knows the row would have
+    # benefited from a re-run after the LLM is restored. Distinct
+    # from the row-level `status=UNKNOWN` (which fires only when ALL
+    # pairs were sentinels) — many real-package runs have mixed
+    # shortlists where some pairs timed out and others succeeded.
+    unjudged_pair_count: int = 0
 
 
 class DocumentCoverageReport(BaseModel):

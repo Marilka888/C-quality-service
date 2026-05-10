@@ -22,7 +22,8 @@ the wire so legacy readers keep working.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.application.use_cases.applicability import (
     applicability_for,
@@ -82,6 +83,97 @@ SUBCODE_CONFLICT_UNVERIFIED = "CONFLICT_UNVERIFIED"
 # aggregator surfaces these as CoverageStatus.UNKNOWN (not MISSING)
 # so an Ollama timeout doesn't morph into a CRITICAL package status.
 SUBCODE_UNKNOWN_LLM_UNAVAILABLE = "UNKNOWN_LLM_UNAVAILABLE"
+# Polyakov-regression Step 6 (2026-05-11): when a row would be
+# COVERED but the judge itself listed uncovered aspects, surface as
+# PARTIAL with this subcode. Internally consistent: never claim full
+# coverage when something is still uncovered.
+SUBCODE_PARTIAL_DOWNGRADED_FROM_COVERED = "PARTIAL_DOWNGRADED_FROM_COVERED"
+
+
+# Polyakov-regression Step 9: tag-shaped noise that leaks into
+# uncovered_aspects from per-rule verifier flags. These are
+# extraction-internal labels, not real missing requirements aspects.
+# Drop them from the surface list so the reviewer sees only honest
+# domain phrases.
+_ASPECT_NOISE_TAG_RE = re.compile(
+    r"^(?:"
+    r"specific_object_match|verb_match|verb_object_coverage|"
+    r"sufficient_lexical_density|object_phrase_match|"
+    r"low_entity_overlap|near_zero_entity_overlap|"
+    r"shared_substantive_token"
+    r")$",
+    re.IGNORECASE,
+)
+# Latin-transliteration noise («регISTRATION» when LLM started typing
+# the cyrillic word in english). Pattern: a word containing BOTH
+# Cyrillic letters AND uppercase Latin letters in the same token.
+_MIXED_SCRIPT_NOISE_RE = re.compile(
+    r"[А-Яа-яЁё][A-Z]|[A-Z][А-Яа-яЁё]",
+    re.UNICODE,
+)
+
+
+def _is_mixed_script_noise(s: str) -> bool:
+    """True when the string contains a Cyrillic→uppercase-Latin (or
+    reverse) immediate transition — a signature of LLM mid-word
+    transliteration glitch («регISTRATION», «парольPASSWORD»). Such
+    tokens are extraction artefacts and must be dropped from the
+    surface aspect list."""
+    return bool(_MIXED_SCRIPT_NOISE_RE.search(s or ""))
+
+
+def _normalize_uncovered_aspects(raws: List[str]) -> List[str]:
+    """Polyakov-regression Step 9: dedup uncovered_aspects with light
+    normalization. The LLM judge frequently emits:
+      * progressive substrings («загрузка» / «загрузка файлов» /
+        «загрузка файлов в и из системы»);
+      * latin-transliteration noise («регISTRATION»);
+      * extraction-internal tags («specific_object_match»,
+        «verb_match», «sufficient_lexical_density») leaked from
+        verifier per-rule flags.
+
+    Strategy:
+      1. Strip whitespace + trailing punctuation; lowercase for compare.
+      2. Drop empty / pure-noise tags via `_ASPECT_NOISE_TAG_RE`.
+      3. Drop strict substrings: if phrase A is a token-substring of
+         phrase B (B carries strictly more information), keep only B.
+      4. Preserve insertion order on the kept set.
+    """
+    if not raws:
+        return []
+    cleaned: List[Tuple[str, str]] = []  # (lower_norm, original)
+    seen: Set[str] = set()
+    for raw in raws:
+        if not raw:
+            continue
+        s = re.sub(r"^[\s\-—–.,;:()«»\"']+|[\s\-—–.,;:()«»\"']+$", "", str(raw))
+        if not s or len(s) < 3:
+            continue
+        if _ASPECT_NOISE_TAG_RE.match(s):
+            continue
+        if _is_mixed_script_noise(s):
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append((key, s))
+    if not cleaned:
+        return []
+    # Drop strict substrings: phrase A whose lowercase form is a
+    # contiguous substring of another phrase B's lowercase form.
+    keep: List[Tuple[str, str]] = []
+    for i, (key_i, orig_i) in enumerate(cleaned):
+        is_substring_of_other = False
+        for j, (key_j, _) in enumerate(cleaned):
+            if i == j:
+                continue
+            if key_i != key_j and key_i in key_j and len(key_j) > len(key_i):
+                is_substring_of_other = True
+                break
+        if not is_substring_of_other:
+            keep.append((key_i, orig_i))
+    return [orig for _, orig in keep]
 
 
 # Default Russian rationales for MISSING when no judgment yields a usable
@@ -377,7 +469,7 @@ class CoverageAggregator:
                 ),
                 requirement_type=req_type,
                 applicability=applicability,
-                severity=severity_for(req_type, target_doc_role, status, applicability),
+                severity=severity_for(req_type, target_doc_role, status, applicability, subcode),
                 should_affect_critical=should_affect_critical(
                     req_type, applicability, status, target_doc_role,
                 ),
@@ -439,7 +531,7 @@ class CoverageAggregator:
                 ),
                 requirement_type=req_type,
                 applicability=applicability,
-                severity=severity_for(req_type, target_doc_role, status, applicability),
+                severity=severity_for(req_type, target_doc_role, status, applicability, subcode),
                 should_affect_critical=should_affect_critical(
                     req_type,
                     applicability,
@@ -525,6 +617,9 @@ class CoverageAggregator:
                 # perfectly-fine package.
                 should_affect_grade=False,
                 status_subcode=SUBCODE_UNKNOWN_LLM_UNAVAILABLE,
+                # Polyakov-regression Step 4: all judgments were
+                # sentinels — the count IS the row's pair count.
+                unjudged_pair_count=len(judgments),
                 winning_candidate_id=None,
                 final_confidence=0.0,
                 aggregation_reason=agg_reason,
@@ -541,6 +636,10 @@ class CoverageAggregator:
 
         # If SOME judgments are sentinels, drop them — Branch C
         # aggregates only judgments that actually carry a verdict.
+        # Polyakov-regression Step 4 (2026-05-11): track the count of
+        # filtered sentinels so the row's visibility flag
+        # (`unjudged_pair_count`) reflects partial-shortlist runs.
+        unjudged_pair_count_for_row = len(unknown_judgments)
         if unknown_judgments:
             judgments = [j for j in judgments if not is_unknown_judgment(j)]
             decision_log.append(
@@ -926,6 +1025,41 @@ class CoverageAggregator:
             list(dict.fromkeys(conflicts)) if chosen_status == CoverageStatus.CONFLICT else []
         )
 
+        # Polyakov-regression Step 9: dedup + denoise uncovered_aspects
+        # before they reach the wire. Removes substrings, latin-mix
+        # artefacts («регISTRATION»), and verifier-internal tags
+        # («specific_object_match», «verb_match», …).
+        normalized_uncovered = _normalize_uncovered_aspects(uncovered)
+
+        # Polyakov-regression Step 6: downgrade COVERED → PARTIAL when
+        # the judge itself listed uncovered aspects. The current LLM
+        # frequently writes «фрагмент полностью покрывает …» while
+        # simultaneously emitting `uncovered_aspects` — the row was
+        # internally inconsistent: «full coverage» + «here's what's
+        # missing». Force-downgrade so the reviewer sees PARTIAL with
+        # the explicit list of remaining gaps. Real-package examples
+        # from the Polyakov May-11 run all flipped here:
+        #   * 0.11::sent1 «Регистрация, авторизация и аутентификация»
+        #     COVERED with 4 aspects → PARTIAL.
+        #   * 0.15::sent1 «понятный интерфейс…» COVERED with 4
+        #     aspects → PARTIAL.
+        #   * 0.17::sent2/sent4, 0.20::sent1 — same pattern.
+        if chosen_status == CoverageStatus.COVERED and normalized_uncovered:
+            decision_log.append(
+                f"Step-6 downgrade COVERED → PARTIAL: judge declared "
+                f"full coverage but listed {len(normalized_uncovered)} "
+                f"uncovered aspect(s) after dedup."
+            )
+            downgrade_note = (
+                f" Downgraded COVERED → PARTIAL: judge's uncovered_aspects "
+                f"is non-empty after dedup ({len(normalized_uncovered)} "
+                f"aspect(s) remain): "
+                f"{', '.join(repr(a) for a in normalized_uncovered[:3])}."
+            )
+            agg_reason = (agg_reason or "") + downgrade_note
+            chosen_status = CoverageStatus.PARTIAL
+            chosen_subcode = SUBCODE_PARTIAL_DOWNGRADED_FROM_COVERED
+
         return RequirementCoverageResult(
             req_id=requirement.req_id,
             source_document_id=requirement.source_document_id,
@@ -933,7 +1067,8 @@ class CoverageAggregator:
             target_doc_role=target_doc_role,
             status=chosen_status,
             evidence=evidence_items,
-            uncovered_aspects=list(dict.fromkeys(uncovered)),
+            uncovered_aspects=normalized_uncovered,
+            unjudged_pair_count=unjudged_pair_count_for_row,
             conflict_details=final_conflicts,
             low_confidence=any_low_conf,
             grounding_failed=any_grounding_failed,
@@ -947,7 +1082,9 @@ class CoverageAggregator:
             ),
             requirement_type=req_type,
             applicability=applicability,
-            severity=severity_for(req_type, target_doc_role, chosen_status, applicability),
+            severity=severity_for(
+                req_type, target_doc_role, chosen_status, applicability, chosen_subcode,
+            ),
             should_affect_critical=should_affect_critical(
                 req_type,
                 applicability,

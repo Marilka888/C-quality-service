@@ -215,41 +215,98 @@ def evidence_strength_from_score(
     return EvidenceStrength.NO_EVIDENCE
 
 
+# Step 10 — subcodes that justify demoting the base severity one notch.
+# These are statuses where the verdict is uncertain or partial-by-aspect
+# rather than a clean coverage failure, so the row should not flag with
+# the same urgency as a confident MISSING/CONFLICT.
+#
+# Imported here as plain strings to avoid a circular dep with
+# aggregate_coverage (which imports applicability for severity_for).
+_SEVERITY_DEMOTE_SUBCODES: frozenset[str] = frozenset({
+    # Verdict was COVERED with uncovered aspects — mostly satisfied.
+    "PARTIAL_DOWNGRADED_FROM_COVERED",
+    # Below evidence floor / low LLM confidence — we don't actually
+    # know whether the coverage is there or not; soften the call.
+    "MISSING_LOW_CONFIDENCE",
+    "MISSING_LOW_GROUNDING",
+    # OPTIONAL row — not finding it is by design less critical.
+    "OPTIONAL_NOT_FOUND",
+})
+
+# Subcodes whose verdict is unverifiable — the LLM judge was unavailable
+# or returned an unknown verdict. Set medium so the row is visible but
+# doesn't dominate the package banner.
+_SEVERITY_UNKNOWN_SUBCODES: frozenset[str] = frozenset({
+    "UNKNOWN_LLM_UNAVAILABLE",
+})
+
+_SEVERITY_ORDER: dict[str, int] = {"low": 0, "medium": 1, "high": 2}
+_SEVERITY_NAMES: tuple[str, ...] = ("low", "medium", "high")
+
+
+def _demote_one_notch(level: str) -> str:
+    idx = _SEVERITY_ORDER.get(level, 0)
+    return _SEVERITY_NAMES[max(0, idx - 1)]
+
+
 def severity_for(
     req_type: RequirementType,
     target_role: str,
     status: CoverageStatus,
     applicability: Applicability,
+    subcode: str | None = None,
 ) -> str:
     """Return "low" / "medium" / "high". Used as the docback `priority`
     on CRequirement so the orchestrator's status banner and the UI's
-    sort order match the type-aware semantics."""
+    sort order match the type-aware semantics.
+
+    Step 10: when `subcode` is supplied, soft / unknown subcodes demote
+    the base level one notch (high→medium, medium→low). Confident
+    MISSING / CONFLICT keep their base level. Existing callers that
+    don't pass `subcode` get the legacy matrix unchanged.
+    """
     if applicability != Applicability.APPLICABLE:
         return "low"
     if status == CoverageStatus.COVERED:
         return "low"
     if status == CoverageStatus.CONFLICT:
+        # Verified vs unverified conflict — unverified is uncertain,
+        # demote one notch so a single low-confidence CONFLICT doesn't
+        # dominate the package banner.
+        if subcode == "CONFLICT_UNVERIFIED":
+            return "medium"
         return "high"
 
     role = (target_role or "").strip().lower()
 
     # MISSING / PARTIAL severity matrix.
     if req_type == RequirementType.SECURITY:
-        return "high"
-    if req_type == RequirementType.PERFORMANCE:
-        return "high" if role == "pmi" else "medium"
-    if req_type == RequirementType.FUNCTIONAL:
-        return "high" if role == "pmi" else "medium"
-    if req_type == RequirementType.RELIABILITY:
-        return "high" if role == "pmi" else "medium"
-    if req_type == RequirementType.ARCHITECTURE_IMPLEMENTATION:
-        return "high" if role == "pz" else "low"
-    if req_type == RequirementType.DATA_IO:
-        return "medium"
-    if req_type == RequirementType.DOCUMENTATION_REQUIREMENT:
-        return "medium"
-    if req_type == RequirementType.INTERFACE:
-        return "medium"
-    if req_type == RequirementType.ENVIRONMENT_REQUIREMENT:
-        return "low"
-    return "low"
+        base = "high"
+    elif req_type == RequirementType.PERFORMANCE:
+        base = "high" if role == "pmi" else "medium"
+    elif req_type == RequirementType.FUNCTIONAL:
+        base = "high" if role == "pmi" else "medium"
+    elif req_type == RequirementType.RELIABILITY:
+        base = "high" if role == "pmi" else "medium"
+    elif req_type == RequirementType.ARCHITECTURE_IMPLEMENTATION:
+        base = "high" if role == "pz" else "low"
+    elif req_type == RequirementType.DATA_IO:
+        base = "medium"
+    elif req_type == RequirementType.DOCUMENTATION_REQUIREMENT:
+        base = "medium"
+    elif req_type == RequirementType.INTERFACE:
+        base = "medium"
+    elif req_type == RequirementType.ENVIRONMENT_REQUIREMENT:
+        base = "low"
+    else:
+        base = "low"
+
+    # Step 10 — soften when the verdict is uncertain or already partially
+    # satisfied. Unknown verdicts are clamped to medium (visible but not
+    # dominant). Soft subcodes demote one notch.
+    if subcode in _SEVERITY_UNKNOWN_SUBCODES:
+        # Show as medium when base is high; otherwise keep base.
+        return "medium" if base == "high" else base
+    if subcode in _SEVERITY_DEMOTE_SUBCODES:
+        return _demote_one_notch(base)
+    return base
