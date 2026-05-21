@@ -621,7 +621,7 @@ class LiteLLMCoverageJudge(CoverageJudge):
         if isinstance(parsed, list):
             items = parsed
         elif isinstance(parsed, dict):
-            for key in ("results", "verdicts", "items", "data"):
+            for key in ("results", "result", "verdicts", "items", "data"):
                 if isinstance(parsed.get(key), list):
                     items = parsed[key]
                     break

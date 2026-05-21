@@ -3,8 +3,8 @@ PR-K post-fix (A): tests for parallel per-pair judge calls in
 PairJudgeService.
 
 Concurrency is controlled by CQUALITY_JUDGE_CONCURRENCY env var:
-  1 (default) — sequential, identical to pre-A behaviour
-  N > 1       — fan-out across N worker threads
+  3 (default) — fan-out across 3 worker threads
+  1           — sequential, identical to pre-A behaviour
   N <= 0      — clamped to 1
   > cap       — clamped to _CONCURRENCY_HARD_CAP
 
@@ -109,7 +109,7 @@ def _build_service_with_pairs(judge: CoverageJudge, n: int):
 
 class TestResolveConcurrency:
     @pytest.mark.parametrize("env_val, expected", [
-        (None, 1),
+        (None, 3),
         ("", 1),
         ("1", 1),
         ("3", 3),
@@ -147,13 +147,15 @@ class TestSequentialEquivalence:
         # No "pair-judge" workers spun up.
         assert not any(t.startswith("pair-judge") for t in judge.threads)
 
-    def test_concurrency_unset_is_sequential(self, monkeypatch):
+    def test_concurrency_unset_uses_workers(self, monkeypatch):
+        # Default is now 3 — unset env var should use concurrent fan-out.
         monkeypatch.delenv("CQUALITY_JUDGE_CONCURRENCY", raising=False)
         judge = _RecordingJudge()
         service, shortlist, units = _build_service_with_pairs(judge, 3)
         out = service.judge_shortlist(_req(), shortlist, units)
         assert len(out) == 3
-        assert not any(t.startswith("pair-judge") for t in judge.threads)
+        # With default=3 and 3 pairs, worker threads ARE spun up.
+        assert any(t.startswith("pair-judge") for t in judge.threads)
 
 
 # ── Concurrency > 1 → fan-out + order-independence ──────────────────────

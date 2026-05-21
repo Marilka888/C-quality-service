@@ -1,9 +1,9 @@
 # PR-C calibration on Cherevuyhho (live Ollama qwen2.5:3b)
 
-Total (req × target) pairs: **24**  
-LLM judge calls: **119**  
-Low-confidence results (BUG-3 grounding + BUG-9 floor combined): **12**  
-Ungrounded LLM demotions (BUG-3 alone): **0**  
+Total (req × target) pairs: **108**  
+LLM judge calls: **538**  
+Low-confidence results (BUG-3 grounding + BUG-9 floor combined): **83**  
+Ungrounded LLM demotions (BUG-3 alone): **12**  
 Duplicate-pair dedup warnings (BUG-14): **0**
 
 ## Status distribution: legacy → new
@@ -12,28 +12,30 @@ New = current code: grounding-demoted ungrounded verdicts to IRRELEVANT, low_con
 
 | Status | Legacy | New |
 |---|---|---|
-| COVERED | 0 | 0 |
-| PARTIAL | 2 | 2 |
-| MISSING | 21 | 21 |
-| CONFLICT | 1 | 1 |
+| COVERED | 6 | 5 |
+| PARTIAL | 33 | 33 |
+| MISSING | 65 | 68 |
+| CONFLICT | 4 | 2 |
 
 ## Detail dump
 ```json
 {
-  "total_pairs": 24,
-  "judgments_made": 119,
+  "total_pairs": 108,
+  "judgments_made": 538,
   "by_status_legacy": {
-    "MISSING": 21,
-    "CONFLICT": 1,
-    "PARTIAL": 2
+    "MISSING": 65,
+    "PARTIAL": 33,
+    "CONFLICT": 4,
+    "COVERED": 6
   },
   "by_status_new": {
-    "MISSING": 21,
-    "CONFLICT": 1,
-    "PARTIAL": 2
+    "MISSING": 68,
+    "PARTIAL": 33,
+    "CONFLICT": 2,
+    "COVERED": 5
   },
-  "low_confidence_results": 12,
-  "ungrounded_demotes": 0,
+  "low_confidence_results": 83,
+  "ungrounded_demotes": 12,
   "dedup_warnings": [],
   "all_warnings_count": 1
 }

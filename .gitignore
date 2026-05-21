@@ -1,3 +1,58 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# =========================
+# Models (large binary files — store separately, not in git)
+# =========================
+model/*.safetensors
+model/**/*.safetensors
+model/req_classifier/training_args.bin
+
+# =========================
+# IDEs and local tool settings
+# =========================
+.idea/
+*.iml
+.vscode/
+.claude/
+
+# =========================
+# Runtime probe / debug artefacts
+# =========================
+.probe/*.err
+.probe/*.out
+.probe/review_samples*.txt
+
+# =========================
+# Secrets / env
+# =========================
+.env
+.env.*
+
+# =========================
+# Misc
+# =========================
+*.log
+*.tmp
+*.swp
+*.swo
+demo_report.xlsx
+test_out.txt
+
 # PR-J: per-model partial result caches written by calibrate_multi_model.py.
 # Re-runs reuse them automatically; never check in (large, run-specific).
 scripts/_partial_*.json

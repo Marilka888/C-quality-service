@@ -764,6 +764,15 @@ class CoverageAnalysisPipeline:
             doc_units = [u for u in all_units if u.target_document_id == doc_id]
             candidates = self._retriever.retrieve(req, doc_units)
             doc_candidates[doc_id] = candidates
+            reranked_count = sum(1 for c in candidates if c.reranker_used)
+            sample_scores = [round(c.retrieval_score, 3) for c in candidates[:5]]
+            logger.info(
+                "[%s] retrieval req[%d]=%s target=%s role=%s "
+                "units=%d shortlist=%d reranked=%d top_scores=%s",
+                job_id, req_i, req.req_id[:12], doc_id,
+                artifact.get("doc_role", "unknown"), len(doc_units),
+                len(candidates), reranked_count, sample_scores,
+            )
             if req_i < 3:
                 sample_scores = [round(c.retrieval_score, 3) for c in candidates[:3]]
                 logger.debug(
@@ -786,6 +795,12 @@ class CoverageAnalysisPipeline:
             cov_level = coverage_requirement_level_for(req_type, doc_role)
 
             if applicability != Applicability.APPLICABLE:
+                logger.info(
+                    "[%s] selection req[%d]=%s target=%s role=%s "
+                    "shortlist=%d selected_for_llm=0 judged=0 skip=%s",
+                    job_id, req_i, req.req_id[:12], doc_id, doc_role,
+                    len(shortlist), applicability.value,
+                )
                 result = self._aggregator.aggregate(
                     requirement=req,
                     judgments=[],
@@ -811,9 +826,10 @@ class CoverageAnalysisPipeline:
                 continue
 
             if not shortlist:
-                logger.debug(
-                    "[%s] No candidates for req=%s target=%s (all below threshold or no units)",
-                    job_id, req.req_id[:12], doc_id,
+                logger.info(
+                    "[%s] selection req[%d]=%s target=%s role=%s "
+                    "shortlist=0 selected_for_llm=0 judged=0 skip=empty_shortlist",
+                    job_id, req_i, req.req_id[:12], doc_id, doc_role,
                 )
                 result = self._aggregator.aggregate(
                     requirement=req,
@@ -896,6 +912,24 @@ class CoverageAnalysisPipeline:
                         j.low_confidence = True
 
                 req_judgments.extend(judgments)
+
+            selected_scores = [
+                round(c.retrieval_score, 3) for c in selection.selected[:5]
+            ]
+            skip_reason = (
+                "floor"
+                if skip_due_to_floor
+                else (selection.skip_reason or "none")
+            )
+            logger.info(
+                "[%s] selection req[%d]=%s target=%s role=%s "
+                "shortlist=%d selected_for_llm=%d judged=%d "
+                "skip_llm=%s skip_reason=%s selected_scores=%s reason=%s",
+                job_id, req_i, req.req_id[:12], doc_id, doc_role,
+                len(shortlist), len(selection.selected), len(judgments),
+                bool(selection.skip_llm or not selection.selected or skip_due_to_floor),
+                skip_reason, selected_scores, selection.selection_reason,
+            )
 
             # Aggregate
             candidates_by_unit_id = {c.unit_id: c for c in shortlist}

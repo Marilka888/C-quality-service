@@ -425,11 +425,20 @@ class CoverageConfig(BaseModel):
         model = os.environ.get("CQUALITY_LLM_MODEL_NAME")
         if model:
             config.llm.model_name = model
+        backend = os.environ.get("CQUALITY_JUDGE_BACKEND")
+        if backend:
+            backend = backend.lower().strip()
+            if backend in {"ollama", "cross_encoder", "disabled", "litellm"}:
+                config.llm.backend = backend
+                config.llm.enabled = backend != "disabled"
         return config
 
     @classmethod
     def from_options(cls, options: Dict) -> "CoverageConfig":
-        config = cls()
+        # Start from env-applied defaults so CQUALITY_JUDGE_BACKEND /
+        # CQUALITY_LLM_MODEL_NAME hold even when the orchestrator passes
+        # request-time options. Per-request options still override env.
+        config = cls.from_env()
         if "top_k" in options:
             config.retrieval.top_k = int(options["top_k"])
         if "enable_llm_judge" in options:

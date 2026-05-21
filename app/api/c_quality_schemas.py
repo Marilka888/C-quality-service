@@ -70,7 +70,6 @@ class PreparedArtifact(BaseModel):
     sections: List[SectionArtifact] = Field(default_factory=list)
     fragments: List[FragmentArtifact] = Field(default_factory=list)
     requirement_candidates: Optional[List[RequirementCandidateArtifact]] = None
-    # TODO: use sentences[] for finer granularity when prepare-service exposes them
     sentences: Optional[List[Dict[str, Any]]] = None
 
     @field_validator("doc_role", mode="before")

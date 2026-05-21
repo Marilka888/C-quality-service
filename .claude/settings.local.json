@@ -92,7 +92,12 @@
       "Bash(rm -f .probe/live_abc.*)",
       "Bash(ps -p 1722 -o pid,etime,pcpu,pmem,vsz)",
       "Bash(powershell -Command \"Get-Process -Id 1722 -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet64, StartTime, Responding\")",
-      "PowerShell(Stop-Process -Id 10628, 16080 -Force -ErrorAction SilentlyContinue)"
+      "PowerShell(Stop-Process -Id 10628, 16080 -Force -ErrorAction SilentlyContinue)",
+      "Bash(ls data/*.csv data/labeled* data/*.xlsx)",
+      "Bash(.venv/Scripts/python.exe scripts/train_pair_judge.py --help)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestCrossEncoderCoverageJudge -v)",
+      "Bash(.venv/Scripts/python.exe scripts/generate_demo_report.py --help)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_coverage_pipeline.py::TestCoverageAggregator -v)"
     ]
   }
 }

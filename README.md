@@ -1,103 +1,195 @@
-# C-quality-service
+# c-quality-service
 
-LLM-judge сервис для качества C (согласованность ТЗ ↔ ПМИ / ПЗ).
-Принимает требования из ТЗ и фрагменты из целевых документов (ПМИ, ПЗ),
-прогоняет их через retrieval + reranker + LLM-judge и возвращает покрытие
-с пометками COVERED / PARTIAL / MISSING / CONFLICT.
+Микросервис проверки согласованности требований ТЗ с целевыми документами (ПМИ, ПЗ).
+Реализует pipeline: type-aware retrieval → reranker → LLM-judge → rule-based verifier → агрегация.
 
-## Запуск с нуля
+## Роль в pipeline
 
-### 1. Зависимости системы
+```
+docback → POST /coverage/analyze (tz + pmi/pz artifacts) → c-quality-service
+                                                                  ↓
+                                                    CoverageAnalysisResponse
+                                                    └── requirement_results[]
+                                                        ├── status: COVERED | PARTIAL | MISSING | CONFLICT | UNKNOWN
+                                                        ├── low_confidence
+                                                        ├── grounding_failed
+                                                        └── evidence_trace
+```
 
-- **Python 3.11**
-- **Git**
-- **Ollama** (https://ollama.com) — для локального LLM-судьи
+## Статусы покрытия
 
-### 2. Клон и установка Python-пакетов
+| Статус | Значение |
+|---|---|
+| `COVERED` | Требование явно покрыто в целевом документе |
+| `PARTIAL` | Покрыто частично |
+| `MISSING` | Соответствие не найдено |
+| `CONFLICT` | Найдено противоречие между ТЗ и целевым документом |
+| `UNKNOWN` | LLM-судья недоступен; вердикт не может быть вынесен |
+
+`UNKNOWN` не учитывается в критическом счётчике — это признак инфраструктурного сбоя, а не дефекта документа.
+
+## Стек
+
+- Python 3.11
+- FastAPI + Uvicorn
+- sentence-transformers / XLMRoberta (эмбеддинги + reranker)
+- spaCy `ru_core_news_md` (лемматизация)
+- litellm / Ollama (LLM-судья)
+- SQLite (кэш суждений LLM)
+
+## Быстрый старт
+
+### 1. Установка зависимостей
 
 ```bash
-git clone https://github.com/Marilka888/C-quality-service.git
-cd C-quality-service
 python -m venv .venv
 
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
-# Windows cmd
-.venv\Scripts\activate.bat
-# Linux/macOS
+# Linux / macOS
 source .venv/bin/activate
 
 pip install -r requirements.txt
 python -m spacy download ru_core_news_md
 ```
 
-### 3. Скачать LLM-модель для Ollama
+### 2. LLM-модель (Ollama)
 
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:3b   # ~2 GB, достаточно для демо
+# или qwen2.5:7b для лучшего качества
 ```
 
-Можно использовать другую модель (`llama3`, `mistral`, и т.д.) — главное
-прописать её имя в env-переменной `CQUALITY_LLM_MODEL_NAME` ниже.
+Поддерживаются любые Ollama-модели — задаётся через `CQUALITY_LLM_MODEL_NAME`.
 
-### 4. Weights модели классификатора требований
+### 3. Веса классификатора требований
 
-Weights `model.safetensors` **не лежат в git** (слишком большие). Есть
-два варианта:
+Файлы `model/model.safetensors` и `model/req_classifier/model.safetensors` **не хранятся в git** (бинарные, ~1.7 ГБ суммарно). Конфигурационные файлы (`config.json`, `tokenizer.json` и др.) уже в репозитории.
 
-**(а) Перенести с другого компа**, где сервис уже работает:
+**Варианты:**
 
-```
-model/model.safetensors
-model/req_classifier/model.safetensors
-```
+- Скопировать веса с другой машины в `model/` и `model/req_classifier/`
+- Sentence-transformers автоматически скачает base-модель XLMRoberta при первом запуске (конфигурация уже присутствует)
 
-Положить в те же относительные пути.
-
-**(б) Скачать base-модель автоматически.** Sentence-transformers
-подтянет базовую `XLMRoberta` при первом запуске. Файлы конфигурации
-уже в репе (`model/config.json`, `tokenizer.json`, …).
-
-### 5. Переменные окружения
-
-PowerShell:
-```powershell
-$env:CQUALITY_LLM_MODEL_NAME = "qwen2.5:3b"
-$env:CQUALITY_REQ_CONCURRENCY = "4"
-$env:CQUALITY_JUDGE_CONCURRENCY = "2"
-```
-
-bash:
-```bash
-export CQUALITY_LLM_MODEL_NAME="qwen2.5:3b"
-export CQUALITY_REQ_CONCURRENCY=4
-export CQUALITY_JUDGE_CONCURRENCY=2
-```
-
-### 6. Запустить сервис
+### 4. Запуск
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
 ```
 
-Сервис будет доступен на `http://localhost:8004`.
-Health-check: `GET /health`.
+Health-check: `GET http://localhost:8004/health`
 
-### 7. Подключить к оркестратору docback
+### 5. Подключение к docback
 
-В env-переменных `docback` (или в `docker-compose.yml`) пропиши URL:
+В переменных окружения docback:
+
+```env
+CHECK_C_BASE_URL=http://localhost:8004
 ```
-CQUALITY_SERVICE_URL=http://localhost:8004
-```
-(имя переменной зависит от твоей конфигурации docback).
 
-## Запуск в Docker
+## Docker
 
 ```bash
 docker build -t c-quality-service .
-docker run -p 8004:8000 -e CQUALITY_LLM_MODEL_NAME=qwen2.5:3b c-quality-service
+docker run -p 8004:8000 \
+  -v /path/to/models:/app/model \
+  -e CQUALITY_LLM_MODEL_NAME=qwen2.5:3b \
+  -e CQUALITY_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  c-quality-service
 ```
 
-Ollama должен быть доступен с контейнера — либо запусти его на хосте и
-прокинь `host.docker.internal` в env, либо разверни Ollama в том же
-docker-compose.
+## Переменные окружения
+
+| Переменная | По умолчанию | Описание |
+|---|---|---|
+| `CQUALITY_LLM_MODEL_NAME` | `qwen2.5:3b` | Модель Ollama для LLM-судьи |
+| `CQUALITY_OLLAMA_BASE_URL` | `http://localhost:11434` | URL Ollama-сервера |
+| `CQUALITY_LLM_ENABLED` | `true` | Включить LLM-judge (false = только rule-based) |
+| `CQUALITY_REQ_CONCURRENCY` | `4` | Параллелизм обработки требований |
+| `CQUALITY_JUDGE_CONCURRENCY` | `2` | Параллелизм LLM-запросов |
+| `CQUALITY_MIN_RETRIEVAL_SCORE` | `0.05` | Минимальный retrieval-score для допуска к LLM |
+| `CQUALITY_EVIDENCE_FLOOR` | `0.30` | Минимальный evidence-score |
+| `CQUALITY_USE_RERANKER` | `true` | Включить BGE reranker |
+
+## API
+
+### `POST /coverage/analyze`
+
+Основной endpoint — полный pipeline.
+
+```jsonc
+{
+  "tz_artifact": { "document_id": "...", "doc_role": "tz", "sections": [...], "requirement_candidates": [...] },
+  "target_artifacts": [
+    { "document_id": "...", "doc_role": "pmi", "sections": [...], "fragments": [...] }
+  ],
+  "config": {
+    "llm": { "enabled": true, "backend": "ollama" }
+  }
+}
+```
+
+**Ответ:**
+
+```jsonc
+{
+  "requirement_results": [
+    {
+      "req_id": "r_001",
+      "text": "Система должна...",
+      "status": "COVERED",
+      "low_confidence": false,
+      "grounding_failed": false,
+      "status_subcode": null,
+      "evidence_trace": "..."
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "covered": 7,
+    "partial": 1,
+    "missing": 1,
+    "conflict": 1,
+    "unknown": 0
+  }
+}
+```
+
+### `GET /health`
+
+```json
+{ "status": "ok" }
+```
+
+## Тесты
+
+```bash
+python -m pytest tests/ -v
+```
+
+## Структура проекта
+
+```
+app/
+├── api/                   # FastAPI router, request/response schemas
+├── application/use_cases/ # pipeline use cases (retrieval, judge, aggregate)
+├── core/                  # config, logging, lemmatizer, text utils
+├── domain/                # entities, enums, value objects
+├── infrastructure/
+│   ├── embeddings/        # e5 multilingual embeddings
+│   ├── llm/               # LLM judge implementations (Ollama, disabled, etc.)
+│   ├── reranker/          # BGE reranker
+│   └── rules/             # deterministic conflict detector
+├── retrieval/             # hybrid retriever (lexical + semantic)
+└── scoring/               # aggregation + metrics
+model/                     # конфиги sentence-transformer (веса не в git)
+data/packages/             # тестовые пакеты для калибровки
+scripts/                   # калибровка, диагностика, датасет-билдер
+tests/                     # unit и integration тесты
+```
+
+## Ограничения
+
+- LLM-судья калиброван под `qwen2.5:7b`; на других моделях вердикты могут смещаться.
+- Retrieval ориентирован на русскоязычные документы; смешанные или англоязычные входы деградируют до лексического поиска.
+- Строки с `low_confidence=true` или `grounding_failed=true` следует считать предварительными.

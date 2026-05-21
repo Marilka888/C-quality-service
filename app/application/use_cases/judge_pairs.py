@@ -9,10 +9,9 @@ concurrent /api/generate calls on a single GPU (it queues them and
 keeps the model resident), so a 2-3× speedup is free for the cost of
 threading.
 
-Concurrency is OFF by default (=1) to preserve the original behaviour
-on machines where Ollama can't tolerate parallel calls (low VRAM,
-slow disk for model load). Set the env var to enable, e.g.:
-  CQUALITY_JUDGE_CONCURRENCY=3
+Default concurrency is 3. Override via env var, e.g.:
+  CQUALITY_JUDGE_CONCURRENCY=1   # force serial (low-VRAM machines)
+  CQUALITY_JUDGE_CONCURRENCY=5   # more aggressive parallel
 """
 from __future__ import annotations
 
@@ -38,7 +37,7 @@ _CONCURRENCY_HARD_CAP = 8
 
 def _resolve_concurrency() -> int:
     """Read CQUALITY_JUDGE_CONCURRENCY, validate, clamp to [1, cap]."""
-    raw = os.environ.get("CQUALITY_JUDGE_CONCURRENCY", "1").strip()
+    raw = os.environ.get("CQUALITY_JUDGE_CONCURRENCY", "3").strip()
     if not raw:
         return 1
     try:
