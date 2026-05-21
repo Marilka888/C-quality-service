@@ -91,7 +91,7 @@ CHECK_C_BASE_URL=http://localhost:8004
 
 ```bash
 docker build -t c-quality-service .
-docker run -p 8004:8000 \
+docker run -p 8004:8004 \
   -v /path/to/models:/app/model \
   -e CQUALITY_LLM_MODEL_NAME=qwen2.5:3b \
   -e CQUALITY_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
@@ -187,6 +187,15 @@ data/packages/             # тестовые пакеты для калибро
 scripts/                   # калибровка, диагностика, датасет-билдер
 tests/                     # unit и integration тесты
 ```
+
+## Требования к железу
+
+| Конфигурация | Характеристики |
+|---|---|
+| Минимальная (CPU) | 8 ГБ RAM; `qwen2.5:3b` (~2 ГБ); ~3–8 с на требование |
+| Рекомендуемая (GPU) | GPU 8 ГБ VRAM; `qwen2.5:7b`; <1 с на требование |
+
+Sentence-transformer и reranker работают на CPU без потери корректности; узкое место — LLM-судья.
 
 ## Ограничения
 
