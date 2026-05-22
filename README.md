@@ -202,3 +202,6 @@ Sentence-transformer и reranker работают на CPU без потери �
 - LLM-судья калиброван под `qwen2.5:7b`; на других моделях вердикты могут смещаться.
 - Retrieval ориентирован на русскоязычные документы; смешанные или англоязычные входы деградируют до лексического поиска.
 - Строки с `low_confidence=true` или `grounding_failed=true` следует считать предварительными.
+
+## Веса для модели
+  https://drive.google.com/drive/folders/1l6NqFySJx7PIqdWZ8BWfSjRLK4SBRzm7?usp=sharing
